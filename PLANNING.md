@@ -7,6 +7,7 @@ This document serves as an index for the Locus project documentation.
 *   **[Core Philosophy](docs/philosophy.md):** The guiding principles of data sovereignty and precision.
 *   **[Infrastructure & Security](docs/infrastructure.md):** AWS S3, Authentication, Encryption, and Cost Projections.
 *   **[Android Architecture](docs/android_architecture.md):** Details on the Android Client, Services, and Workers.
+*   **[User Flows](docs/user_flows.md):** The bootstrap, daily usage, and recovery journeys.
 *   **[Data Strategy](docs/data_strategy.md):** Storage format, Schema Versioning, and JSON structure.
 *   **[Deployment](docs/deployment.md):** Building and distributing the application.
 
