@@ -12,20 +12,22 @@ This document outlines the system requirements using the EARS (Easy Approach to 
 
 ## Data Collection & Local Storage
 7. The system shall capture the device's geolocation coordinates at a frequency of 1Hz (once per second).
-8. The system shall store captured location data in a persistent local buffer.
-9. While the location tracking is active, the system shall maintain a persistent notification to the user.
-10. If the device battery level drops below 10%, then the system shall automatically stop the location tracking service to preserve battery life.
+8. The system shall capture the following metadata with each location sample: bearing, satellite count, battery level, charging status, network type, network signal level, and network signal strength (dBm).
+9. When the recorded speed exceeds 4.5 m/s, the system shall additionally capture environmental sensor data including 3-axis accelerometer, 3-axis magnetometer, and barometric pressure.
+10. The system shall store captured location data in a persistent local buffer.
+11. While the location tracking is active, the system shall maintain a persistent notification to the user.
+12. If the device battery level drops below 10%, then the system shall automatically stop the location tracking service to preserve battery life.
 
 ## Data Synchronization & Security
-11. The system shall compress location data to reduce transfer size.
-12. The system shall encrypt all data during transmission to the remote storage.
-13. The system shall ensure data is encrypted at rest within the remote storage.
-14. When a periodic synchronization trigger occurs, the system shall attempt to upload buffered data to the remote storage.
-15. When data is successfully confirmed as uploaded, the system shall delete the corresponding data from the local buffer.
-16. The system shall organize stored data files using a hierarchical, date-based directory structure.
-17. The system shall include a schema version identifier within each stored data file.
+13. The system shall compress location data to reduce transfer size.
+14. The system shall encrypt all data during transmission to the remote storage.
+15. The system shall ensure data is encrypted at rest within the remote storage.
+16. When a periodic synchronization trigger occurs, the system shall attempt to upload buffered data to the remote storage.
+17. When data is successfully confirmed as uploaded, the system shall delete the corresponding data from the local buffer.
+18. The system shall organize stored data files using a hierarchical, date-based directory structure.
+19. The system shall include a schema version identifier within each stored data file.
 
 ## Visualization & User Interface
-18. The system shall allow the user to select and view historical location tracks on a map interface.
-19. When the user requests to view history, the system shall retrieve the track data directly from the user's remote storage.
-20. The system shall support map visualization using offline-capable map data sources.
+20. The system shall allow the user to select and view historical location tracks on a map interface.
+21. When the user requests to view history, the system shall retrieve the track data directly from the user's remote storage.
+22. The system shall support map visualization using offline-capable map data sources.
