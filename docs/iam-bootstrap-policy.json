@@ -2,28 +2,24 @@
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "AllowAppToManageItsOwnBuckets",
-            "Effect": "Allow",
-            "Action": [
-                "s3:CreateBucket",
-                "s3:ListAllMyBuckets",
-                "s3:GetBucketLocation"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Sid": "AllowAppToReadWriteItsBuckets",
+            "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
                 "s3:PutObject",
                 "s3:GetObject",
                 "s3:ListBucket",
-                "s3:DeleteObject"
+                "s3:CreateBucket",
+                "s3:PutBucketVersioning",
+                "s3:PutBucketObjectLockConfiguration",
+                "s3:PutBucketPublicAccessBlock",
+                "cloudformation:CreateStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:GetTemplate",
+                "cloudformation:ValidateTemplate"
             ],
-            "Resource": [
-                "arn:aws:s3:::tracker-data-*",
-                "arn:aws:s3:::tracker-data-*/*"
-            ]
+            "Resource": "*"
         }
     ]
 }

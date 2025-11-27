@@ -8,12 +8,75 @@
 ## 2. Infrastructure & Security
 *   **Storage:** AWS S3 (User Owned).
 *   **Authentication:**
-    *   **Setup:** User creates IAM User with "S3 Only" policy.
-    *   **Runtime:** App uses these keys to check/create its own bucket.
+    *   **Setup:** User creates IAM User with a bootstrap policy.
+    *   **Runtime:** App uses these keys to deploy CloudFormation and write/read data.
 *   **Encryption:** Standard AWS S3 Server-Side Encryption (SSE-S3).
-*   **Monitoring:** Firebase Crashlytics & Analytics.
+*   **Immutability:** S3 Object Lock (Compliance/Governance Mode) to prevent overwrites or deletion.
 
-## 3. Data Strategy
+## 3. System Components
+
+### A. Android Client
+The Android application acts as both the data collector and the infrastructure controller.
+
+1.  **Provisioner (Setup):**
+    *   **Role:** One-time setup wizard.
+    *   **Action:** Uses user-provided API Keys to deploy a **CloudFormation Stack**.
+    *   **Outcome:** Creates the S3 Bucket with correct settings (Object Lock, Versioning).
+
+2.  **Tracker Service (The Engine):**
+    *   **Role:** Always-on data collection.
+    *   **Component:** `ForegroundService` with `PARTIAL_WAKE_LOCK`.
+    *   **Action:** Captures GPS (1Hz), buffers to local Room DB.
+    *   **Safety:** Stops if battery < 10%.
+
+3.  **Sync Worker (The Uploader):**
+    *   **Role:** Reliable data transport.
+    *   **Trigger:** Periodic (e.g., every 15 mins) via WorkManager.
+    *   **Action:**
+        *   Query oldest points from Room DB.
+        *   Compress to Gzip.
+        *   Upload to S3.
+        *   **On Success:** Delete from local Room DB.
+
+4.  **Visualizer (The View):**
+    *   **Role:** User interface for history.
+    *   **Action:**
+        *   Lists S3 objects by date prefix.
+        *   Downloads and decompresses tracks.
+        *   Renders on OpenStreetMap (osmdroid).
+
+### B. Backend (AWS CloudFormation)
+The backend is serverless and purely composed of AWS managed resources owned by the user.
+
+*   **S3 Bucket:**
+    *   **Versioning:** Enabled (Required for Object Lock).
+    *   **Object Lock:** Enabled (Prevents deletion/overwrite).
+    *   **Retention:** Default Retention (e.g., 365 days or Indefinite).
+
+### C. Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Android App
+        UI[User Interface] -->|Setup Keys| Provisioner
+        UI -->|View History| Visualizer
+        Tracker[Tracker Service] -->|GPS Data| LocalDB[(Room DB)]
+        Sync[Sync Worker] -->|Read Batch| LocalDB
+        Sync -->|Delete Confirmed| LocalDB
+    end
+
+    subgraph AWS User Account
+        Provisioner -->|Deploy Stack| CloudFormation
+        CloudFormation -->|Create| S3Bucket[(S3 Bucket)]
+        Sync -->|PutObject .gz| S3Bucket
+        Visualizer -->|List/Get| S3Bucket
+    end
+
+    style S3Bucket fill:#f9f,stroke:#333,stroke-width:2px
+    style LocalDB fill:#ccf,stroke:#333,stroke-width:2px
+```
+
+## 4. Data Strategy
 ### A. Storage Format (S3)
 *   **Format:** NDJSON (Newline Delimited JSON), Gzipped.
 *   **Compression:** `.gz` (Expected ~90% size reduction).
@@ -34,30 +97,6 @@ Each file is a Gzipped text file.
 ```json
 {"t": 1698300001, "lat": 37.7749, "lon": -122.4194, "acc": 4.5, "alt": 120, "spd": 1.2}
 ```
-
-## 4. Android Client Architecture
-### A. Service Layer (The Engine)
-*   **Component:** `ForegroundService`.
-*   **Behavior:**
-    *   Acquires `PARTIAL_WAKE_LOCK`.
-    *   Requests Location Updates (GPS Provider, minTime=1000ms).
-    *   **Battery Safety:** Automatically stops tracking if battery drops below **10%**.
-
-### B. Visualization
-*   **Provider:** **OpenStreetMap (via `osmdroid`)**.
-*   **Benefits:** No API keys required, open source, offline caching capability.
-
-### C. Persistence Layer (The Buffer)
-*   **Local DB:** Room (SQLite).
-*   **Purge Strategy:** Rows are deleted only after successful S3 upload confirmation.
-
-### D. Sync Worker
-*   **Trigger:** Periodic (e.g., every 15 mins).
-*   **Action:**
-    1.  Query oldest points.
-    2.  Gzip compress.
-    3.  Upload to S3.
-    4.  On Success -> Delete points from DB.
 
 ## 5. Deployment
 *   **Distribution:** Manual APK Build (User builds from source).
