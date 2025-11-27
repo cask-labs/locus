@@ -1,13 +1,19 @@
 # Manual Sync & Status
 
-**Goal:** Immediate verification of data safety.
+**Goal:** Immediate verification of data safety and system health.
 
-*   **Step 1: Status Check:**
-    *   The main screen displays the "Last Successful Sync" timestamp.
-    *   It shows the current size of the local buffer (number of points waiting to upload).
-*   **Step 2: Forced Sync:**
-    *   The user taps a "Sync Now" button.
-    *   The app immediately packages the local buffer, compresses it, and attempts an upload.
-*   **Step 3: Feedback:**
-    *   **Success:** The local buffer count drops to zero; the "Last Sync" time updates to "Just now".
-    *   **Failure:** An error message explains the issue (e.g., "No Network", "AWS Error").
+*   **Step 1: Dashboard Status:**
+    *   The dashboard displays:
+        *   **Local Buffer:** Number of data points waiting on the device.
+        *   **Last Sync:** Relative time (e.g., "5 minutes ago").
+        *   **Connection State:** Current network eligibility (e.g., "Ready", "No Internet").
+*   **Step 2: User Action (Force Sync):**
+    *   The user taps "Sync Now".
+    *   **Override:** This action bypasses low-battery (<10%) restrictions.
+    *   **Debounce:** If a sync is already in progress, the UI attaches to the existing event.
+*   **Step 3: Execution:**
+    *   **Scenario A (Data Exists):** The app packages buffered points into batches and uploads them. UI shows progress ("Uploading batch 1 of 3...").
+    *   **Scenario B (Buffer Empty):** The app performs a lightweight "Connectivity Check" to verify S3 access credentials.
+*   **Step 4: Feedback:**
+    *   **Success:** Buffer count clears to 0. "Last Sync" updates to "Just now". A "Success" toast appears.
+    *   **Failure:** A specific error message is displayed (e.g., "Upload failed: Network timeout"). No automatic retry is attempted for manual triggers.
