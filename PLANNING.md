@@ -9,6 +9,7 @@ This document serves as an index for the Locus project documentation.
 *   **[Android Architecture](docs/android_architecture.md):** Details on the Android Client, Services, and Workers.
 *   **[Data Strategy](docs/data_strategy.md):** Storage format, Schema Versioning, and JSON structure.
 *   **[Deployment](docs/deployment.md):** Building and distributing the application.
+*   **[Requirements Phases](docs/requirements_phases.md):** The high-level phases for determining project requirements.
 
 ## High-Level Architecture
 
