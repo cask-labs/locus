@@ -12,8 +12,8 @@ This document outlines the system requirements using the EARS (Easy Approach to 
 
 ## Data Collection & Local Storage
 7. The system shall capture the device's geolocation coordinates at a frequency of 1Hz (once per second).
-8. The system shall capture metadata including bearing, satellite count, battery status, and network quality with each location sample.
-9. When the recorded speed exceeds 4.5 m/s, the system shall additionally capture environmental sensor data (accelerometer, magnetometer, barometer).
+8. The system shall capture the following metadata with each location sample: bearing, satellite count, battery level, charging status, network type, network signal level, and network signal strength (dBm).
+9. When the recorded speed exceeds 4.5 m/s, the system shall additionally capture environmental sensor data including 3-axis accelerometer, 3-axis magnetometer, and barometric pressure.
 10. The system shall store captured location data in a persistent local buffer.
 11. While the location tracking is active, the system shall maintain a persistent notification to the user.
 12. If the device battery level drops below 10%, then the system shall automatically stop the location tracking service to preserve battery life.

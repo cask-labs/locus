@@ -7,15 +7,15 @@
     `s3://<bucket_name>/tracks/YYYY/MM/DD/<device_id>_<start_timestamp>_v<version>.json.gz`
 
 ## Schema Versioning
-*   **Current Version:** `v2`
-*   **Strategy:** The filename includes the version (`_v2`). The JSON payload also includes a header object.
+*   **Current Version:** `v1`
+*   **Strategy:** The filename includes the version (`_v1`). The JSON payload also includes a header object.
 
-## JSON Schema (v2)
+## JSON Schema (v1)
 Each file is a Gzipped text file.
 
 **Line 1 (Header):**
 ```json
-{"type": "header", "version": 2, "device_id": "Pixel7_a8f3", "start_time": 1698300000}
+{"type": "header", "version": 1, "device_id": "Pixel7_a8f3", "start_time": 1698300000}
 ```
 
 **Lines 2..N (Data):**
