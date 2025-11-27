@@ -10,6 +10,7 @@ This document serves as an index for the Locus project documentation.
 *   **[User Flows](docs/user_flows.md):** The bootstrap, daily usage, and recovery journeys.
 *   **[Data Strategy](docs/data_strategy.md):** Storage format, Schema Versioning, and JSON structure.
 *   **[Deployment](docs/deployment.md):** Building and distributing the application.
+*   **[Implementation Process](docs/process_implementation_definition.md):** Steps to define technical specifics.
 
 ## High-Level Architecture
 
