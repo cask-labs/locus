@@ -13,8 +13,8 @@ This document outlines the system requirements using the EARS (Easy Approach to 
 ## Data Collection & Local Storage
 7. The system shall capture the device's geolocation coordinates at a frequency of 1Hz (once per second).
 8. The system shall store captured location data in a persistent local buffer.
-9. While the location tracking is active, the system shall maintain a persistent notification to the user.
-10. If the device battery level drops below 10%, then the system shall automatically stop the location tracking service to preserve battery life.
+9. While the location tracking is active, the system shall maintain a visible status indication to the user.
+10. If the device battery level drops below 10%, then the system shall automatically stop location tracking to preserve battery life.
 
 ## Data Synchronization & Security
 11. The system shall compress location data to reduce transfer size.
