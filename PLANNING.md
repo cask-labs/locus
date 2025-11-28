@@ -8,6 +8,7 @@ This document serves as an index for the Locus project documentation.
 *   **[Infrastructure & Security](docs/infrastructure.md):** AWS S3, Authentication, Encryption, and Cost Projections.
 *   **[Android Architecture](docs/android_architecture.md):** Details on the Android Client, Services, and Workers.
 *   **[User Flows](docs/user_flows.md):** The bootstrap, daily usage, and recovery journeys.
+*   **[Functional Requirements](docs/functional_requirements.md):** The detailed business rules and system behaviors.
 *   **[Data Strategy](docs/data_strategy.md):** Storage format, Schema Versioning, and JSON structure.
 *   **[Deployment](docs/deployment.md):** Building and distributing the application.
 *   **[Implementation Process](docs/process_implementation_definition.md):** Steps to define technical specifics.
