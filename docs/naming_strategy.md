@@ -13,8 +13,8 @@ We separate the *User's Concept* of the device from the *AWS Physical ID*.
 ### 1. User Input: "Device Name" (Stack Name)
 During onboarding, the user is asked for a **Device Name**.
 *   **Purpose:** To identify this specific installation in the user's mental model.
-*   **Examples:** `Pixel7`, `DadiPhone`, `BlueTruck`.
-*   **Constraints:** Alphanumeric, distinct for that specific user.
+*   **Default:** The app pre-fills this field with the system model name (e.g., `Pixel 7`, `Samsung S23`) to reduce friction.
+*   **Uniqueness Constraint:** This name must be unique **within the user's AWS Account**. It does *not* need to be globally unique.
 
 ### 2. AWS Resource: CloudFormation Stack
 The app deploys a CloudFormation stack named `Locus-<DeviceName>`.
@@ -26,6 +26,7 @@ The S3 bucket name is **auto-generated** by CloudFormation to guarantee uniquene
 *   **Format:** `locus-<DeviceName>-<RandomSuffix>`
 *   **Example:** `locus-pixel7-j4k2m9zp`
 *   **Mechanism:** The Android app does *not* choose the bucket name. It passes the `DeviceName` as a parameter to the CloudFormation template. The template uses `Fn::Join` with a pseudo-parameter (like `AWS::StackId` or a randomization string) to construct the final bucket name.
+*   **Uniqueness Constraint:** This name is guaranteed to be **Globally Unique** by CloudFormation.
 
 ### 4. Discovery Strategy (Important)
 For **System Recovery**, the app needs to find these buckets *without* knowing the random suffix.

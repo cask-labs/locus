@@ -2,6 +2,13 @@
 
 **Goal:** Transition from a fresh install to a fully provisioned, cloud-connected system.
 
+## Step 0: The Choice
+Upon first launch, the user is presented with two primary paths:
+1.  **New Setup:** "I want to start tracking this device." (Proceeds with this flow).
+2.  **Recover / Link Existing:** "I want to restore history or link to an existing store." (Proceeds to [System Recovery & Reconnection](recovery_and_reconnection.md)).
+
+---
+
 *   **Prerequisite:** The user must have an IAM User with the `iam-bootstrap-policy.json` attached.
     *   *UI Support:* The first screen contains a "Help me set up AWS" link pointing to the [Infrastructure Documentation](infrastructure.md).
 *   **Step 1: Permissions (The Two-Step Dance):**
@@ -14,8 +21,9 @@
     *   *UI Requirement:* Fields are optimized for clipboard pasting. The Secret Key field has a "Show/Hide" toggle (masked by default).
     *   *Constraint:* The app validates the format of the keys (regex check) before allowing the user to proceed.
 *   **Step 3: Device Identity:**
-    *   The user enters a **Device Name** (e.g., "Pixel7").
-    *   *Logic:* This name is used to generate the CloudFormation Stack name (`Locus-Pixel7`) and ensures uniqueness. See [Naming Strategy](naming_strategy.md).
+    *   The user enters a **Device Name**.
+    *   **Default:** The field is pre-filled with the device model (e.g., `Pixel 7`) to save time.
+    *   *Logic:* This name is used to generate the CloudFormation Stack name (`Locus-Pixel7`) and ensures uniqueness within your account. See [Naming Strategy](naming_strategy.md).
 *   **Step 4: Provisioning:**
     *   The user taps "Deploy Infrastructure".
     *   **Process:** The app starts a **Foreground Service** (shown as a persistent notification: "Locus Setup: Provisioning...").
