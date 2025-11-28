@@ -34,9 +34,25 @@ Each file is a Gzipped text file.
   "lon": -122.4194,
   "acc": 4.5,
   "alt": 120,
-  "spd": 1.2
+  "spd": 1.2,
+  "sig": 3,
+  "dbm": -85,
+  "net": "cell"
 }
 ```
+
+## Schema Definition
+| Key | Type | Description | Unit |
+| :--- | :--- | :--- | :--- |
+| `t` | Number (Long) | Unix Timestamp (Epoch seconds). | Seconds |
+| `lat` | Number (Double) | Latitude (WGS84). | Degrees |
+| `lon` | Number (Double) | Longitude (WGS84). | Degrees |
+| `acc` | Number (Float) | Horizontal Accuracy (Radius of 68% confidence). | Meters |
+| `alt` | Number (Double) | Altitude above WGS84 ellipsoid. | Meters |
+| `spd` | Number (Float) | Speed over ground. | m/s |
+| `sig` | Integer | Signal Level (0-4), as reported by Android `SignalStrength`. | Level (0-4) |
+| `dbm` | Integer | Raw Signal Strength. | dBm |
+| `net` | String | Network Type (e.g., "wifi", "cell", "none"). | N/A |
 
 ## Synchronization Strategy: Lazy Loading
 
