@@ -8,4 +8,4 @@ This document serves as an index for the implementation-agnostic functional requ
 *   **[Data Storage & Management](requirements/data_storage.md):** Rules for local buffering, remote synchronization, and data formats.
 *   **[Visualization & History](requirements/visualization.md):** Rules for map rendering, offline capability, and history retrieval.
 *   **[Setup & Onboarding](requirements/setup_onboarding.md):** Rules for infrastructure provisioning and identity management.
-*   **[User Interface & Feedback](requirements/ui_feedback.md):** Rules for status indication and permission handling.
+*   **[User Interface & Feedback](requirements/ui_feedback.md):** Rules for notifications, error hierarchies, dashboard feedback, and accessibility.
