@@ -9,3 +9,4 @@
 *   Enable user-configurable recording frequency to allow adjustment of tracking intervals
 *   Ensure the app functions correctly in the absence of Google Play Services to maintain independence and data sovereignty
 *   Investigate mechanisms to detect and alert on silent data tracking failures
+*   Update README.md to reflect current project status and documentation structure
