@@ -19,7 +19,7 @@
 
 *   **Battery Management:**
     *   **Low Battery (<10%):** Uploads pause, and tracking frequency reduces. The user sees a "Paused: Low Battery" status.
-    *   **Critical Battery (<3%):** Tracking stops completely to preserve the phone's remaining life.
+    *   **Critical Battery (<3%):** Tracking frequency reduces significantly (e.g., to 60s) to preserve the phone's remaining life.
     *   **Recovery:** When charged >15%, the app automatically resumes full-fidelity tracking and syncing.
 
 *   **Error Recovery Hierarchy:**

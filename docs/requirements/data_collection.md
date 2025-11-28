@@ -1,17 +1,19 @@
 # Data Collection & Tracking Requirements
 
 ## 1.1. Location Recording
-*   **Precision:** The system must be capable of recording geospatial location data (Latitude, Longitude, Altitude) at a frequency of 1Hz (once per second).
-*   **Independence:** The system must acquire location data without reliance on proprietary third-party location APIs (e.g., Google Play Services FusedLocationProvider) to ensure autonomy.
-*   **Persistence:** The system must ensure continuous data collection even when the application is backgrounded or the device is in a sleep state, utilizing necessary system mechanisms (e.g., Wake Locks) to prevent OS termination.
+*   **Precision:** The system shall record geospatial location data (Latitude, Longitude, Altitude) at a frequency of 1Hz.
+*   **Independence:** The system shall acquire location data without using proprietary third-party location APIs (e.g., Google Play Services FusedLocationProvider).
+*   **Persistence:** While the application is in the background or the device is sleeping, the system shall maintain continuous data collection.
+*   **Battery Saver Override:** While the OS "Battery Saver" mode is active, the system shall continue standard data collection operations.
+*   **Network Quality:** When recording a location point, the system shall record the network quality including computed signal level (0-4) and raw signal strength (dBm).
 
-## 1.2. Sensor Fusion & Optimization
-*   **Dynamic Sampling:** The system must record auxiliary environmental sensors (accelerometer, magnetometer, barometer) only when the device speed exceeds a defined threshold (e.g., 4.5 m/s) to optimize storage and power.
-*   **Stationary Mode (Sleep Mode):** To conserve battery, the system must automatically suspend GPS acquisition if no movement is detected for a defined period (e.g., 5 minutes).
-*   **Wake-on-Motion:** The system must automatically resume GPS acquisition immediately upon detecting movement via the accelerometer while in Stationary Mode.
+## 1.2. Optimization & Sensor Fusion
+*   **Dynamic Sampling:** When the device speed exceeds 4.5 m/s, the system shall record auxiliary environmental sensors (accelerometer, magnetometer, barometer).
+*   **Stationary Mode:** When no movement is detected for 5 minutes, the system shall suspend GPS acquisition.
+*   **Wake-on-Motion:** While in Stationary Mode, when movement is detected via the accelerometer, the system shall immediately resume GPS acquisition.
 
 ## 1.3. Battery Safety Protocol
-The system must adapt its behavior based on the device's remaining battery capacity to prevent critical depletion:
-*   **Low Battery (< 10%):** Reduce recording frequency (e.g., to 10s interval) and pause automatic data uploads.
-*   **Critical Battery (< 3%):** Further reduce recording frequency (e.g., to 60s interval).
-*   **Recovery (> 15%):** Resume normal recording and upload schedules automatically.
+*   **Low Battery (< 10%):** While the battery capacity is less than 10%, the system shall reduce the recording frequency to 10 seconds.
+*   **Low Battery Uploads:** While the battery capacity is less than 10%, the system shall pause automatic data uploads.
+*   **Critical Battery (< 3%):** While the battery capacity is less than 3%, the system shall reduce the recording frequency to 60 seconds.
+*   **Recovery:** When the battery capacity rises above 15%, the system shall resume standard recording and upload schedules.
