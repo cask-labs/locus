@@ -8,15 +8,16 @@
     *   **Setup:** User creates IAM User with a bootstrap policy.
     *   **Runtime:** App uses these keys to deploy CloudFormation and write/read data.
 *   **Encryption:** Standard AWS S3 Server-Side Encryption (SSE-S3).
-*   **Immutability:** S3 Object Lock (Compliance/Governance Mode) to prevent overwrites or deletion.
+*   **Immutability:** S3 Object Lock (Compliance/Governance Mode).
+    *   *Definition:* A "Write Once, Read Many" (WORM) model. Once a track file is uploaded, it cannot be deleted or overwritten for the duration of the retention period, even by the root user. This guarantees data integrity against accidental deletion or malicious actors.
 
 ### Backend (AWS CloudFormation)
 The backend is serverless and purely composed of AWS managed resources owned by the user.
 
 *   **S3 Bucket:**
     *   **Versioning:** Enabled (Required for Object Lock).
-    *   **Object Lock:** Enabled (Prevents deletion/overwrite).
-    *   **Retention:** Default Retention (e.g., 365 days or Indefinite).
+    *   **Object Lock:** Enabled.
+    *   **Retention:** **Indefinite** (or 100 years). We assume the user wants to keep their location history forever unless they explicitly destroy the bucket.
 
 ## Security Architecture: Bootstrap vs. Runtime
 
@@ -25,6 +26,7 @@ Locus employs a "Key Swap" architecture to minimize the risk of credential expos
 ### 1. The Bootstrap Keys (High Privilege)
 *   **Source:** Provided by the user during Onboarding or Recovery.
 *   **Scope:** `cloudformation:*`, `s3:ListBuckets`, `s3:CreateBucket`.
+    *   *Why CreateBucket?* When CloudFormation runs without a specific Service Role, it uses the credentials of the calling user (the Bootstrap Keys) to create the resources defined in the template (the S3 Bucket).
 *   **Lifecycle:** **Ephemeral**. These keys are used *only* to provision the stack or locate an existing bucket.
 *   **Handling:** The app holds these in **RAM Only** and explicitly overwrites them in memory immediately after the "Key Swap" is complete.
 
