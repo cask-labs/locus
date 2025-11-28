@@ -8,3 +8,4 @@
 *   Update all documentation to reflect the approach that avoids using CloudFormation for creating IAM credentials
 *   Enable user-configurable recording frequency to allow adjustment of tracking intervals
 *   Ensure the app functions correctly in the absence of Google Play Services to maintain independence and data sovereignty
+*   Investigate mechanisms to detect and alert on silent data tracking failures
