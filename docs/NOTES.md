@@ -6,3 +6,4 @@
 *   Implement cache eviction policies to prevent excessive storage usage by downloaded track data
 *   Verify the IAM strategy against AWS documentation to ensure it functions as intended and adheres to best practices
 *   Update all documentation to reflect the approach that avoids using CloudFormation for creating IAM credentials
+*   Enable user-configurable recording frequency to allow adjustment of tracking intervals
