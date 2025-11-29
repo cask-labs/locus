@@ -6,7 +6,7 @@ This document defines the automated verification and delivery pipeline for Locus
 
 The validation pipeline is designed to be **Local-First**.
 *   **Principle:** "If it fails on CI, it must fail locally."
-*   **Implementation:** All CI steps are wrappers around local scripts (e.g., `./gradlew check`, `./scripts/audit_infra.sh`).
+*   **Implementation:** All CI steps are wrappers around local scripts (e.g., `./gradlew check`, `python3 scripts/run_device_farm.py`).
 *   **Benefit:** Developers can verify their work fully without pushing to a remote server, supporting the offline/sovereign development model.
 
 ## 2. Validation Tiers
@@ -25,8 +25,10 @@ The pipeline executes checks in order of speed and cost.
     *   **Scope:** Ensures `docs/` and `agents/` files follow standard Markdown syntax.
 
 ### Tier 2: Unit Testing (Fast)
-*   **Scope:** Domain layer, Data layer (Room DAOs via Robolectric or In-Memory), and ViewModels.
-*   **Tool:** JUnit 5, MockK.
+*   **Scope:**
+    *   Domain layer, Data layer, ViewModels.
+    *   **Simulated Scenarios:** Robolectric tests for Non-Functional requirements (Battery Safety, Network Backoff).
+*   **Tool:** JUnit 5, MockK, Robolectric.
 *   **Command:** `./gradlew testDebugUnitTest`
 *   **Requirement:** 100% Pass rate required.
 
@@ -39,9 +41,21 @@ The pipeline executes checks in order of speed and cost.
     *   IAM Policies must not use `*` (Wildcards) on sensitive actions.
 *   **Command:** `./scripts/verify_security.sh`
 
+### Tier 4: Infrastructure Audit (Optional)
+*   **Scope:** Validation of CloudFormation deployment logic (Dry Run).
+*   **Tool:** `taskcat` or `aws cloudformation create-change-set`.
+*   **Command:** `./scripts/audit_infrastructure.sh`
+*   **Details:** Verifies quota limits and circular dependencies without permanent deployment.
+
+### Tier 5: Device Farm & Hardware (Pre-Release)
+*   **Scope:** Full end-to-end verification on physical devices.
+*   **Trigger:** Manual only (`workflow_dispatch`).
+*   **Tool:** AWS Device Farm (via `scripts/run_device_farm.py`).
+*   **Details:** See [Advanced Validation Strategy](advanced_validation.md).
+
 ## 3. Continuous Integration (GitHub Actions)
 
-The `.github/workflows/validation.yml` workflow orchestrates these tiers.
+The `.github/workflows/validation.yml` workflow orchestrates Tiers 1-3 automatically. Tiers 4 and 5 are triggered manually.
 
 ```yaml
 name: Validation
