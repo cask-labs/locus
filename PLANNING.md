@@ -11,6 +11,7 @@ This document serves as an index for the Locus project documentation.
 *   **[Functional Requirements](docs/functional_requirements_index.md):** The detailed business rules and system behaviors.
 *   **[Data Strategy](docs/data_strategy.md):** Storage format, Schema Versioning, and JSON structure.
 *   **[Deployment](docs/deployment.md):** Building and distributing the application.
+*   **[Operational Architecture](docs/operations/README.md):** Validation, Telemetry, and Resilience.
 *   **[Implementation Process](docs/process_implementation_definition.md):** Steps to define technical specifics.
 
 ## High-Level Architecture
