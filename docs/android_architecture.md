@@ -15,7 +15,7 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
     *   **External Dependencies:** **Zero.** All proprietary libraries are stripped at compile time.
     *   **Goal:** Used for F-Droid and privacy-focused manual installation.
     *   **Mechanism:** Uses "No-Op" stubs for the Community Telemetry interface.
-    *   **Implication:** FOSS users lose access to "Community Health Stats" (which they likely don't want) and "Fused Location Provider" (relying on Raw GPS instead).
+    *   **Implication:** FOSS users lose access to "Community Health Stats" (aggregated crash reports and performance metrics, e.g., ANRs) and the "Fused Location Provider" (relying on Raw GPS instead).
 
 ## 2. Provisioner (Setup)
 *   **Role:** Handles the one-time setup and infrastructure creation.
@@ -56,7 +56,7 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
 *   **Component:** `WorkManager` (PeriodicWorkRequest).
 *   **Responsibilities:**
     *   **Dual Dispatch:** Uploads Tracks to S3 and Telemetry to both S3 and Community (if Standard/Opt-In).
-    *   **Logical Isolation:** Although scheduled by the same `WorkManager` job for battery efficiency, Sync and Telemetry must execute in separate `try/catch` blocks. A crash in the Telemetry uploader **must not** prevent Track data from syncing.
+    *   **Logical Isolation:** Although scheduled by the same `WorkManager` job for battery efficiency, Sync and Telemetry must execute in separate `try/catch` blocks. A crash in the Telemetry uploader **must not** prevent Track data from syncing, and vice versa.
     *   **Streaming Uploads:** Stream data directly from the Room DB through a Gzip compressor.
     *   **Buffer Management:** Enforce a **500MB Soft Limit** (FIFO eviction).
     *   **Transport:** Upload to S3 using the Runtime Keys.

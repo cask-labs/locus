@@ -88,7 +88,10 @@ To ensure the "Fail-Open" mandate:
 
 1.  **Isolation:** Telemetry operations **must** run in isolated Coroutine scopes (e.g., `Dispatchers.IO`) wrapped in top-level `try-catch` blocks.
     *   **Requirement:** A crash in the logging subsystem **must never** propagate to the calling thread (e.g., the tracking loop).
-    *   **Buffer Safety:** The *Local Circular Buffer* shall use a low-level, robust implementation (e.g., `mmap` or file-append) to maximize the chance of persisting logs even during a process crash (Tombstone support).
+    *   **Buffer Safety:** The *Local Circular Buffer* shall use a low-level, robust implementation (e.g., `mmap` or file-append) to maximize the chance of persisting logs even during a process crash (Tombstone support[^1]).
+
+[^1]: **Tombstone Support:** The ability to read the final log buffer state from disk even after the application process has completely died/crashed (e.g., due to an OS kill or unhandled exception).
+
 2.  **Exception Swallowing:**
     *   **IF** a telemetry upload fails, **THEN** the system **shall** catch the exception, log it to the *Local Circular Buffer*, and discard the **current payload** (the batch of logs attempting upload).
     *   **The system shall not** retry telemetry uploads more than once per batch.
