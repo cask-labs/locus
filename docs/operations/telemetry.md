@@ -6,11 +6,12 @@ This document defines the architecture for runtime observability (logging, crash
 
 *   **Fail-Open Design:** The application **shall** continue normal operation (tracking, storing data) even if the telemetry subsystems fail completely (e.g., network unreachable, crash in logger).
 *   **Data Sovereignty:** The user's S3 bucket is the **Primary Destination** for all diagnostic data.
+*   **Privacy-First Compilation:** The application uses Build Variants to physically exclude proprietary tracking code from FOSS builds.
 *   **Voluntary Contribution:** Reporting to a centralized "Community" service is strictly **Opt-In** and **Secondary**.
 
 ## 2. Architecture
 
-The telemetry system utilizes a "Dual-Dispatch" model with strict isolation.
+The telemetry system utilizes a "Dual-Dispatch" model with strict isolation and build-time configuration.
 
 ```mermaid
 graph TD
@@ -25,42 +26,83 @@ graph TD
     Dispatcher --x|Try/Catch| ExtWorker[Community Service Worker]
 
     S3Worker -->|Upload| UserBucket[(User S3 Bucket)]
-    ExtWorker -->|Upload| ExtService[Community Service]
+    ExtWorker -->|Upload| ExtService[Community Service (Firebase)]
 
     style UserBucket fill:#ccf,stroke:#333
     style ExtService fill:#fcc,stroke:#333,stroke-dasharray: 5 5
 ```
 
+### 2.1. Build Variants (Flavors)
+
+To respect user privacy and FOSS principles, the application **shall** be compiled in two flavors:
+
+1.  **Standard (`standard`):**
+    *   **Includes:** Firebase Crashlytics (and Google Play Services dependencies).
+    *   **Purpose:** Development, Beta Testing, Google Play Store distribution.
+    *   **Behavior:** Community telemetry is possible (if opted-in).
+2.  **FOSS (`foss`):**
+    *   **Excludes:** All proprietary libraries (Firebase, GMS).
+    *   **Purpose:** F-Droid, privacy-conscious manual installs.
+    *   **Behavior:** The `Community Service Worker` is a "No-Op" stub. Community telemetry settings are hidden or disabled.
+
 ## 3. Destinations
 
 ### 3.1. Primary: User S3 (Diagnostics)
-*   **Purpose:** Full fidelity debugging, crash dumps (tombstones), and performance metrics.
-*   **Path:** `s3://<user-bucket>/diagnostics/YYYY/MM/DD/<device_id>_<timestamp>.log.gz`
-*   **Retention:** Controlled by the S3 Lifecycle Policy (default: 30 days, distinct from Tracks).
-*   **Content:** Full stack traces, device state, strict internal logs.
+*   **Purpose:** Full fidelity debugging, crash dumps, and performance metrics.
+*   **Path:** `s3://<user-bucket>/diagnostics/YYYY/MM/DD/<device_id>_<timestamp>.ndjson.gz`
+*   **Retention:** Controlled by S3 Lifecycle Policy (Strict **30 Days**).
+*   **Format:** NDJSON (Newline Delimited JSON) for machine parseability.
+
+#### Log Schema (NDJSON)
+Each line in the log file **must** adhere to the following schema:
+```json
+{
+  "ts": "2023-10-27T10:00:00.123Z",  // ISO 8601 Timestamp
+  "lvl": "WARN",                     // INFO, WARN, ERROR, FATAL
+  "tag": "TrackerService",           // Component Name
+  "msg": "GPS signal lost for 30s",  // Human-readable message
+  "ctx": {                           // Environmental Context
+    "bat": 85,                       // Battery Level %
+    "chg": false,                    // Is Charging?
+    "net": "wifi",                   // Network Type (wifi, cell, none)
+    "perm": true,                    // Is Location Permission Granted?
+    "svc": true                      // Is Tracker Service Running?
+  },
+  "stack": "..."                     // Optional: Stack Trace for Errors
+}
+```
 
 ### 3.2. Secondary: Community Service (Opt-In)
-*   **Purpose:** Aggregate health monitoring (e.g., "Is version 1.2.0 crashing more?").
-*   **Mechanism:** REST API (e.g., Kinesis Firehose or simple Endpoint).
-*   **Privacy Filtering:**
-    *   **The system shall** remove all PII (Personal Identifiable Information) before transmission.
-    *   **The system shall** exclude raw location coordinates.
-    *   **The system shall** anonymize the `device_id` (e.g., using a hashed salt).
+*   **Service:** Firebase Crashlytics (initially), behind an interface to allow future migration (e.g., to Sentry).
+*   **Mechanism:** Native SDK integration (Standard Flavor only).
+*   **Privacy Strategy:** "Salted Anonymity"
+    *   **The Risk:** Linking a crash report (containing app state) to a public track file (containing `device_id`).
+    *   **The Solution:** The app generates a random UUID (`telemetry_salt`) at install time, stored in `EncryptedSharedPreferences`.
+    *   **The ID:** The ID sent to Firebase is `SHA256(device_id + telemetry_salt)`.
+    *   **Result:** Developers can correlate crashes from the same device *without* knowing which User S3 bucket or real-world identity it belongs to.
 
 ## 4. Resilience & Fail-Open Requirements
 
 To ensure the "Fail-Open" mandate:
 
-1.  **Isolation:** Telemetry operations **must** run in isolated Coroutine scopes (e.g., `Dispatchers.IO`) separate from the critical Tracking Loop.
+1.  **Isolation:** Telemetry operations **must** run in isolated Coroutine scopes (e.g., `Dispatchers.IO`).
 2.  **Exception Swallowing:**
-    *   **IF** a telemetry upload fails (S3 or Community), **THEN** the system **shall** catch the exception, log it to the *Local Circular Buffer* (if possible), and discard the payload.
-    *   **The system shall not** retry telemetry uploads more than once to prevent battery drain.
+    *   **IF** a telemetry upload fails, **THEN** the system **shall** catch the exception, log it to the *Local Circular Buffer*, and discard the payload.
+    *   **The system shall not** retry telemetry uploads more than once per batch.
 3.  **Circuit Breaking:**
     *   **IF** telemetry uploads fail consecutively for > 5 attempts, **THEN** the Telemetry Module **shall** enter a "Backoff" state for 6 hours.
 
 ## 5. Implementation Definition
 
-*   **Local Circular Buffer:** A small, in-memory (or file-backed) ring buffer to store the last N logs. This ensures that even if uploads fail, the user can inspect the immediate history via the "Debug" screen.
-*   **Configuration:**
-    *   A boolean setting `enable_community_telemetry` (Default: `false`).
-    *   A boolean setting `enable_s3_diagnostics` (Default: `true`).
+### 5.1. Local Debug Dashboard
+Since S3 logs are remote and compressed, the app **shall** provide a local "Debug View" for immediate troubleshooting:
+*   **Source:** Reads from the *Local Circular Buffer* (in-memory or short-term file).
+*   **Features:**
+    *   Scrollable list of recent logs (last ~500 lines).
+    *   Color-coded by level (WARN/ERROR).
+    *   "Copy to Clipboard" / "Share" button for manual reporting.
+
+### 5.2. Configuration
+*   `enable_community_telemetry`: Boolean (Default: `false`). Only visible/effective in `Standard` build.
+*   `enable_s3_diagnostics`: Boolean (Default: `true`).
+*   `telemetry_salt`: String (UUID). Generated once on first run.
