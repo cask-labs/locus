@@ -21,10 +21,16 @@ Resources:
 
       ObjectLockConfiguration:
         ObjectLockEnabled: 'Enabled'
-        Rule:
-          DefaultRetention:
-            Mode: GOVERNANCE
-            Days: 36500 # ~100 years (Indefinite)
+        # DefaultRetention is intentionally omitted.
+        # The Application is responsible for setting the Retention Header for Track data.
+        # This allows Diagnostics data to be deleted by Lifecycle policies.
+
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireDiagnostics
+            Status: Enabled
+            Prefix: diagnostics/
+            ExpirationInDays: 30
 
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true

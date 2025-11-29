@@ -82,7 +82,9 @@ Full track data is only downloaded when the user explicitly interacts with a spe
 *   **Local Buffer:**
     *   **FIFO Protocol:** A 500MB soft limit is enforced. If the buffer is full, the oldest *unsynced* records are deleted to make room for new data.
     *   **Cleanup:** Synced records are deleted from the local buffer only after successful S3 upload verification (`200 OK`).
-*   **Remote Storage:** Indefinite (100 Years). S3 Object Lock is enabled in Governance Mode to prevent accidental deletion while allowing administrative recovery if absolutely necessary.
+*   **Remote Storage:**
+    *   **Tracks:** Indefinite (100 Years). The application explicitly sets the S3 Object Lock Retention Header to 100 years.
+    *   **Diagnostics:** 30 Days. The application does not set a retention header, allowing the S3 Lifecycle Policy to expire these objects automatically.
 
 ## Identity & Write Patterns
 

@@ -13,7 +13,7 @@ This tier validates that the Infrastructure-as-Code (CloudFormation) is not only
 *   **Trigger:** Manual (`workflow_dispatch`) or Local Execution.
 *   **Philosophy:** **Local-First.** The logic must be encapsulated in a script (e.g., `scripts/audit_infrastructure.sh`) that can run on a developer's machine given valid AWS credentials.
 *   **Mechanism:**
-    *   **Tool:** `taskcat` (AWS CloudFormation testing tool) or `aws cloudformation deploy --dry-run` / `create-change-set`.
+    *   **Tool:** `taskcat` (AWS CloudFormation testing tool).
     *   **Scope:** Attempts to stage the `locus-stack.yaml` in a temporary test stack (e.g., `locus-test-<uuid>`).
     *   **Verification:** Checks for circular dependencies, quota limits, and valid property configurations that `cfn-lint` might miss.
     *   **Cleanup:** Automatically deletes the test stack after verification to prevent cost accumulation.

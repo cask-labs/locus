@@ -53,7 +53,7 @@ The pipeline executes checks in order of speed and cost.
 
 ### Tier 3: Security & Policy (Medium)
 *   **Infrastructure Security:**
-    *   **Tool:** `checkov` or `cfn-guard` (Pinned Version).
+    *   **Tool:** `checkov` (Pinned Version).
     *   **Policies Enforced:**
         *   S3 Buckets must be **Private**.
         *   S3 Buckets must have **Versioning** enabled.
@@ -66,7 +66,7 @@ The pipeline executes checks in order of speed and cost.
 ## 4. Continuous Integration (GitHub Actions)
 ### Tier 4: Infrastructure Audit (Optional)
 *   **Scope:** Validation of CloudFormation deployment logic (Dry Run).
-*   **Tool:** `taskcat` or `aws cloudformation create-change-set`.
+*   **Tool:** `taskcat`.
 *   **Command:** `./scripts/audit_infrastructure.sh`
 *   **Details:** Verifies quota limits and circular dependencies without permanent deployment. See [Advanced Validation Strategy](advanced_validation.md).
 
