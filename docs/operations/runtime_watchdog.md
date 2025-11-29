@@ -38,7 +38,7 @@ To detect "Zombie" services (where the process is alive but the thread is deadlo
         *   `BOOT_COMPLETED`: Reschedules the Watchdog and checks state after device restart.
         *   `MY_PACKAGE_REPLACED`: Reschedules the Watchdog after an app update.
 *   **Constraints:**
-    *   **Uploads:** Only attempts upload recovery if `Battery > 15%` to prevent death loops on low battery.
+    *   **Uploads:** Only attempts upload recovery if `Battery > 15%`. This explicitly aligns with the "Resume Normal Operation" threshold defined in the [Data Collection Requirements](../requirements/data_collection.md), preventing death loops on low battery.
     *   **Checks:** Always runs (low cost) to verify safety invariants.
 
 ### 3.3. Circuit Breaker (Anti-Loop)

@@ -16,8 +16,10 @@ The backend is serverless and purely composed of AWS managed resources owned by 
 
 *   **S3 Bucket:**
     *   **Versioning:** Enabled (Required for Object Lock).
-    *   **Object Lock:** Enabled.
-    *   **Retention:** **Indefinite** (or 100 years). We assume the user wants to keep their location history forever unless they explicitly destroy the bucket.
+    *   **Object Lock:** Enabled (Governance Mode).
+    *   **Retention:** **App-Controlled**.
+        *   **Tracks:** The Application **must** set the `x-amz-object-lock-retain-until-date` header to 100 years from the upload date.
+        *   **Diagnostics:** The Application **must not** set a retention header, allowing the S3 Lifecycle Policy (30 days) to delete old logs.
 
 ## Security Architecture: Bootstrap vs. Runtime
 
