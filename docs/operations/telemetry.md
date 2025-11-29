@@ -26,7 +26,7 @@ graph TD
     Dispatcher --x|Try/Catch| ExtWorker[Community Service Worker]
 
     S3Worker -->|Upload| UserBucket[(User S3 Bucket)]
-    ExtWorker -->|Upload| ExtService[Community Service (Firebase)]
+    ExtWorker -->|Upload| ExtService["Community Service (Firebase)"]
 
     style UserBucket fill:#ccf,stroke:#333
     style ExtService fill:#fcc,stroke:#333,stroke-dasharray: 5 5
