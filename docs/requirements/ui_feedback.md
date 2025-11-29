@@ -14,7 +14,8 @@
 The system must adhere to a strict hierarchy for communicating errors to the user:
 *   **Tier 1: Transient Errors (Silent):** Self-correcting issues (e.g., Network Timeout, S3 500) must be handled silently with exponential backoff. The only visible indicator is the incrementing "Buffered" count in the Persistent Status.
 *   **Tier 2: Environmental Pauses (Passive):** Issues requiring state changes (e.g., "Airplane Mode", "Low Battery") must update the Persistent Status text (e.g., "Paused: Waiting for Network") but must not generate sound or vibration.
-*   **Tier 3: Fatal Errors (Active):** Critical failures requiring user intervention (e.g., AWS 403 Access Denied, Permission Revoked) must trigger a distinct, high-priority system notification (with sound/vibration) that links directly to a resolution screen.
+*   **Tier 3: Fatal Errors (Active):** Critical failures requiring user intervention must trigger a distinct, high-priority system notification (with sound/vibration) that links directly to a resolution screen.
+    *   *Examples:* AWS 403 Access Denied, Permission Revoked (Watchdog), Service Fatal Error (Watchdog Circuit Breaker).
 
 ## 5.4. Dashboard & Operational Feedback
 *   **Status Dashboard:** The main application view must display:

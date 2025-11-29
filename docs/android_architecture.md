@@ -23,6 +23,7 @@ The Android application acts as both the data collector and the infrastructure c
     *   **Stationary Manager:**
         *   **Primary:** Significant Motion Sensor (`TYPE_SIGNIFICANT_MOTION`). This is a specific hardware interrupt that wakes the Application Processor (AP) from suspend only when movement is detected, avoiding the battery cost of continuous polling.
         *   **Fallback:** Periodic Burst Sampling (if hardware sensor is missing). The system uses `AlarmManager` to wake the CPU every few minutes (e.g., 5 minutes), samples the accelerometer at 10Hz for a short burst (e.g., 5 seconds), and resumes active tracking if variance exceeds a threshold.
+    *   **Passive Heartbeat:** Uses `AlarmManager` to wake once per hour and write a current timestamp to SharedPreferences, proving to the Watchdog that the service thread is alive and not deadlocked.
     *   **Battery Monitor:** BroadcastReceiver to trigger "Battery Safety Protocol" state changes.
 *   **Output:** Writes raw `Location` objects to the local Room Database (Android's standard SQLite abstraction library).
 *   **Implements Requirements:** [Data Collection & Tracking](requirements/data_collection.md)
@@ -31,10 +32,10 @@ The Android application acts as both the data collector and the infrastructure c
 *   **Role:** Ensures the Tracker Service remains active despite aggressive OEM battery optimizations (e.g., Samsung/Huawei killing background processes).
 *   **Component:** `WorkManager` (PeriodicWorkRequest, 15-minute interval).
 *   **Logic:**
-    1.  Check if `TrackerService` is running.
-    2.  If **Running**: Do nothing.
-    3.  If **Stopped**: Attempt to restart the service immediately.
-    4.  If **Restart Fails**: Trigger a "Tracking Stopped" notification to alert the user.
+    1.  **Zombie Check:** Verifies `LocationService` is running AND `LastHeartbeatTimestamp` is < 90 minutes old.
+    2.  **State Recovery:** If Stopped or Zombie, attempts to restart the service immediately.
+    3.  **Circuit Breaker:** If restart fails 3 consecutive times, triggers a "Tracking Failed" Fatal Error notification.
+    4.  **Upload Rescue:** If buffer > 4 hours old AND Battery > 15%, triggers a rescue upload.
 
 ## 4. Sync Worker (The Uploader)
 *   **Role:** Handles reliable data transport and storage management.
