@@ -68,7 +68,7 @@ The pipeline executes checks in order of speed and cost.
 *   **Scope:** Validation of CloudFormation deployment logic (Dry Run).
 *   **Tool:** `taskcat` or `aws cloudformation create-change-set`.
 *   **Command:** `./scripts/audit_infrastructure.sh`
-*   **Details:** Verifies quota limits and circular dependencies without permanent deployment.
+*   **Details:** Verifies quota limits and circular dependencies without permanent deployment. See [Advanced Validation Strategy](advanced_validation.md).
 
 ### Tier 5: Device Farm & Hardware (Pre-Release)
 *   **Scope:** Full end-to-end verification on physical devices.

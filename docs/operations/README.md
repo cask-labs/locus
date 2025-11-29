@@ -13,7 +13,7 @@ This directory defines the **Operational Architecture** of the Locus project. It
 
 The architecture is modularized into the following definitions:
 
-*   **[Validation Pipeline (CI/CD)](ci_pipeline.md):** Defines the automated build, test, and release process (Levels 1-3).
-*   **[Advanced Validation Strategy](advanced_validation.md):** Detailed analysis and strategy for Level 4 validation (Device Farms vs. Emulators).
+*   **[Validation Pipeline (CI/CD)](ci_pipeline.md):** Defines the automated build, test, and release process (Tiers 1-3).
+*   **[Advanced Validation Strategy](advanced_validation.md):** Detailed analysis and strategy for Advanced Validation (Tiers 4 & 5), covering Infrastructure Audits and Device Farm testing.
 *   **[Runtime Telemetry](telemetry.md):** Specifications for the Dual-Destination telemetry system (User S3 + Opt-in Service) and resilience patterns.
 *   **[Runtime Watchdog](runtime_watchdog.md):** Architecture for the internal self-monitoring and self-healing systems.
