@@ -14,6 +14,9 @@ This document serves as an index for the Locus project documentation.
 *   **[Operational Architecture](docs/operations/README.md):** Validation, Telemetry, and Resilience.
 *   **[Implementation Process](docs/process_implementation_definition.md):** Steps to define technical specifics.
 
+## Implementation Specifications
+*   **[Data Persistence Spec (Phase 1)](docs/specs/data_persistence_spec.md):** Room DB Schema and DAOs.
+
 ## High-Level Architecture
 
 ```mermaid
