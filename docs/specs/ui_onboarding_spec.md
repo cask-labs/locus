@@ -59,7 +59,7 @@ graph TD
 **Purpose:** Collect AWS credentials to bootstrap the connection.
 
 **Components:**
-*   **Inputs:** Access Key ID, Secret Access Key (masked), Session Token (optional).
+*   **Inputs:** Access Key ID, Secret Access Key (masked), Session Token (**Required**).
 *   **Validation:** "Validate Credentials" button (performs Dry Run).
 *   **Feedback:** Inline error messages for invalid keys.
 
@@ -78,7 +78,7 @@ graph TD
 |  Secret Access Key                               |
 |  [ *************************** ] (Show)          |
 |                                                  |
-|  Session Token (Optional)                        |
+|  Session Token (Required)                        |
 |  [                             ]                 |
 |                                                  |
 +--------------------------------------------------+

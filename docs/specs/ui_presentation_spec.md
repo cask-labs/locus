@@ -25,7 +25,8 @@ The application uses a flat hierarchy with a **Bottom Navigation Bar** for top-l
 
 ```mermaid
 graph TD
-    User((User)) --> Home[Dashboard / Home]
+    User((User)) --> Onboarding((Onboarding Flow))
+    Onboarding -.-> |Success| Home[Dashboard / Home]
 
     subgraph "Bottom Navigation"
         Home --> Map[Map / History]
@@ -33,11 +34,7 @@ graph TD
         Home --> Settings[Settings]
     end
 
-    Home --> Onboarding((Onboarding Flow))
-    Onboarding -.-> |Success| Home
-
     Map --> Detail[Detail Bottom Sheet]
-    Settings --> Perms[Permission Manager]
 ```
 
 ### 2.2. Top-Level Destinations
@@ -50,6 +47,11 @@ graph TD
 
 ### 3.1. Dashboard (Home)
 **Purpose:** Provide an "at-a-glance" view of system health and allow manual overrides.
+
+**Layout Behavior:**
+*   **Scrollable Column:** The content fits in a single vertical scroll container.
+*   **Status Card:** Pinned to the top or the first item in the scroll list.
+*   **Responsiveness:** On larger screens (Landscape/Tablet), the "Status Card" and "Stats Grid" display side-by-side.
 
 **Components:**
 *   **Status Card:** A prominent card mirroring the Persistent Notification state.
@@ -84,6 +86,11 @@ graph TD
 ### 3.2. Map (Visualization)
 **Purpose:** Verify and explore historical movement data.
 
+**Layout Behavior:**
+*   **Full Screen:** The map view occupies the entire screen behind transparent system bars.
+*   **Overlays:** Controls and Action Buttons are anchored to the edges (safe area insets).
+*   **Bottom Sheet:** A persistent sheet that peaks at the bottom (minimized height) and expands on drag or tap. It does *not* cover the whole map when minimized, only showing essential text.
+
 **Components:**
 *   **Map View:** Full-screen `osmdroid` view.
 *   **Controls:** Standard pinch-to-zoom gestures AND on-screen Zoom Buttons (+/-) for accessibility.
@@ -116,6 +123,10 @@ graph TD
 ### 3.3. Logs (Diagnostics)
 **Purpose:** Provide deep technical insight into the system's operation. While essential for verification during the "Implementation Definition" phase, this screen also serves as a critical diagnostic tool for users to verify system health in production.
 
+**Layout Behavior:**
+*   **Sticky Header:** The Filter Chips row remains pinned to the top while the list scrolls.
+*   **Reverse Layout:** The list starts from the bottom (newest items) by default, or auto-scrolls to bottom on new entries unless the user has scrolled up.
+
 **Components:**
 *   **Filter Chips:** Multi-select Checkboxes (not Radio buttons) to filter by tag/level.
     *   *Design:* Must be distinctively color-coded (e.g., Error=Red, Warn=Yellow, Net=Blue) to match the corresponding log lines.
@@ -147,10 +158,16 @@ graph TD
 ### 3.5. Settings
 **Purpose:** Manage configuration, identity, and application behavior.
 
+**Layout Behavior:**
+*   **Grouped List:** Settings are organized into distinct categories (Identity, General, Data) with headers.
+*   **Standard List Items:** Uses standard Material Design list items with switches or chevrons.
+
 **Components:**
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
 *   **Preferences:** Toggles for "Unit System" (Metric/Imperial), "Theme" (System/Light/Dark).
-*   **Danger Zone:** "Unlink Device", "Clear Local Buffer".
+*   **Danger Zone:**
+    *   "Unlink Device"
+    *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this immediately deletes all unsynced data from the device. This action is irreversible and causes **Data Loss**.
 *   **About:** Version info and link to source code.
 
 **ASCII Wireframe:**
@@ -165,9 +182,9 @@ graph TD
 |  [x] Dark Mode                                   |
 |  [ ] Metric Units (km)                           |
 |  ----------------------------------------------  |
-|  Data                                            |
+|  Data (Danger Zone)                              |
 |  [ Force Upload (Manual Sync) ]                  |
-|  [ Clear Local Cache ]                           |
+|  [ Clear Local Cache (!) ]                       | <--- Triggers Confirmation Dialog
 |  ----------------------------------------------  |
 |  Version 1.0.0 (12)                              |
 +--------------------------------------------------+
