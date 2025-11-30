@@ -53,14 +53,14 @@ graph TD
 
 **Components:**
 *   **Status Card:** A prominent card mirroring the Persistent Notification state.
-*   **Stats Grid:** "Local Buffer" count, "Last Sync" time.
+*   **Stats Grid:** "Local Buffer" count, "Last Sync" time, "Next Sync" estimate.
 *   **Actions:** "Sync Now" button (Manual Sync).
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
 
 **ASCII Wireframe:**
 ```text
 +--------------------------------------------------+
-|  Locus                                   (User)  |  <-- App Bar (Profile Icon)
+|                                          (User)  |  <-- App Bar (Profile Icon)
 +--------------------------------------------------+
 |  [ STATUS CARD ]                                 |
 |  Status: Recording (High Accuracy)               |
@@ -71,7 +71,7 @@ graph TD
 |                                                  |
 |   +----------------+      +----------------+     |
 |   |  1,240         |      |  5 mins ago    |     |
-|   |  Buffered Pts  |      |  Last Sync     |     |
+|   |  Buffered Pts  |      |  Next: ~10m    |     |
 |   +----------------+      +----------------+     |
 |                                                  |
 +--------------------------------------------------+
@@ -89,16 +89,14 @@ graph TD
 **Components:**
 *   **Map View:** Full-screen `osmdroid` view.
 *   **Controls:** Standard pinch-to-zoom gestures AND on-screen Zoom Buttons (+/-) for accessibility.
-*   **Calendar Strip:** A collapsible month/week view at the top to select dates. Highlight days with data.
+*   **Date Selector:** Displays the current date. Tapping it opens a collapsible/pop-out calendar view to select other dates. This maximizes map visibility.
 *   **Layer Switcher (Overlay):** Toggle "Signal Heatmap", "Satellite", etc.
 *   **Summary Card (Bottom Sheet):** Persistent summary of the selected day (Distance, Duration). Expands to show details.
 
 **ASCII Wireframe:**
 ```text
 +--------------------------------------------------+
-|  <  October 2023  >                     [Today]  |  <-- Calendar Header
-|  S  M  T  W  T  F  S                             |
-|  1  2 [3][4] 5  6  7    ([ ] = Day with Data)    |
+|  [ October 4, 2023 (v) ]                [Today]  |  <-- Date Selector (Pop-out)
 +--------------------------------------------------+
 |                                         [Layers] |  <-- Layer Switcher Overlay
 |               ( Map Area )                       |
@@ -117,19 +115,21 @@ graph TD
 ```
 
 ### 3.3. Logs (Diagnostics)
-**Purpose:** Deep technical insight into the system's operation (essential for "Implementation Definition" and debugging).
+**Purpose:** Provide deep technical insight into the system's operation. While essential for verification during the "Implementation Definition" phase, this screen also serves as a critical diagnostic tool for users to verify system health in production.
 
 **Components:**
-*   **Filter Chips:** "Error", "Warn", "Info", "Network", "GPS".
-*   **Log List:** Scrollable list of log entries with timestamps and tags.
+*   **Filter Chips:** Multi-select Checkboxes (not Radio buttons) to filter by tag/level.
+    *   *Design:* Must be distinctively color-coded (e.g., Error=Red, Warn=Yellow, Net=Blue) to match the corresponding log lines.
+    *   *Accessibility:* Colors must meet contrast requirements.
+*   **Log List:** Scrollable list of log entries. Lines are color-coded to match their severity/category.
 *   **Export/Copy:** Action to copy logs or save to file.
 
 **ASCII Wireframe:**
 ```text
 +--------------------------------------------------+
-|  System Logs                             [Share] |
+|                                          [Share] |
 +--------------------------------------------------+
-|  (X) Error   ( ) Warn   ( ) Net   ( ) Auth       |  <-- Horizontal Scroll Chips
+|  [x] Error   [ ] Warn   [ ] Net   [ ] Auth       |  <-- Multi-select Chips (Colored)
 +--------------------------------------------------+
 | 14:02:10 [Loc] RecordPoint: Acc=12m              |
 | 14:02:05 [Net] Upload: Success (200 OK)          |
@@ -146,8 +146,8 @@ graph TD
 **Purpose:** Guide the user from "Fresh Install" to "Tracking".
 
 **Key Screens:**
-1.  **Welcome:** "Bring Your Own Cloud" concept + "How to" link.
-    *   *Note:* The documentation link must open in an **External Browser (Custom Tab)** to ensure user trust and allow access to password managers.
+1.  **Welcome:** "Bring Your Own Cloud" concept.
+    *   *Guidance:* Instead of an external link, the app must provide an **In-App Step-by-Step Guide** to generating keys, reducing friction for new users.
 2.  **Credentials:** Input for AWS Keys (Access, Secret, Session).
 3.  **Choice:** "New Device" vs. "Recovery".
 4.  **Provisioning:** Progress indicator for CloudFormation.
@@ -185,7 +185,7 @@ graph TD
 
 ### 4.3. Map Overlays
 *   **Visual Discontinuity:** Track lines must break if the time gap > 5 minutes.
-*   **Signal Quality:** When the "Heatmap" layer is active, the track line color shifts (e.g., Green=Strong, Red=Weak) and style changes (Solid=GPS, Dashed=WiFi) to indicate source/quality.
+*   **Signal Quality:** When the "Heatmap" layer is active, the map displays a **True Heat Map Overlay** (gradient cloud) where opacity/intensity increases with signal strength, separate from the track line itself.
 
 ## 5. Accessibility (A11y) Requirements
 *   **Touch Targets:** All interactive elements (FABs, Calendar dates) must be at least **48x48dp**.
