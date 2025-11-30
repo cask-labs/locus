@@ -60,8 +60,6 @@ graph TD
 **ASCII Wireframe:**
 ```text
 +--------------------------------------------------+
-|                                          (User)  |  <-- App Bar (Profile Icon)
-+--------------------------------------------------+
 |  [ STATUS CARD ]                                 |
 |  Status: Recording (High Accuracy)               |
 |  State:  Synced                                  |
