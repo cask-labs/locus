@@ -51,10 +51,40 @@ The service behavior is governed by the intersection of **Motion State** and **S
 | :--- | :--- | :--- | :--- | :--- |
 | **Active** | Default moving state. | ON (1Hz) | HELD | Movement detected. |
 | **Stationary** | Device is still. | OFF | RELEASED | No movement for 2 mins. |
-| **Low Power** | Battery < 10%. | Reduced (10s) | HELD | Battery falls below 10%. |
+| **Low Power** | Battery < 10%. | Reduced (10s) | HELD* | Battery falls below 10%. |
 | **Critical** | Battery < 3%. | OFF | RELEASED | Battery falls below 3%. |
 
-### 2.2. Precedence Rules
+*\*Rationale: In "Low Power" mode (10s interval), holding the WakeLock prevents "CPU Thrashing" (suspending and waking every 10 seconds), which would consume more energy than staying awake.*
+
+### 2.2. State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> Active
+    Active --> Stationary : No Motion (2m)
+    Stationary --> Active : Motion Detected
+
+    Active --> LowPower : Battery < 10%
+    LowPower --> Active : Battery > 15%
+
+    LowPower --> Critical : Battery < 3%
+    Active --> Critical : Battery < 3%
+    Stationary --> Critical : Battery < 3%
+
+    Critical --> Active : Battery > 15% (Charging)
+
+    state LowPower {
+        [*] --> ReducedRecording
+        note right of ReducedRecording : 10s Interval, WakeLock Held
+    }
+
+    state Critical {
+        [*] --> DeepSleep
+        note right of DeepSleep : GPS OFF, WakeLock Released
+    }
+```
+
+### 2.3. Precedence Rules
 
 1.  **Critical Battery Overrides All:** If Battery < 3%, the system enforces the "Deep Sleep" state (GPS OFF, WakeLock RELEASED) to prevent total shutdown.
     *   *Mechanism:* Active tracking stops. "Periodic Burst" checks (FOSS) are disabled. We rely solely on hardware interrupts (`TYPE_SIGNIFICANT_MOTION`) or user intervention (Charging).
@@ -96,10 +126,13 @@ Ensures the `TrackerService` remains alive.
     5.  **Circuit Breaker:** If restart fails 3 times consecutively, post `Fatal Error` notification.
 
     **Android 12+ (SDK 31) Compliance:**
-    *   Direct calls to `startForegroundService()` from the background (Worker) will throw `ForegroundServiceStartNotAllowedException`.
+    *   **Restriction:** Android 12 restricts apps from starting Foreground Services while running in the background (e.g., from a WorkManager job) to prevent "surprise" battery drain by silent services. Doing so throws a `ForegroundServiceStartNotAllowedException`.
+    *   **Alternatives Considered:**
+        *   *Exemption via Exact Alarm:* We could use `AlarmManager` with `SCHEDULE_EXACT_ALARM` to trigger the restart, which grants a temporary exemption. However, this permission requires strict Play Store justification and is intended for time-critical events (alarms/timers), not service restarts.
+        *   *User Interaction (Chosen):* The safest, most policy-compliant method is to ask the user to resume.
     *   **Strategy:**
         1.  Attempt `startForegroundService()`.
-        2.  Catch `ForegroundServiceStartNotAllowedException`.
+        2.  Catch `ForegroundServiceStartNotAllowedException` (or check SDK version).
         3.  **Fallback:** Post a **High Priority Notification** ("Tracking Paused Unexpectedly") with a `PendingIntent` that restarts the service when tapped by the user.
 
 ## 4. Background Workers (WorkManager)
