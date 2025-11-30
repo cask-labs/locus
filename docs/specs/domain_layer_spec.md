@@ -304,3 +304,130 @@ class NetworkException(message: String) : DomainException(message)
 class AuthException(message: String) : DomainException(message)
 class BatteryCriticalException : DomainException("Battery too low for operation")
 ```
+
+## 6. Workflow Diagrams
+
+### 6.1. Sync Workflow (PerformSyncUseCase)
+This diagram illustrates the orchestration of uploading location and log data, handling different sync types, and managing local storage cleanup.
+
+```mermaid
+sequenceDiagram
+    participant Worker as SyncWorker
+    participant UseCase as PerformSyncUseCase
+    participant DeviceState as DeviceStateRepository
+    participant LocRepo as LocationRepository
+    participant LogRepo as LogRepository
+    participant Remote as RemoteStorageInterface
+
+    Worker->>UseCase: invoke(SyncType)
+    activate UseCase
+
+    UseCase->>DeviceState: getCurrentSystemState()
+    DeviceState-->>UseCase: SystemState (e.g., Normal)
+
+    alt Battery Critical and SyncType != MANUAL
+        UseCase-->>Worker: Result.Failure(BatteryCriticalException)
+    else
+        par Sync Locations
+            loop While Batch Available
+                UseCase->>LocRepo: getOldestBatch(limit)
+                LocRepo-->>UseCase: List<LocationPoint>
+                UseCase->>UseCase: Compress Data (Gzip)
+                UseCase->>Remote: uploadTrack(data)
+
+                alt Upload Success
+                    Remote-->>UseCase: Success
+                    UseCase->>LocRepo: deleteBefore(timestamp)
+                else Upload Failure
+                    Remote-->>UseCase: Failure
+                    note right of UseCase: Stop Location Sync Loop
+                end
+            end
+        and Sync Logs
+            loop While Batch Available
+                UseCase->>LogRepo: getOldestBatch(limit)
+                LogRepo-->>UseCase: List<LogEntry>
+                UseCase->>UseCase: Compress Data
+                UseCase->>Remote: uploadLogs(data)
+
+                alt Upload Success
+                    Remote-->>UseCase: Success
+                    UseCase->>LogRepo: deleteBefore(timestamp)
+                else Upload Failure
+                    Remote-->>UseCase: Failure
+                    note right of UseCase: Stop Log Sync Loop
+                end
+            end
+        end
+
+        UseCase-->>Worker: Result.Success(SyncStats)
+    end
+    deactivate UseCase
+```
+
+### 6.2. Service Health Check (CheckServiceHealthUseCase)
+Visualizes the logic used by the Watchdog Worker to detect zombie services and manage the circuit breaker.
+
+```mermaid
+sequenceDiagram
+    participant Watchdog as WatchdogWorker
+    participant UseCase as CheckServiceHealthUseCase
+    participant HealthRepo as ServiceHealthRepository
+
+    Watchdog->>UseCase: invoke()
+    activate UseCase
+
+    UseCase->>HealthRepo: getLastHeartbeat()
+    HealthRepo-->>UseCase: Instant (timestamp)
+
+    alt timestamp > 90 mins ago
+        UseCase->>HealthRepo: incrementFailureCount()
+        HealthRepo-->>UseCase: failureCount
+
+        alt failureCount >= 3
+            UseCase-->>Watchdog: ServiceHealthStatus.FatalError
+        else
+            UseCase-->>Watchdog: ServiceHealthStatus.RestartRequired
+        end
+    else
+        UseCase->>HealthRepo: resetFailureCount()
+        UseCase-->>Watchdog: ServiceHealthStatus.Healthy
+    end
+    deactivate UseCase
+```
+
+### 6.3. Tracking Strategy Selection
+Shows how the system determines the best tracking method based on device hardware capabilities.
+
+```mermaid
+flowchart LR
+    Request([Get Active Strategy]) --> Repo[TrackingStrategyRepository]
+    Repo --> Check{Has Sensor\nTYPE_SIGNIFICANT_MOTION?}
+
+    Check -- Yes --> SigMotion[Return SIGNIFICANT_MOTION]
+    Check -- No --> Periodic[Return PERIODIC_BURST]
+```
+
+### 6.4. Authentication State Machine
+Depicts the lifecycle of authentication states and credential promotion.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Uninitialized
+
+    Uninitialized --> SetupPending : saveBootstrapCredentials()
+    note right of SetupPending
+        Bootstrap Keys Present
+        (CloudFormation + S3)
+    end note
+
+    SetupPending --> Authenticated : promoteToRuntimeCredentials()
+    note right of Authenticated
+        Runtime Keys Present
+        (S3 Only)
+        Bootstrap Keys Deleted
+    end note
+
+    Authenticated --> Uninitialized : clearBootstrapCredentials()
+    SetupPending --> Uninitialized : clearBootstrapCredentials()
+```
