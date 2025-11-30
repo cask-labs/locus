@@ -142,31 +142,7 @@ graph TD
 ```
 
 ### 3.4. Onboarding (Setup)
-**Purpose:** Guide the user from "Fresh Install" to "Tracking".
-
-**Key Screens:**
-1.  **Welcome:** "Bring Your Own Cloud" concept.
-    *   *Guidance:* Instead of an external link, the app must provide an **In-App Step-by-Step Guide** to generating keys, reducing friction for new users.
-2.  **Credentials:** Input for AWS Keys (Access, Secret, Session).
-3.  **Choice:** "New Device" vs. "Recovery".
-4.  **Provisioning:** Progress indicator for CloudFormation.
-
-**ASCII Wireframe (Credentials Step):**
-```text
-+--------------------------------------------------+
-|  < Back                                          |
-+--------------------------------------------------+
-|  Connect AWS Account                             |
-|                                                  |
-|  See [Documentation] for how to generate keys.   |
-|                                                  |
-|  [ Access Key ID             ]                   |
-|  [ Secret Access Key      (o)] (Show/Hide)       |
-|  [ Session Token (Optional)  ]                   |
-|                                                  |
-|  [ Validate Credentials ]                        |
-+--------------------------------------------------+
-```
+*   **Reference:** See [Onboarding UI Specification](ui_onboarding_spec.md) for detailed flows, wireframes (Welcome, Credentials, New Device vs. Recovery), and interaction rules.
 
 ### 3.5. Settings
 **Purpose:** Manage configuration, identity, and application behavior.
