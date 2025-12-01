@@ -36,6 +36,7 @@ graph TD
 **Components:**
 *   **Hero Image/Icon:** Locus Logo.
 *   **Title/Body:** "Welcome to Locus. Your Data, Your Cloud."
+*   **Cost Disclaimer:** "Standard AWS S3 usage rates apply. Estimated cost: <$0.10/month for standard usage."
 *   **Action:** "Get Started" button.
 *   **Help:** "Guide: How to generate AWS Keys" (Opens In-App Bottom Sheet Guide).
 
@@ -50,10 +51,43 @@ graph TD
 |     Locus stores your location history in your   |
 |     private AWS S3 bucket. You own the data.     |
 |                                                  |
+|     (i) Standard AWS S3 rates apply.             |
+|         Est: <$0.10/month                        |
+|                                                  |
 +--------------------------------------------------+
 | [?] How to generate AWS Keys                     |
 |                                                  |
 |           [   GET STARTED   ]                    |
++--------------------------------------------------+
+```
+
+### 1.5. Permission Rationale
+**Purpose:** Explain the necessity of "Always Allow" location permissions before triggering the system dialogs. This improves approval rates and clarifies intent.
+
+**Components:**
+*   **Icon:** Location/Map icon.
+*   **Title:** "Locus needs to track you."
+*   **Body:** "To build your history, Locus needs to access your location in the background, even when the app is closed. This data is stored only on your phone and your private S3 bucket."
+*   **Action:** "Continue" (Triggers System Dialogs).
+
+**ASCII Wireframe:**
+```text
++--------------------------------------------------+
+|                                                  |
+|                ( Location Icon )                 |
+|                                                  |
+|            Location Access Required              |
+|                                                  |
+|  Locus runs in the background to record your     |
+|  journey.                                        |
+|                                                  |
+|  We need you to select "Allow all the time"      |
+|  in the next step to ensure gaps don't appear    |
+|  in your history.                                |
+|                                                  |
++--------------------------------------------------+
+|                                                  |
+|           [      CONTINUE      ]                 |
 +--------------------------------------------------+
 ```
 
@@ -208,15 +242,19 @@ graph TD
 4.  **"Generating Runtime Keys..."** (Retrieving `AccessKey` from Stack Outputs)
 5.  **"Finalizing Setup..."** (Saving Runtime Keys to Keystore, Deleting Bootstrap Keys)
 
+**States:**
+*   **In Progress:** Shows progress bar and current step.
+*   **Failure:** Shows Error Icon, Error Message, and "Retry" or "View Logs" button.
+*   **Success:** Shows Checkmark, "You're all set!", and "Go to Dashboard" button.
+
 **Components:**
 *   **Progress Indicator:** Linear progress bar (determinate based on step count).
 *   **Current Step:** Text description of the active task.
 *   **Log Window (Optional/Expandable):** Detailed output for debugging.
 
-**ASCII Wireframe:**
+**ASCII Wireframe (In Progress):**
 ```text
 +--------------------------------------------------+
-|                                                  |
 |                                                  |
 |            ( Cloud Processing Icon )             |
 |                                                  |
@@ -226,5 +264,38 @@ graph TD
 |           (v) Storage Stack Created              |
 |           (v) Validated Template                 |
 |                                                  |
++--------------------------------------------------+
+```
+
+**ASCII Wireframe (Success):**
+```text
++--------------------------------------------------+
+|                                                  |
+|            ( Checkmark Icon )                    |
+|                                                  |
+|               You're all set!                    |
+|                                                  |
+|       Infrastructure deployed successfully.      |
+|                                                  |
++--------------------------------------------------+
+|         [ GO TO DASHBOARD ]                      |
++--------------------------------------------------+
+```
+
+**ASCII Wireframe (Failure):**
+```text
++--------------------------------------------------+
+|                                                  |
+|            ( Error / Alert Icon )                |
+|                                                  |
+|               Provisioning Failed                |
+|                                                  |
+|       Error: CloudFormation Stack Creation       |
+|       failed. (Rollback Complete)                |
+|                                                  |
+|       [ View Error Logs ]                        |
+|                                                  |
++--------------------------------------------------+
+|             [ RETRY ]                            |
 +--------------------------------------------------+
 ```

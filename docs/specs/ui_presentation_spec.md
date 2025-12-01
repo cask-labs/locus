@@ -83,6 +83,20 @@ graph TD
 +--------------------------------------------------+
 ```
 
+**Status Card (Error State - Tier 3 Fatal):**
+```text
++--------------------------------------------------+
+|  [ STATUS CARD ] (Red Background)                |
+|  Status: Service Halted                          |
+|  Error:  Permission Revoked                      |
+|  ----------------------------------------------  |
+|  Locus requires "Always Allow" location access   |
+|  to function.                                    |
+|                                                  |
+|  [ FIX ISSUE (Opens Settings) ]                  |
++--------------------------------------------------+
+```
+
 ### 3.2. Map (Visualization)
 **Purpose:** Verify and explore historical movement data.
 
@@ -93,15 +107,18 @@ graph TD
 
 **Components:**
 *   **Map View:** Full-screen `osmdroid` view.
+    *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode (e.g., using a dark style or inverted colors) when the system theme is Dark.
 *   **Controls:** Standard pinch-to-zoom gestures AND on-screen Zoom Buttons (+/-) for accessibility.
 *   **Actions:** "Share/Snapshot" button to export the current view as an image.
 *   **Layer Switcher (Overlay):** Toggle "Signal Heatmap", "Satellite", etc.
-*   **Summary Card (Bottom Sheet):** Persistent summary of the selected day.
-    *   *Height:* Minimized by default to show only essential stats, maximizing map area.
-    *   *Date Interaction:* The Date text is a clickable touch target (min 48x48dp) that opens the **Standard Modal Date Picker**.
-    *   *Accessibility:* Must have a clear Content Description (e.g., "Change Date, current is Oct 4").
+*   **Bottom Sheet (Multi-Mode):**
+    *   **Mode A (Day Summary):** Persistent summary of the selected day.
+    *   **Mode B (Point Detail):** Displays details when a track point is tapped.
+    *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker**.
+        *   *Feature:* The Calendar must display **Data Indicators** (dots) on days that have verified historical data.
+    *   **Accessibility:** Must have a clear Content Description (e.g., "Change Date, current is Oct 4").
 
-**ASCII Wireframe:**
+**ASCII Wireframe (Day Summary):**
 ```text
 +--------------------------------------------------+
 |                                [Share]  [Layers] |  <-- Action Overlays
@@ -113,10 +130,22 @@ graph TD
 |         . . . . . . . . . . .                    |
 |                                                  |
 +--------------------------------------------------+
-|  [ October 4, 2023 (v) ]                         |  <-- Clickable Date (Opens Modal)
+|  [ October 4, 2023 (v) ]                         |  <-- Clickable (Opens Data-Dot Calendar)
 |  12.4 km  •  4h 20m  •  24 km/h avg              |
 +--------------------------------------------------+
 | [Dashboard]   [Map]      Logs      Settings      |
++--------------------------------------------------+
+```
+
+**ASCII Wireframe (Point Detail):**
+```text
++--------------------------------------------------+
+|               ( Map Area )                       |
+|             (Selected Point O)                   |
++--------------------------------------------------+
+|  [ X ] Close Detail                              |
+|  14:02:15  •  35 km/h  •  Bat: 84%               |
+|  Signal: WiFi (Level 3, -65 dBm)                 |
 +--------------------------------------------------+
 ```
 
@@ -208,7 +237,41 @@ graph TD
 ### 4.2. In-App Feedback
 *   **Toast:** Used only for simple confirmations (e.g., "Sync Complete").
 *   **Snackbar:** Used for transient warnings or actionable info (e.g., "Network Timeout - Retrying... [Retry Now]").
-*   **Dialogs:** Reserved strictly for **Tier 3 Fatal Errors** or destructive confirmations (e.g., "Delete History").
+*   **Blocking Full-Screen Error:** Reserved for **Tier 3 Fatal Errors** (e.g., Permission Revoked) where the app cannot function.
+*   **Dialogs:** Reserved strictly for destructive confirmations (e.g., "Delete History").
+
+**Blocking Error Screen (Wireframe):**
+```text
++--------------------------------------------------+
+|                                                  |
+|              ( Alert Icon )                      |
+|                                                  |
+|            Action Required                       |
+|                                                  |
+|      Background Location Permission              |
+|      has been revoked.                           |
+|                                                  |
+|      Locus cannot record tracks without it.      |
+|                                                  |
++--------------------------------------------------+
+|            [ OPEN SETTINGS ]                     |
++--------------------------------------------------+
+```
+
+**Clear Buffer Confirmation (Wireframe):**
+```text
++--------------------------------------------------+
+|  Delete Unsynced Data?                           |
+|                                                  |
+|  You are about to delete 1,240 points from       |
+|  the local device buffer.                        |
+|                                                  |
+|  This data has NOT been uploaded to S3 yet.      |
+|  This action cannot be undone.                   |
+|                                                  |
+|      [ CANCEL ]       [ DELETE PERMANENTLY ]     |
++--------------------------------------------------+
+```
 
 ### 4.3. Map Overlays
 *   **Visual Discontinuity:** Track lines must break if the time gap > 5 minutes.
