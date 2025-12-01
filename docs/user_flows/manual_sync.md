@@ -9,10 +9,12 @@
         *   **Connection State:** Current network eligibility (e.g., "Ready", "No Internet").
 *   **Step 2: User Action (Force Sync):**
     *   The user taps "Sync Now".
+    *   **Transformation:** The button immediately transforms into a **Linear Progress Indicator** within the button's footprint, displaying text like "Preparing...".
     *   **Override:** This action bypasses low-battery (<10%) restrictions.
     *   **Debounce:** If a sync is already in progress, the UI attaches to the existing event.
 *   **Step 3: Execution:**
-    *   **Scenario A (Data Exists):** The app packages buffered points into batches and uploads them. UI shows progress ("Uploading batch 1 of 3...").
+    *   **Scenario A (Data Exists):** The app packages buffered points into batches and uploads them.
+        *   *Feedback:* The button's progress indicator updates dynamically (e.g., "[=== 33% ===] Batch 1 of 3").
     *   **Scenario B (Buffer Empty):** The button should be disabled or the action should provide immediate feedback that there is no data to sync. No network request is performed.
 *   **Step 4: Feedback:**
     *   **Success:** Buffer count clears to 0. "Last Sync" updates to "Just now". A "Success" toast appears.

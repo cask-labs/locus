@@ -54,13 +54,14 @@ graph TD
 *   **Responsiveness:** On larger screens (Landscape/Tablet), the "Status Card" and "Stats Grid" display side-by-side.
 
 **Components:**
-*   **Status Card:** A prominent card mirroring the Persistent Notification state.
+*   **Status Card:** A prominent card mirroring the Persistent Notification state. Handles "Active", "Error", and "User Stopped" states.
 *   **Stats Grid:** "Local Buffer" count, "Last Sync" time, "Next Sync" estimate.
-*   **Actions:** "Sync Now" button (Manual Sync).
+*   **Actions:** "Sync Now" button.
+    *   *Behavior:* When tapped, transforms into a **Linear Progress Indicator** showing "Uploading batch X of Y..." until completion.
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
     *   *Design:* These must use dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state, rather than just static text, to ensure quick readability.
 
-**ASCII Wireframe:**
+**ASCII Wireframe (Active):**
 ```text
 +--------------------------------------------------+
 |  [ STATUS CARD ]                                 |
@@ -78,9 +79,23 @@ graph TD
 +--------------------------------------------------+
 |                                                  |
 |           [  SYNC NOW (Cloud Icon)  ]            |  <-- Primary Action (Filled Tonal)
+|      (Becomes: [=== 50% ===] Batch 1/2)          |
 |                                                  |
 +--------------------------------------------------+
 | [Dashboard]    Map       Logs      Settings      |  <-- Bottom Nav
++--------------------------------------------------+
+```
+
+**Status Card (User Stopped):**
+```text
++--------------------------------------------------+
+|  [ STATUS CARD ] (Yellow/Grey Background)        |
+|  Status: Stopped by User                         |
+|  State:  Idle                                    |
+|  ----------------------------------------------  |
+|  Tracking paused. Tap to resume.                 |
+|                                                  |
+|           [ RESUME TRACKING ]                    |
 +--------------------------------------------------+
 ```
 
@@ -111,16 +126,35 @@ graph TD
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode (e.g., using a dark style or inverted colors) when the system theme is Dark.
 *   **Controls:** Standard pinch-to-zoom gestures AND on-screen Zoom Buttons (+/-) for accessibility.
 *   **Actions:** "Share/Snapshot" button to export the current view as an image.
-*   **Layer Switcher (Overlay):**
-    *   *Default Layer:* **Standard/Street** (must support Light/Dark adaptation).
-    *   *Options:* Toggle "Signal Heatmap", "Satellite", etc.
+*   **Layer Switcher (Bottom Sheet):**
+    *   *Trigger:* FAB or Overlay Button.
+    *   *Content:* Radio selection for Map Type (Standard, Satellite), Toggles for Overlays (Heatmap).
+*   **Empty State (No History):**
+    *   If no data is recorded/selected, Map centers on user location. Bottom Sheet displays "No data recorded today."
 *   **Bottom Sheet (Multi-Mode):**
     *   **Mode A (Day Summary):** Persistent summary of the selected day.
     *   **Mode B (Point Detail):** Displays details when a track point is tapped.
     *   **Dismissal:** Users can return to Mode A by tapping the map area, swiping the sheet down, or tapping the Close button.
     *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker** (Modal Bottom Sheet).
         *   *Feature:* The Calendar must display **Data Indicators** (dots) on days that have verified historical data.
+        *   *Loading:* Displays an indeterminate progress bar while fetching S3 index.
     *   **Accessibility:** Must have a clear Content Description (e.g., "Change Date, current is Oct 4").
+
+**ASCII Wireframe (Calendar Picker):**
+```text
++--------------------------------------------------+
+|  Select Date                                     |
+|  ( Indeterminate Progress Bar if Loading... )    |
+|                                                  |
+|  <  October 2023  >                              |
+|  Su Mo Tu We Th Fr Sa                            |
+|      1  2  3  4  5  6                            |
+|                  .                               |
+|   7  8  9 10 11 12 13                            |
+|      .     .                                     |
+|  ....................                            |
++--------------------------------------------------+
+```
 
 **ASCII Wireframe (Day Summary):**
 ```text
@@ -166,6 +200,7 @@ graph TD
     *   *Accessibility:* Colors must meet contrast requirements.
 *   **Log List:** Scrollable list of log entries. Lines are color-coded to match their severity/category.
 *   **Export/Copy:** Action to copy logs or save to file.
+    *   *Behavior:* Tapping "Share" exports the **entire raw log buffer** (all lines, unfiltered) as a `.txt` file attachment to ensure full context for debugging.
 
 **ASCII Wireframe:**
 ```text
@@ -197,8 +232,11 @@ graph TD
 
 **Components:**
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
-*   **Preferences:** Toggles for "Unit System" (Metric/Imperial), "Theme" (System/Light/Dark).
+*   **Preferences:**
+    *   "Theme": Tapping opens a Dialog to select [System Default | Light | Dark].
+    *   "Unit System": Toggle (Metric/Imperial).
 *   **Danger Zone:**
+    *   "Flush Buffer to Cloud" (Manual Sync). Useful for verifying data safety before clearing cache.
     *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this immediately deletes all unsynced data from the device. This action is irreversible and causes **Data Loss**.
 *   **About:** Version info and link to source code.
 
@@ -209,12 +247,12 @@ graph TD
 |  Device: Pixel7 (Locus-Pixel7)                   |
 |  ----------------------------------------------  |
 |  General                                         |
-|  [x] Dark Mode                                   |
+|  Theme: System Default                           |
 |  [ ] Metric Units (km)                           |
 |  ----------------------------------------------  |
 |  Data (Danger Zone)                              |
-|  [ Force Upload (Manual Sync) ]                  |
-|  [ Clear Local Cache (!) ]                       | <--- Triggers Confirmation Dialog
+|  [ Flush Buffer to Cloud      ]                  |
+|  [ Clear Local Cache (!)      ]                  | <--- Triggers Confirmation Dialog
 |  ----------------------------------------------  |
 |  Version 1.0.0 (12)                              |
 +--------------------------------------------------+
@@ -257,6 +295,21 @@ graph TD
 |                                                  |
 +--------------------------------------------------+
 |            [ OPEN SETTINGS ]                     |
++--------------------------------------------------+
+```
+
+**Stop Tracking Confirmation (Wireframe):**
+```text
++--------------------------------------------------+
+|  Stop Tracking?                                  |
+|                                                  |
+|  Location recording will cease.                  |
+|  The app will enter a "User Stopped" state.      |
+|                                                  |
+|  (Note: You can resume anytime from the          |
+|   Dashboard).                                    |
+|                                                  |
+|      [ CANCEL ]       [ STOP TRACKING ]          |
 +--------------------------------------------------+
 ```
 

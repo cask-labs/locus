@@ -300,3 +300,30 @@ graph TD
 |           [      CONTINUE      ]                 |
 +--------------------------------------------------+
 ```
+
+### 2.9. Permission Denied (Blocking)
+**Purpose:** Blocks the user from proceeding if they deny the required permissions during the flow. This ensures no user enters the Dashboard in a broken state.
+
+**Behavior:**
+*   **Trigger:** User denies either "While Using" or "Always Allow" permissions.
+*   **State:** The "Continue" button is replaced or the screen transitions to this blocking state.
+*   **Action:** "Open Settings" is the *only* available action.
+
+**ASCII Wireframe:**
+```text
++--------------------------------------------------+
+|                                                  |
+|           ( Critical Alert Icon )                |
+|                                                  |
+|             Permission Required                  |
+|                                                  |
+|  Locus cannot function without Location access.  |
+|                                                  |
+|  You must enable "Allow all the time" in         |
+|  Settings to proceed.                            |
+|                                                  |
++--------------------------------------------------+
+|                                                  |
+|           [    OPEN SETTINGS    ]                |
++--------------------------------------------------+
+```
