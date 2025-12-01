@@ -13,7 +13,7 @@
     *   **Debounce:** If a sync is already in progress, the UI attaches to the existing event.
 *   **Step 3: Execution:**
     *   **Scenario A (Data Exists):** The app packages buffered points into batches and uploads them. UI shows progress ("Uploading batch 1 of 3...").
-    *   **Scenario B (Buffer Empty):** The app performs a lightweight "Connectivity Check" to verify S3 access credentials.
+    *   **Scenario B (Buffer Empty):** The button should be disabled or the action should provide immediate feedback that there is no data to sync. No network request is performed.
 *   **Step 4: Feedback:**
     *   **Success:** Buffer count clears to 0. "Last Sync" updates to "Just now". A "Success" toast appears.
     *   **Failure:** A specific, actionable error message is displayed (e.g., "Upload failed: Check Internet Connection"). No automatic retry is attempted for manual triggers, putting the user in control of the next step.

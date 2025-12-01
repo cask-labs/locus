@@ -50,7 +50,7 @@ Now that the app can see the account, the user decides the path.
 4.  **Permissions:** The "Two-Step Dance" for Location Permissions.
     *   *Phase A:* Request "While Using".
     *   *Phase B:* Request "Allow all the time" (Background).
-5.  **Outcome:** Tracking begins.
+5.  **Outcome:** The user is navigated to the Dashboard, and the Onboarding screens are removed from the navigation stack. Tracking begins.
 
 ---
 
@@ -69,4 +69,4 @@ Now that the app can see the account, the user decides the path.
 5.  **Lazy Sync:**
     *   App scans the bucket inventory to populate the calendar.
     *   **No massive download** occurs. Tracks are fetched on demand.
-6.  **Outcome:** History is available; new tracking begins appended to the store.
+6.  **Outcome:** The user is navigated to the Dashboard, and the Onboarding screens are removed from the navigation stack. History is available; new tracking begins appended to the store.

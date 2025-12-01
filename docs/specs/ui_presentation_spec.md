@@ -58,6 +58,7 @@ graph TD
 *   **Stats Grid:** "Local Buffer" count, "Last Sync" time, "Next Sync" estimate.
 *   **Actions:** "Sync Now" button (Manual Sync).
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
+    *   *Design:* These must use dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state, rather than just static text, to ensure quick readability.
 
 **ASCII Wireframe:**
 ```text
@@ -66,7 +67,7 @@ graph TD
 |  Status: Recording (High Accuracy)               |
 |  State:  Synced                                  |
 |  ----------------------------------------------  |
-|  [ GPS: 12 Sats ]  [ Bat: 85% ]  [ Net: WiFi ]   |
+|  [ (Sat) GPS: Good ] [ (Bat) 85% ] [ (Wifi) ]    | <-- Icons colored by state (Grn/Yel/Red)
 +--------------------------------------------------+
 |                                                  |
 |   +----------------+      +----------------+     |
@@ -110,11 +111,14 @@ graph TD
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode (e.g., using a dark style or inverted colors) when the system theme is Dark.
 *   **Controls:** Standard pinch-to-zoom gestures AND on-screen Zoom Buttons (+/-) for accessibility.
 *   **Actions:** "Share/Snapshot" button to export the current view as an image.
-*   **Layer Switcher (Overlay):** Toggle "Signal Heatmap", "Satellite", etc.
+*   **Layer Switcher (Overlay):**
+    *   *Default Layer:* **Standard/Street** (must support Light/Dark adaptation).
+    *   *Options:* Toggle "Signal Heatmap", "Satellite", etc.
 *   **Bottom Sheet (Multi-Mode):**
     *   **Mode A (Day Summary):** Persistent summary of the selected day.
     *   **Mode B (Point Detail):** Displays details when a track point is tapped.
-    *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker**.
+    *   **Dismissal:** Users can return to Mode A by tapping the map area, swiping the sheet down, or tapping the Close button.
+    *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker** (Modal Bottom Sheet).
         *   *Feature:* The Calendar must display **Data Indicators** (dots) on days that have verified historical data.
     *   **Accessibility:** Must have a clear Content Description (e.g., "Change Date, current is Oct 4").
 
@@ -195,7 +199,6 @@ graph TD
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
 *   **Preferences:** Toggles for "Unit System" (Metric/Imperial), "Theme" (System/Light/Dark).
 *   **Danger Zone:**
-    *   "Unlink Device"
     *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this immediately deletes all unsynced data from the device. This action is irreversible and causes **Data Loss**.
 *   **About:** Version info and link to source code.
 
@@ -236,6 +239,7 @@ graph TD
 *   **Toast:** Used only for simple confirmations (e.g., "Sync Complete").
 *   **Snackbar:** Used for transient warnings or actionable info (e.g., "Network Timeout - Retrying... [Retry Now]").
 *   **Blocking Full-Screen Error:** Reserved for **Tier 3 Fatal Errors** (e.g., Permission Revoked) where the app cannot function.
+    *   *Behavior:* This screen appears **only** when the user opens the application (or brings it to the foreground). It does **not** overlay other apps or appear over the lock screen.
 *   **Dialogs:** Reserved strictly for destructive confirmations (e.g., "Delete History").
 
 **Blocking Error Screen (Wireframe):**

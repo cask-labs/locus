@@ -248,7 +248,8 @@ graph TD
 |       Infrastructure deployed successfully.      |
 |                                                  |
 +--------------------------------------------------+
-|         [ GO TO NEXT STEP ]                      |
+|         [ GO TO DASHBOARD ]                      |
+|    (Action clears back stack)                    |
 +--------------------------------------------------+
 ```
 
