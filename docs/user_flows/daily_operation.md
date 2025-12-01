@@ -40,3 +40,14 @@
     *   **Auto-Start:** The service automatically launches on device boot.
     *   **Permission Loss:** If the OS revokes background location, the app immediately fires a high-priority alert demanding user intervention.
     *   **Storage Limits:** If the local buffer exceeds a safety threshold (e.g., 10k points), the system warns the user to prevent data loss.
+
+*   **User Override (Stop/Resume):**
+    *   **Intentional Stop:**
+        *   **Action:** User taps "Stop Tracking" on the Notification or Dashboard.
+        *   **Confirmation:** A dialog ("Stop Tracking?") appears to prevent accidental touches.
+        *   **System State:** The Foreground Service stops completely. Wake locks are released.
+        *   **Feedback:** Notification is dismissed. Dashboard Status Card updates to "Stopped by User" (Yellow).
+    *   **Manual Resume:**
+        *   **Action:** User taps "Resume Tracking" on the Dashboard.
+        *   **System State:** Service restarts.
+        *   **Feedback:** Dashboard Status transitions to "Acquiring GPS..." (Yellow) until a valid fix is obtained, then "Recording" (Green).
