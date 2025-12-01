@@ -43,25 +43,30 @@ graph TD
 3.  **Logs:** Real-time diagnostic log stream and filters.
 4.  **Settings:** Configuration, identity, and app-wide preferences.
 
+### 2.3. Navigation & Back Handling
+*   **Map:** Pressing the Back Button while the "Bottom Sheet" is expanded/open must collapse/close the sheet first. If the sheet is already minimized, the Back Button acts normally (backgrounds app).
+*   **Dashboard:** As the start destination, pressing the Back Button must background the application (standard Android Home behavior).
+
 ## 3. Screen Specifications
 
 ### 3.1. Dashboard (Home)
 **Purpose:** Provide an "at-a-glance" view of system health and allow manual overrides.
 
 **Layout Behavior:**
-*   **Scrollable Column:** The content fits in a single vertical scroll container.
-*   **Status Card:** Pinned to the top or the first item in the scroll list.
-*   **Responsiveness:** On larger screens (Landscape/Tablet), the "Status Card" and "Stats Grid" display side-by-side.
+*   **Phone (Portrait):** Scrollable Column. Status Card pinned to top.
+*   **Phone (Landscape):** Scrollable Column (Standard).
+*   **Tablet/Large Screen (Landscape > 600dp):** Two-pane layout. Status Card (Left Pane) fixed, Stats & History (Right Pane) scrollable.
 
 **Components:**
 *   **Status Card:** A prominent card mirroring the Persistent Notification state. Handles "Active", "Error", and "User Stopped" states.
 *   **Stats Grid:** "Local Buffer" count, "Last Sync" time, "Next Sync" estimate.
 *   **Actions:** "Sync Now" button.
     *   *Behavior:* When tapped, transforms into a **Linear Progress Indicator** showing "Uploading batch X of Y..." until completion.
+    *   *Error Handling:* Transient failures (e.g., "Network Error") must appear as a **Snackbar** anchored above the bottom navigation.
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
     *   *Design:* These must use dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state, rather than just static text, to ensure quick readability.
 
-**ASCII Wireframe (Active):**
+**ASCII Wireframe (Active - Phone Portrait):**
 ```text
 +--------------------------------------------------+
 |  [ STATUS CARD ]                                 |
@@ -84,6 +89,23 @@ graph TD
 +--------------------------------------------------+
 | [Dashboard]    Map       Logs      Settings      |  <-- Bottom Nav
 +--------------------------------------------------+
+```
+
+**ASCII Wireframe (Active - Tablet Landscape):**
+```text
++------------------------------------+------------------------------------+
+|  [ STATUS CARD ]                   |  Buffered: 1,240                   |
+|  Status: Recording                 |  Last Sync: 5 mins ago             |
+|  State:  Synced                    |                                    |
+|  --------------------------------  |  [ SYNC NOW (Cloud Icon) ]         |
+|  [GPS] [Bat] [Wifi]                |                                    |
+|                                    |  Recent Activity                   |
+|  (This pane fixed height/width)    |  - Yesterday: 14km                 |
+|                                    |  - Oct 4: 12km                     |
+|                                    |                                    |
++------------------------------------+------------------------------------+
+| [Dashboard]    Map        Logs       Settings                           |
++-------------------------------------------------------------------------+
 ```
 
 **Status Card (User Stopped):**
@@ -120,10 +142,12 @@ graph TD
 *   **Full Screen:** The map view occupies the entire screen behind transparent system bars.
 *   **Overlays:** Controls and Action Buttons are anchored to the edges (safe area insets).
 *   **Bottom Sheet:** A persistent sheet that peaks at the bottom (minimized height) and expands on drag or tap. It does *not* cover the whole map when minimized, only showing essential text.
+    *   *Tablet Constraint:* On large screens, the Bottom Sheet must have a maximum width (e.g., `600dp`) and be centered horizontally to avoid excessive stretching.
 
 **Components:**
 *   **Map View:** Full-screen `osmdroid` view.
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode (e.g., using a dark style or inverted colors) when the system theme is Dark.
+    *   *Performance:* **Downsampling:** The rendered path is visually simplified (e.g., Ramer-Douglas-Peucker) for performance; zooming in reveals more detail.
 *   **Controls:** Standard pinch-to-zoom gestures AND on-screen Zoom Buttons (+/-) for accessibility.
 *   **Actions:** "Share/Snapshot" button to export the current view as an image.
 *   **Layer Switcher (Bottom Sheet):**
@@ -131,6 +155,8 @@ graph TD
     *   *Content:* Radio selection for Map Type (Standard, Satellite), Toggles for Overlays (Heatmap).
 *   **Empty State (No History):**
     *   If no data is recorded/selected, Map centers on user location. Bottom Sheet displays "No data recorded today."
+*   **Empty State (Network Error):**
+    *   If S3 Index cannot be fetched: Map centers on user. Bottom Sheet displays "Offline: Cannot fetch history." with a "Retry" text button.
 *   **Bottom Sheet (Multi-Mode):**
     *   **Mode A (Day Summary):** Persistent summary of the selected day.
     *   **Mode B (Point Detail):** Displays details when a track point is tapped.
@@ -187,12 +213,24 @@ graph TD
 +--------------------------------------------------+
 ```
 
+**ASCII Wireframe (Network Error):**
+```text
++--------------------------------------------------+
+|                                                  |
+|               ( Map Area )                       |
+|                                                  |
++--------------------------------------------------+
+|  Offline: Cannot fetch history index.            |
+|               [ RETRY ]                          |
++--------------------------------------------------+
+```
+
 ### 3.3. Logs (Diagnostics)
 **Purpose:** Provide deep technical insight into the system's operation. While essential for verification during the "Implementation Definition" phase, this screen also serves as a critical diagnostic tool for users to verify system health in production.
 
 **Layout Behavior:**
 *   **Sticky Header:** The Filter Chips row remains pinned to the top while the list scrolls.
-*   **Reverse Layout:** The list starts from the bottom (newest items) by default, or auto-scrolls to bottom on new entries unless the user has scrolled up.
+*   **Reverse Layout (StackFromBottom):** The `RecyclerView` starts from the bottom (newest items) by default. New entries are appended to the bottom. If the user is at the bottom, it auto-scrolls; if the user has scrolled up, it maintains position.
 
 **Components:**
 *   **Filter Chips:** Multi-select Checkboxes (not Radio buttons) to filter by tag/level.
@@ -232,12 +270,15 @@ graph TD
 
 **Components:**
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
-*   **Preferences:**
+*   **Preferences (General):**
     *   "Theme": Tapping opens a Dialog to select [System Default | Light | Dark].
     *   "Unit System": Toggle (Metric/Imperial).
-*   **Danger Zone:**
+    *   "Share Anonymous Stats": Toggle (Opt-in). Help improve Locus by sharing crash reports and basic health stats.
+*   **Data:**
     *   "Flush Buffer to Cloud" (Manual Sync). Useful for verifying data safety before clearing cache.
+*   **Danger Zone:**
     *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this immediately deletes all unsynced data from the device. This action is irreversible and causes **Data Loss**.
+    *   "Reset App" (Red Text). *Warning:* Wipes all keys, databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
 *   **About:** Version info and link to source code.
 
 **ASCII Wireframe:**
@@ -249,10 +290,14 @@ graph TD
 |  General                                         |
 |  Theme: System Default                           |
 |  [ ] Metric Units (km)                           |
+|  [ ] Share Anonymous Stats                       |
 |  ----------------------------------------------  |
-|  Data (Danger Zone)                              |
+|  Data                                            |
 |  [ Flush Buffer to Cloud      ]                  |
+|  ----------------------------------------------  |
+|  Danger Zone                                     |
 |  [ Clear Local Cache (!)      ]                  | <--- Triggers Confirmation Dialog
+|  [ Reset Application (!)      ]                  | <--- Triggers Confirmation Dialog
 |  ----------------------------------------------  |
 |  Version 1.0.0 (12)                              |
 +--------------------------------------------------+
@@ -330,7 +375,10 @@ graph TD
 
 ### 4.3. Map Overlays
 *   **Visual Discontinuity:** Track lines must break if the time gap > 5 minutes.
-*   **Signal Quality:** When the "Heatmap" layer is active, the map displays a **True Heat Map Overlay** (gradient cloud).
+*   **Signal Quality:** When the "Heatmap" layer is active, the map displays a **True Heat Map Overlay** (gradient cloud) or a simplified line-style overlay.
+    *   **Style:**
+        *   **Cellular:** Solid Line (Colored by Strength).
+        *   **WiFi:** Dashed/Dotted Line (Colored by Strength).
     *   **No Data:** Areas with *no* signal data must display a **Neutral Low-Gradient Cloud** (e.g., Gray mist) to visually distinguish "Unknown" from "Weak Signal" (Red) or "Strong Signal" (Green).
 
 ## 5. Accessibility (A11y) Requirements

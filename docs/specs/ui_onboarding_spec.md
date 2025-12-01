@@ -25,7 +25,9 @@ graph TD
     Recovery --> Discovery[Bucket Discovery]
     Discovery --> Provision
 
-    Provision --> Success((Dashboard))
+    Provision --> PermsA[Permission A: Foreground]
+    PermsA --> PermsB[Permission B: Background]
+    PermsB --> Success((Dashboard))
 ```
 
 ## 2. Screen Specifications
@@ -215,12 +217,7 @@ graph TD
 **States:**
 *   **In Progress:** Shows progress bar and current step.
 *   **Failure:** Shows Error Icon, Error Message, and "Retry" or "View Logs" button.
-*   **Success:** Shows Checkmark, "You're all set!", and "Go to Dashboard" button.
-
-**Components:**
-*   **Progress Indicator:** Linear progress bar (determinate based on step count).
-*   **Current Step:** Text description of the active task.
-*   **Log Window (Optional/Expandable):** Detailed output for debugging.
+*   **Success:** Shows Checkmark, "Setup Complete", and transitions automatically or via button to Permission Flow.
 
 **ASCII Wireframe (In Progress):**
 ```text
@@ -237,48 +234,14 @@ graph TD
 +--------------------------------------------------+
 ```
 
-**ASCII Wireframe (Success):**
-```text
-+--------------------------------------------------+
-|                                                  |
-|            ( Checkmark Icon )                    |
-|                                                  |
-|               You're all set!                    |
-|                                                  |
-|       Infrastructure deployed successfully.      |
-|                                                  |
-+--------------------------------------------------+
-|         [ GO TO DASHBOARD ]                      |
-|    (Action clears back stack)                    |
-+--------------------------------------------------+
-```
-
-**ASCII Wireframe (Failure):**
-```text
-+--------------------------------------------------+
-|                                                  |
-|            ( Error / Alert Icon )                |
-|                                                  |
-|               Provisioning Failed                |
-|                                                  |
-|       Error: CloudFormation Stack Creation       |
-|       failed. (Rollback Complete)                |
-|                                                  |
-|       [ View Error Logs ]                        |
-|                                                  |
-+--------------------------------------------------+
-|             [ RETRY ]                            |
-+--------------------------------------------------+
-```
-
-### 2.8. Permission Rationale
-**Purpose:** Explain the necessity of "Always Allow" location permissions before triggering the system dialogs. This improves approval rates and clarifies intent.
+### 2.8. Permission Step 1: Foreground (Rationale)
+**Purpose:** Request the initial "While Using" location permission. This is the prerequisite for background access on Android 11+.
 
 **Components:**
 *   **Icon:** Location/Map icon.
-*   **Title:** "Enable Location Tracking"
-*   **Body:** "To build your history, Locus needs to access your location in the background, even when the app is closed. This data is stored only on your phone and your private S3 bucket."
-*   **Action:** "Continue" (Triggers System Dialogs).
+*   **Title:** "Step 1: Enable Tracking"
+*   **Body:** "Locus needs to access your location to record your journey."
+*   **Action:** "Continue" (Triggers System Dialog: "While Using").
 
 **ASCII Wireframe:**
 ```text
@@ -286,14 +249,13 @@ graph TD
 |                                                  |
 |                ( Location Icon )                 |
 |                                                  |
-|            Enable Location Tracking              |
+|            Step 1: Enable Tracking               |
 |                                                  |
-|  Locus runs in the background to record your     |
-|  journey.                                        |
+|  Locus needs to access your location to record   |
+|  your journey.                                   |
 |                                                  |
-|  We need you to select "Allow all the time"      |
-|  in the next step to ensure gaps don't appear    |
-|  in your history.                                |
+|  Please select "While using the app" in the      |
+|  next dialog.                                    |
 |                                                  |
 +--------------------------------------------------+
 |                                                  |
@@ -301,12 +263,41 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.9. Permission Denied (Blocking)
+### 2.9. Permission Step 2: Background (Rationale)
+**Purpose:** Explain the necessity of "Always Allow" location permissions before redirecting to settings (Android 11+).
+
+**Components:**
+*   **Icon:** Location/Map icon (perhaps with a 'Background' or 'Zzz' badge).
+*   **Title:** "Step 2: Enable Background"
+*   **Body:** "To prevent gaps in your history when the screen is off, Locus needs 'Always Allow' access."
+*   **Action:** "Open Settings" (Triggers System Settings).
+
+**ASCII Wireframe:**
+```text
++--------------------------------------------------+
+|                                                  |
+|            ( Location + Moon Icon )              |
+|                                                  |
+|            Step 2: Enable Background             |
+|                                                  |
+|  To record while the screen is off, Locus        |
+|  needs 'Always Allow' access.                    |
+|                                                  |
+|  We will open Settings. Please select            |
+|  "Allow all the time".                           |
+|                                                  |
++--------------------------------------------------+
+|                                                  |
+|           [    OPEN SETTINGS    ]                |
++--------------------------------------------------+
+```
+
+### 2.10. Permission Denied (Blocking)
 **Purpose:** Blocks the user from proceeding if they deny the required permissions during the flow. This ensures no user enters the Dashboard in a broken state.
 
 **Behavior:**
-*   **Trigger:** User denies either "While Using" or "Always Allow" permissions.
-*   **State:** The "Continue" button is replaced or the screen transitions to this blocking state.
+*   **Trigger:** User denies permissions or returns from settings without granting "Always Allow".
+*   **State:** The screen transitions to this blocking state.
 *   **Action:** "Open Settings" is the *only* available action.
 
 **ASCII Wireframe:**
@@ -325,5 +316,25 @@ graph TD
 +--------------------------------------------------+
 |                                                  |
 |           [    OPEN SETTINGS    ]                |
++--------------------------------------------------+
+```
+
+### 2.11. Success (Completion)
+**Purpose:** Final confirmation before entering the dashboard.
+
+**ASCII Wireframe:**
+```text
++--------------------------------------------------+
+|                                                  |
+|            ( Checkmark Icon )                    |
+|                                                  |
+|               You're all set!                    |
+|                                                  |
+|       Infrastructure deployed & Permissions      |
+|       granted.                                   |
+|                                                  |
++--------------------------------------------------+
+|         [ GO TO DASHBOARD ]                      |
+|    (Action clears back stack)                    |
 +--------------------------------------------------+
 ```
