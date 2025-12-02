@@ -8,7 +8,8 @@
         *   **Last Sync:** Relative time (e.g., "5 minutes ago").
         *   **Connection State:** Current network eligibility (e.g., "Ready", "No Internet").
 *   **Step 2: User Action (Force Sync):**
-    *   The user taps "Sync Now".
+    *   The user taps **"Sync Now"** on the Dashboard.
+    *   *Note:* This is the **exclusive** method for triggering a manual sync; no other settings or menus expose this function.
     *   **Transformation:** The button immediately transforms into a **Linear Progress Indicator** within the button's footprint, displaying text like "Preparing...".
     *   **Override:** This action bypasses low-battery (<10%) restrictions.
     *   **Debounce:** If a sync is already in progress, the UI attaches to the existing event.

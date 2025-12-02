@@ -8,8 +8,9 @@ This flow covers both **New Installations** and **Recovery/Reconnection** to exi
 Before entering any keys, the app educates the user on the security model.
 *   **Action:** The user launches the app for the first time.
 *   **UI:** A landing page explaining that Locus is "Bring Your Own Cloud".
-*   **Guidance:** A prominent link: *"How to generate secure AWS keys"* points to the [Infrastructure Documentation](../infrastructure.md).
-    *   *Recommendation:* The docs explicitly recommend using **AWS CloudShell** to generate temporary 1-hour session tokens for maximum security.
+*   **Guidance:** A link *"How to generate AWS Keys"* opens an **In-App Bottom Sheet Guide**.
+    *   *Content:* The sheet provides step-by-step instructions (Log in -> Open CloudShell -> Paste Command) and includes a "Copy Command" button for the `aws sts get-session-token` snippet.
+    *   *Philosophy:* This keeps the user in the app context rather than bouncing them to an external browser.
 
 ## Step 1: Authentication & Validation
 The user provides the keys necessary to access their AWS account.
@@ -40,8 +41,8 @@ Now that the app can see the account, the user decides the path.
     *   *Check:* App verifies this name is **unique** in the AWS account. If `Locus-Pixel7` already exists, the app **refuses** to proceed and asks for a different name (e.g., "Pixel7-Work").
 2.  **Deploy:** User taps "Deploy Infrastructure".
     *   *Action:* App uses Bootstrap Keys to run CloudFormation.
-    *   *Feedback:* "Provisioning Locus Store... (this may take 2 minutes)".
-    *   *Resilience:* This process runs in a **Foreground Service** with a visible notification ("Provisioning Cloud Resources..."). This ensures the process completes even if the user switches apps or the screen turns off.
+    *   *Feedback (UI):* A dedicated **Provisioning Progress Screen** displays the current step (e.g., "Creating Storage Stack...", "Generating Runtime Keys...") with a progress bar.
+    *   *Resilience:* Behind the scenes, this process runs in a **Foreground Service** with a visible notification. This ensures the process completes even if the user backgrounds the app or locks the screen.
 3.  **Key Swap:**
     *   App creates a new **IAM User** (e.g., `LocusUser_Pixel7`) using the Bootstrap Keys.
     *   App generates an Access Key for this user.
@@ -50,7 +51,9 @@ Now that the app can see the account, the user decides the path.
 4.  **Permissions:** The "Two-Step Dance" for Location Permissions.
     *   *Phase A:* Request "While Using".
     *   *Phase B:* Request "Allow all the time" (Background).
-5.  **Outcome:** The user is navigated to the Dashboard, and the Onboarding screens are removed from the navigation stack. Tracking begins.
+5.  **Completion:** The user sees a **Success Screen** confirmation ("You're all set!").
+    *   *Action:* User explicitly taps **"GO TO DASHBOARD"**.
+    *   *Outcome:* The Onboarding screens are cleared from the navigation stack, and the user lands on the active Dashboard. Tracking begins.
 
 ---
 
@@ -69,4 +72,6 @@ Now that the app can see the account, the user decides the path.
 5.  **Lazy Sync:**
     *   App scans the bucket inventory to populate the calendar.
     *   **No massive download** occurs. Tracks are fetched on demand.
-6.  **Outcome:** The user is navigated to the Dashboard, and the Onboarding screens are removed from the navigation stack. History is available; new tracking begins appended to the store.
+6.  **Completion:** The user sees a **Success Screen** confirmation.
+    *   *Action:* User explicitly taps **"GO TO DASHBOARD"**.
+    *   *Outcome:* The Onboarding screens are cleared from the navigation stack. History is available; new tracking begins appended to the store.

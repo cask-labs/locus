@@ -274,8 +274,6 @@ graph TD
     *   "Theme": Tapping opens a Dialog to select [System Default | Light | Dark].
     *   "Unit System": Toggle (Metric/Imperial).
     *   "Share Anonymous Stats": Toggle (Opt-in). Help improve Locus by sharing crash reports and basic health stats.
-*   **Data:**
-    *   "Flush Buffer to Cloud" (Manual Sync). Useful for verifying data safety before clearing cache.
 *   **Danger Zone:**
     *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this immediately deletes all unsynced data from the device. This action is irreversible and causes **Data Loss**.
     *   "Reset App" (Red Text). *Warning:* Wipes all keys, databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
@@ -291,9 +289,6 @@ graph TD
 |  Theme: System Default                           |
 |  [ ] Metric Units (km)                           |
 |  [ ] Share Anonymous Stats                       |
-|  ----------------------------------------------  |
-|  Data                                            |
-|  [ Flush Buffer to Cloud      ]                  |
 |  ----------------------------------------------  |
 |  Danger Zone                                     |
 |  [ Clear Local Cache (!)      ]                  | <--- Triggers Confirmation Dialog

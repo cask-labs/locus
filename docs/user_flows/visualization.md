@@ -24,4 +24,6 @@
     *   The view visually differentiates between **WiFi** sources and **Cellular** sources (e.g., via distinct color palettes or stroke styles).
 *   **Step 6: Detailed Inspection:**
     *   The user taps any point on the route.
-    *   A detail panel displays the precise Timestamp, Speed, Battery Level, and Network Signal Strength (dBm).
+    *   **Interaction:** The **Bottom Sheet** expands to display the "Point Detail" mode.
+    *   **Content:** The sheet displays precise Timestamp, Speed, Battery Level, and Network Signal Strength (dBm).
+    *   **Dismissal:** Tapping the map or swiping down returns the Bottom Sheet to the "Day Summary" mode.
