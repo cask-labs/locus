@@ -95,7 +95,9 @@ graph TD
 **Components:**
 *   **Inputs:** Access Key ID, Secret Access Key (masked), Session Token (**Required**).
 *   **Validation:** "Validate Credentials" button (performs Dry Run).
-*   **Feedback:** Inline error messages for invalid keys.
+*   **Feedback:**
+    *   **Invalid:** Inline error messages (e.g., "Invalid Signature").
+    *   **Valid:** A transient **Snackbar** displays "Credentials Verified" before automatically transitioning to the Choice Screen.
 
 **ASCII Wireframe:**
 ```text
@@ -118,12 +120,15 @@ graph TD
 +--------------------------------------------------+
 |           [ VALIDATE CREDENTIALS ]               |
 +--------------------------------------------------+
+| (Snackbar: Credentials Verified)                 | <--- Transient Success State
++--------------------------------------------------+
 ```
 
 ### 2.4. Choice Screen
 **Purpose:** Determine if this is a new installation or a recovery of an existing one.
 
 **Components:**
+*   **Header:** Standard "Setup Options" title.
 *   **Option A (New Device):** "Set up as New Device" (Primary Action).
 *   **Option B (Recovery):** "Link Existing Store" (Secondary/Outlined Action).
 
@@ -134,7 +139,7 @@ graph TD
 +--------------------------------------------------+
 |  Setup Options                                   |
 |                                                  |
-|  Credentials Validated!                          |
+|  How would you like to proceed?                  |
 |                                                  |
 |  +--------------------------------------------+  |
 |  |  New Device Setup                          |  |

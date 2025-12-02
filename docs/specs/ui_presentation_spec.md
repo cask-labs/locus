@@ -54,7 +54,7 @@ graph TD
 **Purpose:** Provide an "at-a-glance" view of system health and allow manual overrides.
 
 **Layout Behavior:**
-*   **Phone (Portrait):** Scrollable Column. Status Card pinned to top.
+*   **Phone (Portrait):** Scrollable Column. The **Status Card** and **Action Button** scroll with the content (not pinned). The "Recent Activity" list appears at the bottom.
 *   **Phone (Landscape):** Scrollable Column (Standard).
 *   **Tablet/Large Screen (Landscape > 600dp):** Two-pane layout.
     *   **Left Pane (Fixed Width):** Status Card and **"Sync Now" Action Button**. This acts as the control panel.
@@ -64,10 +64,12 @@ graph TD
 *   **Status Card:** A prominent card mirroring the Persistent Notification state. Handles "Active", "Error", and "User Stopped" states.
 *   **Stats Grid:** "Local Buffer" count, "Last Sync" time, "Next Sync" estimate.
 *   **Actions:** "Sync Now" button.
+    *   *Placement:* On phones, this button is placed **below** the Stats Grid (scrolling). On tablets, it is fixed in the Left Pane.
     *   *Behavior:* When tapped, transforms into a **Linear Progress Indicator** showing "Uploading batch X of Y..." until completion.
     *   *Error Handling:* Transient failures (e.g., "Network Error") must revert the button state and appear as a **Snackbar** anchored above the bottom navigation.
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
-    *   *Design:* These must use dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state, rather than just static text, to ensure quick readability.
+    *   *Design:* These must use an **Icon + Short Value** format (e.g., [Icon] High, [Icon] 85%) and leverage dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state.
+*   **Recent Activity:** A simple list showing the last few days of tracking summary (e.g., "Yesterday: 14km").
 
 **ASCII Wireframe (Active - Phone Portrait):**
 ```text
@@ -76,7 +78,7 @@ graph TD
 |  Status: Recording (High Accuracy)               |
 |  State:  Synced                                  |
 |  ----------------------------------------------  |
-|  [ (Sat) GPS: Good ] [ (Bat) 85% ] [ (Wifi) ]    | <-- Icons colored by state (Grn/Yel/Red)
+|  [ (Sat) High ]  [ (Bat) 85% ]  [ (Wifi) On ]    | <-- Icon + Text, Colored by State
 +--------------------------------------------------+
 |                                                  |
 |   +----------------+      +----------------+     |
@@ -89,6 +91,12 @@ graph TD
 |           [  SYNC NOW (Cloud Icon)  ]            |  <-- Primary Action (Filled Tonal)
 |      (Becomes: [=== 50% ===] Batch 1/2)          |
 |                                                  |
++--------------------------------------------------+
+|  Recent Activity                                 |
+|  - Yesterday: 14km                               |
+|  - Oct 4: 12km                                   |
+|                                                  |
+|  (Scrolls...)                                    |
 +--------------------------------------------------+
 | [Dashboard]    Map       Logs      Settings      |  <-- Bottom Nav
 +--------------------------------------------------+
@@ -152,8 +160,9 @@ graph TD
 *   **Map View:** Full-screen `osmdroid` view.
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode using a **Color Filter** (e.g., inversion or dimming matrix) applied to the MapView canvas when the system theme is Dark.
     *   *Performance:* **Downsampling:** The rendered path is visually simplified (e.g., Ramer-Douglas-Peucker) for performance; zooming in reveals more detail.
-*   **Controls:** Standard pinch-to-zoom gestures AND on-screen Zoom Buttons (+/-) for accessibility.
-*   **Actions:** "Share/Snapshot" button to export the current view as an image.
+*   **Controls:**
+    *   **Zoom Buttons (+/-):** Floating buttons anchored to the **Bottom Right**, just above the Bottom Sheet peek height.
+    *   **Share/Snapshot:** Floating button anchored to the **Top Right**.
 *   **Layer Switcher (Modal Bottom Sheet):**
     *   *Trigger:* FAB or Overlay Button.
     *   *Behavior:* Opens as a **Modal** Bottom Sheet (distinct from the persistent history sheet).
@@ -164,11 +173,11 @@ graph TD
     *   If S3 Index cannot be fetched: Map centers on user. Bottom Sheet displays "Offline: Cannot fetch history." with a "Retry" text button.
 *   **Bottom Sheet (Multi-Mode):**
     *   **Mode A (Day Summary):** Persistent summary of the selected day.
+    *   **Loading State:** When fetching data, the top of the Bottom Sheet displays an indeterminate **Linear Progress Indicator**.
     *   **Mode B (Point Detail):** Displays details when a track point is tapped.
     *   **Dismissal:** Users can return to Mode A by tapping the map area, swiping the sheet down, or tapping the Close button.
     *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker** (Modal Bottom Sheet).
         *   *Feature:* The Calendar must display **Data Indicators** (dots) on days that have verified historical data.
-        *   *Loading:* Displays an indeterminate progress bar while fetching S3 index.
     *   **Accessibility:** Must have a clear Content Description (e.g., "Change Date, current is Oct 4").
 
 **ASCII Wireframe (Calendar Picker):**
@@ -190,15 +199,16 @@ graph TD
 **ASCII Wireframe (Day Summary):**
 ```text
 +--------------------------------------------------+
-|                                [Share]  [Layers] |  <-- Action Overlays
+|                                [Share]  [Layers] |  <-- Action Overlays (Top Right)
 |               ( Map Area )                       |
 |         . . . . . . . . . . .                    |
 |         .                   .                    |
 |         .    (Track Line)   .                    |
 |         .                   .                    |
-|         . . . . . . . . . . .                    |
-|                                                  |
+|         . . . . . . . . . . .           [ + ]    |  <-- Zoom Buttons (Bottom Right)
+|                                         [ - ]    |
 +--------------------------------------------------+
+|  [=== Loading... (Progress Indicator) ===]       |  <-- Linear Progress (if loading)
 |  [ October 4, 2023 (v) ]                         |  <-- Clickable (Opens Data-Dot Calendar)
 |  12.4 km  •  4h 20m  •  24 km/h avg              |
 +--------------------------------------------------+
@@ -245,7 +255,8 @@ graph TD
     *   *Accessibility:* Colors must meet contrast requirements.
 *   **Log List:** Scrollable list of log entries. Lines are color-coded to match their severity/category.
     *   *Empty State:* If no logs exist, display "No logs recorded yet."
-*   **Export/Copy:** Action to copy logs or save to file.
+*   **Export/Share:** Action to save logs to a file via the System Share Sheet.
+    *   *Note:* **No "Copy to Clipboard"** functionality is provided to avoid performance issues with large buffers.
     *   *Behavior:* Tapping "Share" exports the **entire raw log buffer** (all lines, unfiltered) as a `.txt` file attachment to ensure full context for debugging.
     *   *Feedback:* The icon transforms into a **Circular Progress Spinner** while the file is being prepared.
 
