@@ -30,6 +30,9 @@ graph TD
     PermsB --> Success((Dashboard))
 ```
 
+*   **Layout Constraint (All Screens):**
+    *   **Landscape/Tablet:** Use a **Scrollable Column** layout centered on the screen with a maximum width (e.g., `600dp`). Do not use split-pane layouts for Onboarding to keep the flow linear and simple.
+
 ## 2. Screen Specifications
 
 ### 2.1. Welcome Screen
@@ -161,8 +164,11 @@ graph TD
 **Purpose:** Define the device identity and deploy infrastructure.
 
 **Components:**
-*   **Input:** Device Name (default: System Model, e.g., "Pixel 7").
-*   **Validation:** Check for name collisions.
+*   **Input:** Device Name (default: System Model, e.g., "pixel-7").
+*   **Validation:**
+    *   **Strict Formatting:** The UI must enforce AWS-compatible naming conventions (lowercase, alphanumeric, hyphens only).
+    *   **Auto-Format:** Spaces are automatically converted to hyphens; uppercase characters are converted to lowercase as the user types.
+    *   **Availability:** Check for name collisions against existing stacks.
 *   **Action:** "Deploy Infrastructure".
 
 **ASCII Wireframe:**
@@ -175,7 +181,7 @@ graph TD
 |  Give this device a unique name.                 |
 |                                                  |
 |  Device Name                                     |
-|  [ Pixel 7                     ]                 |
+|  [ pixel-7                     ]                 |
 |  (Checked: Available)                            |
 |                                                  |
 +--------------------------------------------------+
@@ -188,9 +194,10 @@ graph TD
 
 **Components:**
 *   **List:** List of detected buckets/stores (e.g., "Locus-Pixel6", "Locus-iPhone").
+    *   *Empty State:* If `s3:ListBuckets` returns no valid `locus-` buckets, display "No Locus stores found."
 *   **Action:** Tap a list item to select.
 
-**ASCII Wireframe:**
+**ASCII Wireframe (List Populated):**
 ```text
 +--------------------------------------------------+
 |  < Back                                          |
@@ -204,6 +211,20 @@ graph TD
 |                                                  |
 |  [ (Bucket Icon) Locus-iPhone                 ]  |
 |    Last active: 1 month ago                      |
+|                                                  |
++--------------------------------------------------+
+```
+
+**ASCII Wireframe (Empty State):**
+```text
++--------------------------------------------------+
+|  < Back                                          |
++--------------------------------------------------+
+|  Select Existing Store                           |
+|                                                  |
+|  ( Icon: search_off )                            |
+|                                                  |
+|  No Locus stores found.                          |
 |                                                  |
 +--------------------------------------------------+
 ```
@@ -303,6 +324,9 @@ graph TD
 **Behavior:**
 *   **Trigger:** User denies permissions or returns from settings without granting "Always Allow".
 *   **Immediacy:** This blocking state triggers *immediately* upon returning to the app if the required permission is not granted.
+*   **Re-Check Loop:** When the app resumes (`onResume`) from the System Settings, it **automatically** re-checks the permission status.
+    *   *If Granted:* The app automatically advances to the Success Screen (no user action needed).
+    *   *If Still Denied:* The app remains on this blocking screen.
 *   **State:** The screen transitions to this blocking state.
 *   **Action:** "Open Settings" is the *only* available action.
 

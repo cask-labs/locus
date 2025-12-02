@@ -58,10 +58,11 @@ graph TD
 *   **Phone (Landscape):** Scrollable Column (Standard).
 *   **Tablet/Large Screen (Landscape > 600dp):** Two-pane layout.
     *   **Left Pane (Fixed Width):** Status Card and **"Sync Now" Action Button**. This acts as the control panel.
-    *   **Right Pane (Scrollable):** Stats Grid and Recent Activity history.
+    *   **Right Pane (Scrollable):** Stats Grid and Recent Activity history. The Stats Grid scrolls **with** the content (not pinned).
 
 **Components:**
-*   **Status Card:** A prominent card mirroring the Persistent Notification state. Handles "Active", "Error", and "User Stopped" states.
+*   **Skeleton Loader (Initial State):** When the Dashboard first loads (before local DB query completes), all text values in the Status Card and Stats Grid must display a **Shimmer/Skeleton** placeholder effect to indicate loading.
+*   **Status Card:** A prominent card mirroring the Persistent Notification state. Handles "Active", "Error", "Paused", and "User Stopped" states.
 *   **Stats Grid:** "Local Buffer" count, "Last Sync" time, "Next Sync" estimate.
 *   **Actions:** "Sync Now" button.
     *   *Placement:* On phones, this button is placed **below** the Stats Grid (scrolling). On tablets, it is fixed in the Left Pane.
@@ -70,6 +71,7 @@ graph TD
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
     *   *Design:* These must use an **Icon + Short Value** format (e.g., [Icon] High, [Icon] 85%) and leverage dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state.
 *   **Recent Activity:** A simple list showing the last few days of tracking summary (e.g., "Yesterday: 14km").
+    *   *Empty State:* If no activity is found (0 records), display a centered "No recent activity recorded" message with a generic illustration/icon.
 
 **ASCII Wireframe (Active - Phone Portrait):**
 ```text
@@ -118,6 +120,20 @@ graph TD
 +------------------------------------+------------------------------------+
 | [Dashboard]    Map        Logs       Settings                           |
 +-------------------------------------------------------------------------+
+```
+
+**Status Card (Paused - Tier 2 Environmental):**
+```text
++--------------------------------------------------+
+|  [ STATUS CARD ] (Yellow/Warning Background)     |
+|  Status: Paused (Low Battery)                    |
+|  State:  Idle                                    |
+|  ----------------------------------------------  |
+|  Recording paused to save battery (<15%).        |
+|  Will resume automatically when charged.         |
+|                                                  |
+|  (No Action Button - Passive State)              |
++--------------------------------------------------+
 ```
 
 **Status Card (User Stopped):**
@@ -178,6 +194,10 @@ graph TD
     *   **Dismissal:** Users can return to Mode A by tapping the map area, swiping the sheet down, or tapping the Close button.
     *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker** (Modal Bottom Sheet).
         *   *Feature:* The Calendar must display **Data Indicators** (dots) on days that have verified historical data.
+        *   *Loading State:* While fetching the "data dots" from the local database:
+            *   Display an **Indeterminate Progress Indicator** (Spinner/Bar) over the calendar grid.
+            *   **Disable** the "Previous Month" and "Next Month" controls to prevent rapid navigation/race conditions.
+            *   Disable interaction with individual dates.
     *   **Accessibility:** Must have a clear Content Description (e.g., "Change Date, current is Oct 4").
 
 **ASCII Wireframe (Calendar Picker):**
@@ -186,7 +206,7 @@ graph TD
 |  Select Date                                     |
 |  ( Indeterminate Progress Bar if Loading... )    |
 |                                                  |
-|  <  October 2023  >                              |
+|  < (Disabled)  October 2023  (Disabled) >        |
 |  Su Mo Tu We Th Fr Sa                            |
 |      1  2  3  4  5  6                            |
 |                  .                               |
@@ -217,6 +237,8 @@ graph TD
 ```
 
 **ASCII Wireframe (Point Detail):**
+*   *Note:* Fields with missing data (e.g., no Altitude or Signal info) must be **hidden completely** rather than displaying "N/A" or empty values.
+
 ```text
 +--------------------------------------------------+
 |               ( Map Area )                       |
@@ -258,7 +280,7 @@ graph TD
 *   **Export/Share:** Action to save logs to a file via the System Share Sheet.
     *   *Note:* **No "Copy to Clipboard"** functionality is provided to avoid performance issues with large buffers.
     *   *Behavior:* Tapping "Share" exports the **entire raw log buffer** (all lines, unfiltered) as a `.txt` file attachment to ensure full context for debugging.
-    *   *Feedback:* The icon transforms into a **Circular Progress Spinner** while the file is being prepared.
+    *   *Feedback:* When tapped, the button becomes **Disabled** and transforms into a **Circular Progress Spinner** while the file is generated.
 
 **ASCII Wireframe:**
 ```text
@@ -296,8 +318,9 @@ graph TD
     *   "Unit System": Toggle (Metric/Imperial).
     *   "Share Anonymous Stats": Toggle (Opt-in). Help improve Locus by sharing crash reports and basic health stats.
 *   **Danger Zone:**
-    *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this immediately deletes all unsynced data from the device. This action is irreversible and causes **Data Loss**.
+    *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this triggers a confirmation dialog. If confirmed, the button enters a **Loading/Disabled State** (Indeterminate Spinner) while the database deletion occurs.
     *   "Reset App" (Red Text). *Warning:* Wipes all keys, databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
+        *   *Feedback:* This action triggers a **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.
 *   **About:** Version info and link to source code.
     *   *Behavior:* External links (e.g., Source Code, Privacy Policy) must open in the system default **External Browser** (e.g., Chrome Custom Tab), not a WebView.
 
@@ -340,6 +363,7 @@ graph TD
 *   **Snackbar:** Used for transient warnings or actionable info (e.g., "Network Timeout - Retrying... [Retry Now]").
 *   **Blocking Full-Screen Error:** Reserved for **Tier 3 Fatal Errors** (e.g., Permission Revoked) where the app cannot function.
     *   *Behavior:* This screen appears **only** when the user opens the application (or brings it to the foreground). It does **not** overlay other apps or appear over the lock screen.
+    *   *Rationale UI:* Any runtime permission re-request flows must utilize the **Rationale UI** designs defined in the [Onboarding UI Specification](ui_onboarding_spec.md) to ensure consistent education.
 *   **Dialogs:** Reserved strictly for destructive confirmations (e.g., "Delete History").
 
 **Blocking Error Screen (Wireframe):**
