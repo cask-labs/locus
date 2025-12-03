@@ -11,10 +11,14 @@
 
 ## 2. Components
 *   **Filter Chips:** Multi-select Checkboxes (not Radio buttons) to filter by tag/level.
+    *   *Logic:* Filters function as a **Union (OR)** operation. Selecting "Error" and "Warn" displays entries that are *either* Errors *or* Warnings.
     *   *Design:* Must be distinctively color-coded (e.g., Error=Red, Warn=Yellow, Net=Blue) to match the corresponding log lines.
     *   *Accessibility:* Colors must meet contrast requirements.
 *   **Log List:** Scrollable list of log entries. Lines are color-coded to match their severity/category.
-    *   *Empty State:* If no logs exist, display "No logs recorded yet."
+    *   *Empty State:* If no logs exist (or all are filtered out), display "No logs recorded yet."
+*   **Jump to Bottom FAB:** A small Floating Action Button (e.g., "Arrow Down" icon).
+    *   *Visibility:* Appears **only** when the user has scrolled up away from the bottom (stopping auto-scroll). Disappears when the user is at the bottom.
+    *   *Action:* Tapping smoothly scrolls the list back to the most recent entry and resumes auto-scrolling.
 *   **Export/Share:** Action to save logs to a file via the System Share Sheet.
     *   *Note:* **No "Copy to Clipboard"** functionality is provided to avoid performance issues with large buffers.
     *   *Behavior:* Tapping "Share" exports the **entire raw log buffer** (all lines, unfiltered) as a `.txt` file attachment to ensure full context for debugging.
@@ -27,14 +31,14 @@
 +--------------------------------------------------+
 |                                          [Share] |
 +--------------------------------------------------+
-|  [x] Error   [ ] Warn   [ ] Net   [ ] Auth       |  <-- Multi-select Chips (Colored)
+|  [x] Error   [x] Warn   [ ] Net   [ ] Auth       |  <-- Multi-select Chips (Union/OR, Colored)
 +--------------------------------------------------+
 | 14:02:10 [Loc] RecordPoint: Acc=12m              |
 | 14:02:05 [Net] Upload: Success (200 OK)          |
 | 14:01:55 [S3]  ListObjects: tracks/2023/10       |
 | 14:01:40 [Wtch] Heartbeat: OK                    |
 | 14:00:00 [Bat] Level: 84% (Discharging)          |
-| ...                                              |
+|                                        [ v ]     |  <-- Jump to Bottom FAB (Visible on scroll)
 +--------------------------------------------------+
 | [Dashboard]    Map      [Logs]     Settings      |
 +--------------------------------------------------+

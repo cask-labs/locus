@@ -13,10 +13,13 @@
 ## 2. Components
 *   **Map View:** Full-screen `osmdroid` view.
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode using a **Color Filter** (e.g., inversion or dimming matrix) applied to the MapView canvas when the system theme is Dark.
+        *   *Exception:* This Color Filter must be **disabled** when the user selects "Satellite" mode, as satellite imagery should not be inverted.
     *   *Performance:* **Downsampling:** The rendered path is visually simplified (e.g., Ramer-Douglas-Peucker) for performance; zooming in reveals more detail.
+    *   *Offline State:* If the map is viewed offline and **any** tiles are not cached (showing an empty grid), a transient **Snackbar** ("Map Offline") must appear to explain the missing visual context.
 *   **Controls:**
     *   **Zoom Buttons (+/-):** Floating buttons anchored to the **Bottom Right**, just above the Bottom Sheet peek height.
     *   **Share/Snapshot:** Floating button anchored to the **Top Right**.
+        *   *Behavior:* Generates a static image (JPEG/PNG) of the current map viewport (including the visible track) and invokes the system Share Sheet.
 *   **Layer Switcher (Modal Bottom Sheet):**
     *   *Trigger:* FAB or Overlay Button.
     *   *Behavior:* Opens as a **Modal** Bottom Sheet (distinct from the persistent history sheet).
@@ -29,6 +32,8 @@
     *   **Mode A (Day Summary):** Persistent summary of the selected day.
     *   **Loading State:** When fetching data, the top of the Bottom Sheet displays an indeterminate **Linear Progress Indicator**.
     *   **Mode B (Point Detail):** Displays details when a track point is tapped.
+        *   *Internal State:* This mode is an internal state of the Map Screen composable, not a separate Navigation Destination.
+        *   *Dynamic Content:* Fields with missing data (e.g., no Altitude or Signal info) must be **hidden completely** (layout collapses) rather than displaying "N/A" or empty values.
     *   **Dismissal:** Users can return to Mode A by tapping the map area, swiping the sheet down, or tapping the Close button.
     *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker** (Modal Bottom Sheet).
         *   *Feature:* The Calendar must display **Data Indicators** (dots) on days that have verified historical data.
@@ -40,11 +45,9 @@
 
 ## 3. Map Overlays
 *   **Visual Discontinuity:** Track lines must break if the time gap > 5 minutes.
-*   **Signal Quality:** When the "Heatmap" layer is active, the map displays a **True Heat Map Overlay** (gradient cloud) or a simplified line-style overlay.
-    *   **Style:**
-        *   **Cellular:** Solid Line (Colored by Strength).
-        *   **WiFi:** Dashed/Dotted Line (Colored by Strength).
-    *   **No Data:** Areas with *no* signal data must display a **Neutral Low-Gradient Cloud** (e.g., Gray mist) to visually distinguish "Unknown" from "Weak Signal" (Red) or "Strong Signal" (Green).
+*   **Signal Quality:** When the "Heatmap" layer is active, the track line is colored to represent signal strength.
+    *   **Logic:** See [Heatmap Logic Specification](../logic_heatmap.md).
+    *   **No Data:** Areas with *no* signal data (e.g., visual discontinuity gaps) are simply not drawn.
 
 ## 4. Wireframes
 

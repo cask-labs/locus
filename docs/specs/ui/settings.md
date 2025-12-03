@@ -13,11 +13,12 @@
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
 *   **Preferences (General):**
     *   "Theme": Tapping opens a Dialog to select [System Default | Light | Dark].
-    *   "Unit System": Toggle (Metric/Imperial).
+    *   "Unit System": Toggle (Metric/Imperial). Changes must reflect immediately across the app.
     *   "Share Anonymous Stats": Toggle (Opt-in). Help improve Locus by sharing crash reports and basic health stats.
 *   **Danger Zone:**
     *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this triggers a confirmation dialog. If confirmed, the button enters a **Loading/Disabled State** (Indeterminate Spinner) while the database deletion occurs.
-    *   "Reset App" (Red Text). *Warning:* Wipes all keys, databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
+        *   *Feedback:* Upon successful completion, display a **Snackbar** ("Local buffer cleared") and revert the button to its enabled state.
+    *   "Reset App" (Red Text). *Warning:* Wipes all keys (Runtime Keys in `EncryptedSharedPreferences`), databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
         *   *Feedback:* This action triggers a **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.
 *   **About:** Version info and link to source code.
     *   *Behavior:* External links (e.g., Source Code, Privacy Policy) must open in the system default **External Browser** (e.g., Chrome Custom Tab), not a WebView.
