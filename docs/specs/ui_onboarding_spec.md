@@ -195,7 +195,7 @@ graph TD
 **Components:**
 *   **List:** List of detected buckets/stores (e.g., "Locus-Pixel6", "Locus-iPhone").
     *   *Mechanism:* `s3:ListBuckets` filtered for `locus-` prefix.
-    *   *Validation (Optional):* If possible, peek for `locus-stack.yaml` to confirm validity. If invalid, the list item might be disabled or fail gracefully upon selection.
+    *   *Validation (Optional):* If possible, attempt to list objects with prefix `locus-stack.yaml` inside the bucket to confirm validity. If invalid, the list item might be disabled or fail gracefully upon selection.
     *   *Empty State:* If `s3:ListBuckets` returns no valid `locus-` buckets, display "No Locus stores found."
 *   **Action:** Tap a list item to select.
 
@@ -235,8 +235,8 @@ graph TD
 **Purpose:** Visual feedback during long-running CloudFormation tasks.
 
 **Behaviors:**
-*   **Back Button:** Pressing the Back Button during this critical phase does *not* cancel the process (which runs in a Foreground Service). Instead, it minimizes the app (Backgrounds it), returning the user to the Android Home Screen. A confirmation dialog/warning may appear ("Deployment is running in the background") before minimizing.
-*   **App Launch:** Launching the application while the Provisioning Service is active must **automatically restore** this Provisioning Progress screen, preventing re-entry into the start of the flow.
+*   **Back Button:** Pressing the Back Button during this critical phase does *not* cancel the process (which runs in a Foreground Service). Instead, it minimizes the app (Backgrounds it), returning the user to the Android Home Screen. A Toast ("Deployment is running in the background") should appear upon minimization.
+*   **App Launch:** Wherever the app is opened from (Launcher, Notification, Recent Apps), if the Provisioning Service is active, the app must **always** restore this Provisioning Progress screen, preventing re-entry into the start of the flow.
 
 **Displayed Steps:**
 *   *Note: These steps correspond to the resources defined in `locus-stack.yaml`.*
@@ -335,7 +335,7 @@ graph TD
     *   *If Still Denied:* The app remains on this blocking screen.
 *   **Manual Re-Check:** A secondary "Check Again" text button is provided in case the automatic check fails.
 *   **State:** The screen transitions to this blocking state.
-*   **Action:** "Open Settings" is the *primary* action.
+*   **Action:** "Open Settings" is the *primary and only* prominent action.
 
 **ASCII Wireframe:**
 ```text

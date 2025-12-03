@@ -15,7 +15,7 @@
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode using a **Color Filter** (e.g., inversion or dimming matrix) applied to the MapView canvas when the system theme is Dark.
         *   *Exception:* This Color Filter must be **disabled** when the user selects "Satellite" mode, as satellite imagery should not be inverted.
     *   *Performance:* **Downsampling:** The rendered path is visually simplified (e.g., Ramer-Douglas-Peucker) for performance; zooming in reveals more detail.
-    *   *Offline State:* If the map is viewed offline and tiles are not cached (showing an empty grid), a transient **Snackbar** ("Map Offline") must appear to explain the missing visual context.
+    *   *Offline State:* If the map is viewed offline and **any** tiles are not cached (showing an empty grid), a transient **Snackbar** ("Map Offline") must appear to explain the missing visual context.
 *   **Controls:**
     *   **Zoom Buttons (+/-):** Floating buttons anchored to the **Bottom Right**, just above the Bottom Sheet peek height.
     *   **Share/Snapshot:** Floating button anchored to the **Top Right**.

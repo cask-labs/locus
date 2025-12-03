@@ -31,13 +31,13 @@
 +--------------------------------------------------+
 |                                          [Share] |
 +--------------------------------------------------+
-|  [x] Error   [x] Warn   [ ] Net   [ ] Auth       |  <-- Multi-select Chips (Union/OR)
+|  [x] Error   [x] Warn   [ ] Net   [ ] Auth       |  <-- Multi-select Chips (Union/OR, Colored)
 +--------------------------------------------------+
 | 14:02:10 [Loc] RecordPoint: Acc=12m              |
 | 14:02:05 [Net] Upload: Success (200 OK)          |
 | 14:01:55 [S3]  ListObjects: tracks/2023/10       |
-| ...                                              |
 | 14:01:40 [Wtch] Heartbeat: OK                    |
+| 14:00:00 [Bat] Level: 84% (Discharging)          |
 |                                        [ v ]     |  <-- Jump to Bottom FAB (Visible on scroll)
 +--------------------------------------------------+
 | [Dashboard]    Map      [Logs]     Settings      |
