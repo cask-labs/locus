@@ -7,9 +7,16 @@
 ## 1. Layout Behavior
 *   **Grouped List:** Settings are organized into distinct categories (Identity, General, Data) with headers.
 *   **Standard List Items:** Uses standard Material Design list items with switches or chevrons.
-*   **Tablet Constraint:** Content restricted to a max-width (e.g., 600dp) and centered.
+*   **Tablet Layout (Landscape > 600dp):** Two-pane layout.
+    *   **Pane 1 (Left):** Navigation Rail (Persistent).
+    *   **Pane 2 (Right - Content):** Centered content with a maximum width (e.g., `600dp`) to ensure readability on wide screens.
 
-## 2. Components
+## 2. Loading State
+*   **Static Content:** Most settings load instantly.
+*   **Identity Fetch:** If the Identity section (Device ID/Stack Name) requires an asynchronous read (e.g., from Keystore or AWS), a small **Inline Progress Spinner** replaces the text value until the data is available.
+
+## 3. Components
+*   **Icon:** `settings` (Material Symbol).
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
 *   **Preferences (General):**
     *   "Theme": Tapping opens a Dialog to select [System Default | Light | Dark].
@@ -19,13 +26,13 @@
     *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this triggers a confirmation dialog. If confirmed, the button enters a **Loading/Disabled State** (Indeterminate Spinner) while the database deletion occurs.
         *   *Feedback:* Upon successful completion, display a **Snackbar** ("Local buffer cleared") and revert the button to its enabled state.
     *   "Reset App" (Red Text). *Warning:* Wipes all keys (Runtime Keys in `EncryptedSharedPreferences`), databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
-        *   *Feedback:* This action triggers a **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.
+        *   *Feedback:* This action triggers a standard system **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.
 *   **About (Section):** Displayed as a grouped section at the bottom of the main settings list.
     *   *Structure:* Header ("About") followed by standard list items.
     *   *Items:* "Version" (e.g., 1.0.0 (12)), "Source Code" (Link).
     *   *Behavior:* External links (e.g., Source Code) must open in the system default **External Browser** (e.g., Chrome Custom Tab), not a WebView.
 
-## 3. Wireframes
+## 4. Wireframes
 
 **ASCII Wireframe:**
 ```text

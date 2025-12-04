@@ -7,9 +7,16 @@
 ## 1. Layout Behavior
 *   **Sticky Header:** The Filter Chips row remains pinned to the top while the list scrolls.
 *   **Reverse Layout (StackFromBottom):** The `RecyclerView` starts from the bottom (newest items) by default. New entries are appended to the bottom. If the user is at the bottom, it auto-scrolls; if the user has scrolled up, it maintains position.
-*   **Tablet Constraint:** Content restricted to a max-width (e.g., 800dp) and centered.
+*   **Tablet Layout (Landscape > 600dp):** Two-pane layout.
+    *   **Pane 1 (Left):** Navigation Rail (Persistent).
+    *   **Pane 2 (Right - Content):** Centered content with a maximum width (e.g., `800dp`) to ensure readability on wide screens.
 
-## 2. Components
+## 2. Loading State
+*   **Initial Load:** When the Logs screen is opened, a **Centered Circular Progress Indicator** is displayed while the initial batch of logs is fetched from the database.
+*   **Transition:** Once data is loaded, the spinner fades out and the list appears, automatically scrolled to the bottom.
+
+## 3. Components
+*   **Icon:** `terminal` (Material Symbol).
 *   **Filter Chips:** Multi-select Checkboxes (not Radio buttons) to filter by tag/level.
     *   *Logic:* Filters function as a **Union (OR)** operation. Selecting "Error" and "Warn" displays entries that are *either* Errors *or* Warnings.
     *   *Design:* Must be distinctively color-coded (e.g., Error=Red, Warn=Yellow, Net=Blue) to match the corresponding log lines.
@@ -24,7 +31,7 @@
     *   *Behavior:* Tapping "Share" exports the **entire raw log buffer** (all lines, unfiltered) as a `.txt` file attachment to ensure full context for debugging.
     *   *Feedback:* When tapped, the button becomes **Disabled** and transforms into a **Circular Progress Spinner** while the file is generated.
 
-## 3. Wireframes
+## 4. Wireframes
 
 **ASCII Wireframe:**
 ```text

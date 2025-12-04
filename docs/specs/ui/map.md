@@ -8,9 +8,13 @@
 *   **Full Screen:** The map view occupies the entire screen behind transparent system bars.
 *   **Overlays:** Controls and Action Buttons are anchored to the edges (safe area insets).
 *   **Bottom Sheet:** A persistent sheet that peaks at the bottom (minimized height) and expands on drag or tap. It does *not* cover the whole map when minimized, only showing essential text.
-    *   *Tablet Constraint:* On large screens, the Bottom Sheet must have a maximum width (e.g., `600dp`) and be centered horizontally to avoid excessive stretching.
+*   **Tablet Layout (Landscape > 600dp):** Two-pane layout.
+    *   **Pane 1 (Left):** Navigation Rail (Persistent).
+    *   **Pane 2 (Right - Map):** The Map occupies the remaining screen space.
+    *   **Sheet Constraint:** The Bottom Sheet is constrained to a maximum width (e.g., `600dp`) and centered horizontally within the Map pane to avoid excessive stretching.
 
 ## 2. Components
+*   **Icon:** `map` (Material Symbol).
 *   **Map View:** Full-screen `osmdroid` view.
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode using a **Color Filter** (e.g., inversion or dimming matrix) applied to the MapView canvas when the system theme is Dark.
         *   *Exception:* This Color Filter must be **disabled** when the user selects "Satellite" mode, as satellite imagery should not be inverted.

@@ -7,9 +7,10 @@
 ## 1. Layout Behavior
 *   **Phone (Portrait):** Scrollable Column. The **Status Card** and **Action Button** scroll with the content (not pinned). The "Recent Activity" list appears at the bottom.
 *   **Phone (Landscape):** Scrollable Column (Standard).
-*   **Tablet/Large Screen (Landscape > 600dp):** Two-pane layout.
-    *   **Left Pane (Fixed Width):** Status Card and **"Sync Now" Action Button**. This acts as the control panel.
-    *   **Right Pane (Scrollable):** Stats Grid and Recent Activity history. The Stats Grid scrolls **with** the content (not pinned).
+*   **Tablet/Large Screen (Landscape > 600dp):** Three-pane layout (Navigation Rail + Control Pane + Content Pane).
+    *   **Pane 1 (Left):** Navigation Rail (Persistent).
+    *   **Pane 2 (Middle - Fixed):** Status Card and **"Sync Now" Action Button**. This acts as the control panel.
+    *   **Pane 3 (Right - Scrollable):** Stats Grid and Recent Activity history. The Stats Grid scrolls **with** the content (not pinned).
 
 ## 2. Components
 *   **Skeleton Loader (Initial State):**
@@ -19,7 +20,7 @@
 *   **Stats Grid:** "Local Buffer" count, "Last Sync" time, "Next Sync" estimate.
     *   *Reactivity:* Toggling the "Unit System" in Settings must immediately reflect in these values (e.g., switching distance units if displayed here) without requiring a reload.
 *   **Actions:** "Sync Now" button.
-    *   *Placement:* On phones, this button is placed **below** the Stats Grid (scrolling). On tablets, it is fixed in the Left Pane.
+    *   *Placement:* On phones, this button is placed **below** the Stats Grid (scrolling). On tablets, it is fixed in the Middle Pane.
     *   *Behavior:* When tapped, transforms into a **Linear Progress Indicator** showing "Uploading batch X of Y..." until completion.
     *   *Empty Buffer Behavior:* If the local buffer is empty (0 points), the button remains **enabled**. Tapping it triggers a transient **Snackbar** ("Buffer is empty") to provide immediate system feedback that the command was received but no work is needed.
     *   *Offline Behavior:* If the device is offline, the button remains enabled, but tapping it triggers a "Fail Fast" behavior: a **Snackbar** appears immediately ("No Internet Connection"), and no network request is attempted.
@@ -71,20 +72,18 @@
 
 **ASCII Wireframe (Active - Tablet Landscape):**
 ```text
-+------------------------------------+------------------------------------+
-|  [ STATUS CARD ]                   |  Buffered: 1,240                   |
-|  Status: Recording                 |  Last Sync: 5 mins ago             |
-|  State:  Synced                    |                                    |
-|  --------------------------------  |                                    |
-|  [GPS] [Bat] [Wifi]                |  Recent Activity                   |
-|  --------------------------------  |  - Yesterday: 14km                 |
-|  [ SYNC NOW (Cloud Icon) ]         |  - Oct 4: 12km                     |
-|                                    |                                    |
-|  (This pane fixed height/width)    |                                    |
-|                                    |                                    |
-+------------------------------------+------------------------------------+
-| [Dashboard]    Map        Logs       Settings                           |
-+-------------------------------------------------------------------------+
++---+--------------------------------+------------------------------------+
+| N |  [ STATUS CARD ]               |  Buffered: 1,240                   |
+| A |  Status: Recording             |  Last Sync: 5 mins ago             |
+| V |  State:  Synced                |                                    |
+|   |  ----------------------------  |                                    |
+| R |  [GPS] [Bat] [Wifi]            |  Recent Activity                   |
+| A |  ----------------------------  |  - Yesterday: 14km                 |
+| I |  [ SYNC NOW (Cloud Icon) ]     |  - Oct 4: 12km                     |
+| L |                                |                                    |
+|   |  (Fixed Middle Pane)           |  (Scrollable Right Pane)           |
+|   |                                |                                    |
++---+--------------------------------+------------------------------------+
 ```
 
 **Status Card (Paused - Tier 2 Environmental):**
