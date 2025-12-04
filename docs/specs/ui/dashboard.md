@@ -27,7 +27,7 @@
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
     *   *Design:* These must use an **Icon + Short Value** format (e.g., [Icon] High, [Icon] 85%) and leverage dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state.
 *   **Stop Tracking Action:** A secondary action to manually stop the tracking service.
-    *   *Placement:* Located **inside the Status Card** (top right icon button or explicit text button) or immediately below the "Sync Now" button depending on space.
+    *   *Placement:* Located **inside the Status Card** (top right icon button) to keep the context tight and the layout clean.
     *   *Interaction:* Tapping triggers a **Confirmation Dialog** to prevent accidental data gaps.
 *   **Recent Activity:** A simple list showing the last few days of tracking summary (e.g., "Yesterday: 14km").
     *   *Limit:* The list displays a maximum of **5 items** (e.g., the last 5 days with activity).

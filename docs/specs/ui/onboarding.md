@@ -75,7 +75,9 @@ graph TD
 *   **Step 2:** "Open CloudShell (Terminal Icon)."
 *   **Step 3:** "Paste this command:"
     *   **Visual:** A **Code Block** (Surface Variant background, Monospace font) containing the command.
-    *   **Action:** An **Icon Button (Copy)** aligned to the right, inside the block.
+    *   **Actions:**
+        *   **Copy Button:** Icon Button aligned to the right, inside the block.
+        *   **Share Button:** Icon Button next to Copy. Invokes the system Share Sheet with the command text (useful for sending to another device).
     *   `aws sts get-session-token --duration-seconds 3600`
 *   **Step 4:** "Copy the output JSON."
 *   **Security Note:** "These keys expire in 1 hour. For maximum security, ensure your Console User uses the **Locus Bootstrap Policy**." (Link to Policy JSON).
@@ -88,7 +90,8 @@ graph TD
 |  1. Open AWS CloudShell.                         |
 |  2. Run this command:                            |
 |  +--------------------------------------------+  |
-|  | aws sts get-session-token ...      [Copy]  |  | <-- Code Block with Copy Icon
+|  | aws sts get-session-token ...              |  |
+|  |                           [Share] [Copy]   |  | <-- Code Block with Actions
 |  +--------------------------------------------+  |
 |  3. Copy the output values.                      |
 |                                                  |

@@ -22,8 +22,8 @@
         *   *Feedback:* This action triggers a **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.
 *   **About (Section):** Displayed as a grouped section at the bottom of the main settings list.
     *   *Structure:* Header ("About") followed by standard list items.
-    *   *Items:* "Version" (e.g., 1.0.0 (12)), "Source Code" (Link), "Privacy Policy" (Link).
-    *   *Behavior:* External links (e.g., Source Code, Privacy Policy) must open in the system default **External Browser** (e.g., Chrome Custom Tab), not a WebView.
+    *   *Items:* "Version" (e.g., 1.0.0 (12)), "Source Code" (Link).
+    *   *Behavior:* External links (e.g., Source Code) must open in the system default **External Browser** (e.g., Chrome Custom Tab), not a WebView.
 
 ## 3. Wireframes
 
@@ -45,6 +45,5 @@
 |  About                                           |
 |  Version 1.0.0 (12)                              |
 |  Source Code                                 >   |
-|  Privacy Policy                              >   |
 +--------------------------------------------------+
 ```
