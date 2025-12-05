@@ -7,95 +7,104 @@
 ## 1. Layout Behavior
 *   **Full Screen:** The map view occupies the entire screen behind transparent system bars.
 *   **Overlays:** Controls and Action Buttons are anchored to the edges (safe area insets).
-*   **Bottom Sheet:** A persistent sheet that peaks at the bottom (minimized height) and expands on drag or tap. It does *not* cover the whole map when minimized, only showing essential text.
-    *   *Tablet Constraint:* On large screens, the Bottom Sheet must have a maximum width (e.g., `600dp`) and be centered horizontally to avoid excessive stretching.
+*   **Bottom Sheet (General):**
+    *   **Tablet Constraint:** On large screens (>600dp width), **all** Bottom Sheets (Persistent History, Layer Switcher, Calendar) must have a maximum width of **600dp** and be horizontally centered.
+*   **Persistent Sheet:** Peaks at the bottom to show the Day Summary.
+    *   *Interaction:* This sheet acts as the anchor for the map's visible area padding.
 
 ## 2. Components
 *   **Map View:** Full-screen `osmdroid` view.
     *   *Theme:* **Dark Mode Support:** The map tiles themselves must visually adapt to Dark Mode using a **Color Filter** (e.g., inversion or dimming matrix) applied to the MapView canvas when the system theme is Dark.
         *   *Exception:* This Color Filter must be **disabled** when the user selects "Satellite" mode, as satellite imagery should not be inverted.
     *   *Performance:* **Downsampling:** The rendered path is visually simplified (e.g., Ramer-Douglas-Peucker) for performance; zooming in reveals more detail.
+    *   *Auto-Fit:* When a day with a valid track is loaded, the map must automatically zoom and pan to fit the track's bounding box (with ~50dp padding).
     *   *Offline State:* If the map is viewed offline and **any** tiles are not cached (showing an empty grid), a transient **Snackbar** ("Map Offline") must appear to explain the missing visual context.
+    *   *Permission Denied:* If the user has denied Location permissions, the map remains functional for viewing history. The "My Location" FAB is displayed but **disabled** (or triggers a permission request explanation dialog when tapped).
 *   **Controls:**
-    *   **Zoom Buttons (+/-):** Floating buttons anchored to the **Bottom Right**, just above the Bottom Sheet peek height.
-    *   **Share/Snapshot:** Floating button anchored to the **Top Right**.
+    *   **Layer Switcher:** Floating button anchored to the **Top Right**, stacked vertically below the Share/Snapshot button.
+    *   **Share/Snapshot:** Floating button anchored to the **Top Right** (topmost control).
         *   *Behavior:* Generates a static image (JPEG/PNG) of the current map viewport (including the visible track) and invokes the system Share Sheet.
+    *   **Zoom Buttons (+/-):** Floating buttons anchored to the **Bottom Right**.
+        *   *Position:* Anchored just above the **Mode A (Peek)** height.
+        *   *Behavior:* When the Bottom Sheet transitions to **Mode B (Detail)** or if the sheet were to expand, these buttons must **fade out** to prevent occlusion.
 *   **Layer Switcher (Modal Bottom Sheet):**
-    *   *Trigger:* FAB or Overlay Button.
-    *   *Behavior:* Opens as a **Modal** Bottom Sheet (distinct from the persistent history sheet).
+    *   *Trigger:* Top Right Overlay Button.
+    *   *Behavior:* Opens as a **Modal** Bottom Sheet.
     *   *Content:*
         *   **Map Type:** Radio selection (Standard, Satellite).
-        *   **Signal Overlay:** Radio selection (None, Signal: Cellular, Signal: WiFi). These are mutually exclusive to prevent visual clutter.
-*   **Empty State (No History):**
-    *   If no data is recorded/selected, Map centers on user location. Bottom Sheet displays "No data recorded today."
-*   **Empty State (Network Error):**
-    *   If S3 Index cannot be fetched: Map centers on user. Bottom Sheet displays "Offline: Cannot fetch history." with a "Retry" text button.
+        *   **Signal Overlay:** Radio selection (None, Signal: Cellular, Signal: WiFi). Mutually exclusive.
+*   **Calendar Picker (Modal Bottom Sheet):**
+    *   *Trigger:* Tapping the Date text in the Persistent Sheet.
+    *   *Range:* Bounded from the **First Logged Date** (from local DB) to **Today**.
+    *   *Features:*
+        *   **Data Indicators:** Dots on days with verified synced data.
+        *   **Offline State:** If the S3 Index cannot be fetched, the picker still opens but displays a **Warning Banner** ("Offline: Data availability unknown") and hides all data dots. Selection is still allowed.
 *   **Bottom Sheet (Multi-Mode):**
-    *   **Mode A (Day Summary):** Persistent summary of the selected day.
-    *   **Loading State:** When fetching data, the top of the Bottom Sheet displays an indeterminate **Linear Progress Indicator**.
-    *   **Mode B (Point Detail):** Displays details when a track point is tapped.
-        *   *Internal State:* This mode is an internal state of the Map Screen composable, not a separate Navigation Destination.
-        *   *Dynamic Content:* Fields with missing data (e.g., no Altitude or Signal info) must be **hidden completely** (layout collapses) rather than displaying "N/A" or empty values.
-    *   **Dismissal:** Users can return to Mode A by tapping the map area, swiping the sheet down, or tapping the Close button.
-    *   **Date Interaction:** The Date text is a clickable touch target that opens a **Custom Calendar Picker** (Modal Bottom Sheet).
-        *   *Feature:* The Calendar must display **Data Indicators** (dots) on days that have **verified (synced)** historical data available in the local cache or S3 index. Unsynced local buffer data is not indicated here.
-        *   *Loading State:* While fetching the "data dots" from the local database:
-            *   Display an **Indeterminate Progress Indicator** (Spinner/Bar) over the calendar grid.
-            *   **Disable** the "Previous Month" and "Next Month" controls to prevent rapid navigation/race conditions.
-            *   Disable interaction with individual dates.
-    *   **Accessibility:** Must have a clear Content Description (e.g., "Change Date, current is Oct 4").
+    *   **Mode A (Day Summary):** The default state.
+        *   *State:* **Non-Expandable** (Fixed Peek Height).
+        *   *Content:* Date, Total Distance, Total Duration, Average Speed.
+        *   *Loading:* Displays an indeterminate **Linear Progress Indicator** at the top edge while fetching track data.
+    *   **Mode B (Point Detail):** Active when a track point is tapped.
+        *   *State:* **Fixed Height** (Content wrap). Typically taller than Mode A.
+        *   *Transition:* Smooth animation from Mode A. Tapping another point updates Mode B instantly.
+        *   *Dismissal:* Tapping the Map (background), swiping down, or tapping "Close" returns to Mode A.
+        *   *Content:* Time, Speed, Battery, Altitude, Signal. Missing fields are hidden (layout collapses).
 
-## 3. Map Overlays
+## 3. Error Handling
+*   **S3 Index Failure (Network Error):**
+    *   *Context:* Failed to load the list of available days.
+    *   *Visual:* Bottom Sheet displays "Offline: Cannot fetch history index." with a "Retry" button.
+    *   *Impact:* Calendar Picker enters "Offline State".
+*   **Track Download Failure:**
+    *   *Context:* User selected a day, but the specific track file download failed.
+    *   *Visual:* **Snackbar** "Failed to load track."
+    *   *Sheet:* Remains in Mode A (Summary), potentially showing "--" for stats.
+*   **Empty State (No History):**
+    *   *Context:* Selected day has no data.
+    *   *Visual:* Map centers on user (or default). Bottom Sheet displays "No data recorded today."
+
+## 4. Map Overlays
 *   **Visual Discontinuity:** Track lines must break if the time gap > 5 minutes.
-*   **Signal Quality:** When a signal layer (Cellular or WiFi) is active, the track line is colored to represent signal strength.
-    *   **Logic:** See [Heatmap Logic Specification](../logic_heatmap.md).
-    *   **No Data:** Areas with *no* signal data (e.g., visual discontinuity gaps) are simply not drawn.
-*   **Rapid Acceleration/Braking Markers:**
-    *   **Trigger:** Events flagged as rapid acceleration or hard braking.
-    *   **Visual:** A **24dp** Icon Marker using the Material Symbol **`speed`**.
-    *   **Color:** **Error/Red** (`MaterialTheme.colorScheme.error`).
-    *   **Interaction:** Clickable; opens Point Detail mode.
+*   **Signal Quality:** When a signal layer is active, the track line is colored to represent signal strength.
+    *   **No Data:** Areas with *no* signal data (e.g., visual discontinuity gaps) are not drawn.
+*   **Markers:**
+    *   **Rapid Acceleration/Braking:** 24dp Icon Marker (`speed`), Color: `Error` (Red). Clickable.
 
-## 4. Wireframes
+## 5. Wireframes
 
-**ASCII Wireframe (Calendar Picker):**
+**ASCII Wireframe (Calendar Picker - Offline):**
 ```text
 +--------------------------------------------------+
 |  Select Date                                     |
-|  ( Indeterminate Progress Bar if Loading... )    |
+|  [!] Offline: Data availability unknown          |
 |                                                  |
-|  < (Disabled)  October 2023  (Disabled) >        |
+|  <             October 2023             >        |
 |  Su Mo Tu We Th Fr Sa                            |
 |      1  2  3  4  5  6                            |
-|                  .                               |
+|                  (No Dots)                       |
 |   7  8  9 10 11 12 13                            |
-|      .     .                                     |
-|  ....................                            |
+|                                                  |
 +--------------------------------------------------+
 ```
 
-**ASCII Wireframe (Day Summary):**
+**ASCII Wireframe (Day Summary - Mode A):**
 ```text
 +--------------------------------------------------+
-|                                [Share]  [Layers] |  <-- Action Overlays (Top Right)
+|               [Share]                            |  <-- Top Right (1)
+|               [Layers]                           |  <-- Top Right (2)
 |               ( Map Area )                       |
 |         . . . . . . . . . . .                    |
-|         .                   .                    |
-|         .    (Track Line)   .                    |
-|         .                   .                    |
-|         . . . . . . . . . . .           [ + ]    |  <-- Zoom Buttons (Bottom Right)
-|                                         [ - ]    |
+|         .    (Track Line)   .           [ + ]    |  <-- Zoom (Fade out if Mode B)
+|         . . . . . . . . . . .           [ - ]    |
 +--------------------------------------------------+
-|  [=== Loading... (Progress Indicator) ===]       |  <-- Linear Progress (if loading)
-|  [ October 4, 2023 (v) ]                         |  <-- Clickable (Opens Data-Dot Calendar)
+|  [=== Loading... (Linear Progress) ========]     |
+|  [ October 4, 2023 (v) ]                         |  <-- Tapping opens Calendar
 |  12.4 km  •  4h 20m  •  24 km/h avg              |
-+--------------------------------------------------+
-| [Dashboard]   [Map]      Logs      Settings      |
 +--------------------------------------------------+
 ```
 
-**ASCII Wireframe (Point Detail):**
-*   *Note:* Fields with missing data (e.g., no Altitude or Signal info) must be **hidden completely** rather than displaying "N/A" or empty values.
+**ASCII Wireframe (Point Detail - Mode B):**
+*   *Note:* Zoom buttons are hidden.
 
 ```text
 +--------------------------------------------------+
@@ -106,17 +115,5 @@
 |  14:02:15  •  35 km/h  •  Bat: 84%               |
 |  Signal: WiFi (Level 3, -65 dBm)                 |
 |  Altitude: 450m                                  |
-+--------------------------------------------------+
-```
-
-**ASCII Wireframe (Network Error):**
-```text
-+--------------------------------------------------+
-|                                                  |
-|               ( Map Area )                       |
-|                                                  |
-+--------------------------------------------------+
-|  Offline: Cannot fetch history index.            |
-|               [ RETRY ]                          |
 +--------------------------------------------------+
 ```
