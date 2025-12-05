@@ -5,41 +5,131 @@
 **Purpose:** Provide deep technical insight into the system's operation. While essential for verification during the "Implementation Definition" phase, this screen also serves as a critical diagnostic tool for users to verify system health in production.
 
 ## 1. Layout Behavior
-*   **Sticky Header:** The Filter Chips row remains pinned to the top while the list scrolls.
-*   **Reverse Layout (StackFromBottom):** The `RecyclerView` starts from the bottom (newest items) by default. New entries are appended to the bottom. If the user is at the bottom, it auto-scrolls; if the user has scrolled up, it maintains position.
-*   **Tablet Constraint:** Content restricted to a max-width (e.g., 800dp) and centered.
+*   **Sticky Header:** The Top App Bar (containing the Title/Search) and the Filter Chips row remain pinned to the top.
+*   **Reverse Layout (StackFromBottom):** The `RecyclerView` starts from the bottom (newest items) by default. New entries are appended to the bottom.
+*   **Auto-Scroll Logic:**
+    *   **Default:** The list auto-scrolls to stay at the newest entry as logs arrive.
+    *   **Paused:** Auto-scroll is **disabled** if:
+        1.  The user scrolls up away from the bottom.
+        2.  A specific **Filter** (other than "All") is active.
+        3.  The **Search** input is active.
+    *   **Resumed:** Tapping the "Jump to Bottom" FAB re-enables auto-scroll.
+*   **Tablet Constraint:** Content is restricted to a max-width of **800dp** and centered horizontally on the screen to ensure readability on large devices.
 
 ## 2. Components
-*   **Filter Chips:** Multi-select Checkboxes (not Radio buttons) to filter by tag/level.
-    *   *Logic:* Filters function as a **Union (OR)** operation. Selecting "Error" and "Warn" displays entries that are *either* Errors *or* Warnings.
-    *   *Design:* Must be distinctively color-coded (e.g., Error=Red, Warn=Yellow, Net=Blue) to match the corresponding log lines.
-    *   *Accessibility:* Colors must meet contrast requirements.
-*   **Log List:** Scrollable list of log entries. Lines are color-coded to match their severity/category.
-    *   *Empty State:* If no logs exist (or all are filtered out), display "No logs recorded yet."
+
+### 2.1. Top App Bar & Search
+*   **Search Action:** A "Magnifying Glass" icon in the top-right.
+    *   *Interaction:* Tapping expands a text input field, temporarily replacing the screen title.
+    *   *Logic:* Search acts as an **AND** filter combined with active chips (e.g., `(Error OR Warn) AND "Network"`).
+    *   *Matching:* Case-insensitive substring match against Tag and Message.
+*   **Context Menu:** Contains the "Export Logs" action.
+
+### 2.2. Filter Chips
+*   **Type:** Multi-select Choice Chips.
+*   **Logic:** Functions as a **Union (OR)** operation. Selecting "Error" and "Warn" displays entries that are *either* Errors *or* Warnings.
+*   **Levels:** strictly adheres to conventional log levels:
+    *   **Error** (Red)
+    *   **Warn** (Yellow)
+    *   **Info** (Blue)
+    *   **Debug** (Gray)
+*   **Persistence:** Filters **reset to default (Show All)** when leaving the screen.
+
+### 2.3. Log List
+*   **Row Layout:** Single-line (ellipsize at end) to maximize density.
+    *   **Icon:** Small, colored status icon at the start (e.g., ❌ Red, ⚠️ Yellow, ℹ️ Blue).
+    *   **Timestamp:**
+        *   *Today:* `HH:mm:ss`
+        *   *Older:* `MMM dd HH:mm`
+    *   **Tag:** `[Tag]` in bold/colored text.
+    *   **Message:** The log content.
+*   **Infinite Scroll (History):**
+    *   **Behavior:** As the user scrolls up and approaches the top of the currently loaded list, the system **automatically** fetches the next page of older logs.
+    *   **Indicator:** A small **Circular Progress Spinner** appears at the top momentarily during this fetch.
+    *   *Note:* No "Pull to Load" gesture is used; scrolling is seamless.
+*   **Interaction:** Tapping any row opens the **Log Detail Bottom Sheet**.
+
+### 2.4. Floating Controls
 *   **Jump to Bottom FAB:** A small Floating Action Button (e.g., "Arrow Down" icon).
-    *   *Visibility:* Appears **only** when the user has scrolled up away from the bottom (stopping auto-scroll). Disappears when the user is at the bottom.
-    *   *Action:* Tapping smoothly scrolls the list back to the most recent entry and resumes auto-scrolling.
-*   **Export/Share:** Action to save logs to a file via the System Share Sheet.
-    *   *Note:* **No "Copy to Clipboard"** functionality is provided to avoid performance issues with large buffers.
-    *   *Behavior:* Tapping "Share" exports the **entire raw log buffer** (all lines, unfiltered) as a `.txt` file attachment to ensure full context for debugging.
-    *   *Feedback:* When tapped, the button becomes **Disabled** and transforms into a **Circular Progress Spinner** while the file is generated.
+    *   *Visibility:* Appears **only** when auto-scroll is paused (scrolled up, searching, or filtering). Disappears when at the bottom.
+    *   *Action:* Smoothly scrolls to the most recent entry and resumes auto-scroll.
 
-## 3. Wireframes
+### 2.5. Log Detail Bottom Sheet (Modal)
+*   **Trigger:** Tap on any log row.
+*   **State:** Displays the **static** state of that specific entry (does not update live).
+*   **Header:**
+    *   Large Level Icon & Label (e.g., "ERROR").
+    *   Full Timestamp: `MM-dd HH:mm:ss.SSS`.
+    *   Tag Name.
+*   **Body:**
+    *   **Monospace Font:** Preserves formatting for stack traces and JSON.
+    *   **Selectable Text:** User can long-press to select/copy specific substrings.
+    *   **Scrollable:** Vertical scrolling for long messages.
+*   **Footer Actions:**
+    *   **Copy Full Entry:** Copies the formatted string to clipboard.
+    *   **Share Entry:** System Share Sheet for just this log line.
+    *   **Navigation:** `< Previous` and `Next >` buttons to step through logs without closing the sheet.
+*   **Visuals:** Background dims behind the sheet.
 
-**ASCII Wireframe:**
+## 3. States
+
+### 3.1. Loading States
+*   **Initial Load:** If the local buffer is large, a centered **Circular Progress Indicator** appears immediately upon opening the screen until the first page of data is ready.
+*   **Exporting:** When "Share/Export" is tapped:
+    *   The menu item becomes **Disabled**.
+    *   A **Circular Progress Spinner** replaces the icon.
+
+### 3.2. Empty States
+*   **No Logs Recorded:** If the database is truly empty.
+    *   *Message:* "No logs recorded yet."
+*   **No Matches:** If data exists but filters/search hide it.
+    *   *Message:* "No logs match current criteria."
+
+### 3.3. Error States
+*   **Export Failure:** If file generation fails (e.g., storage full).
+    *   *Action:* Display a **Transient Snackbar** with the error message (e.g., "Failed to export logs").
+    *   *Reset:* The Export button returns to its enabled state.
+
+## 4. Wireframes
+
+**ASCII Wireframe (List View):**
 ```text
 +--------------------------------------------------+
-|                                          [Share] |
+| Logs                        [Search] [Export/Menu]|
 +--------------------------------------------------+
-|  [x] Error   [x] Warn   [ ] Net   [ ] Auth       |  <-- Multi-select Chips (Union/OR, Colored)
+|  [x] Error   [x] Warn   [ ] Info   [ ] Debug     |  <-- Sticky Header (Standard Levels)
 +--------------------------------------------------+
-| 14:02:10 [Loc] RecordPoint: Acc=12m              |
-| 14:02:05 [Net] Upload: Success (200 OK)          |
-| 14:01:55 [S3]  ListObjects: tracks/2023/10       |
-| 14:01:40 [Wtch] Heartbeat: OK                    |
-| 14:00:00 [Bat] Level: 84% (Discharging)          |
-|                                        [ v ]     |  <-- Jump to Bottom FAB (Visible on scroll)
+|           (  )  <-- History Loader               |
+|                                                  |
+| ❌ 14:02:10 [Loc] RecordPoint: Acc=12m           |
+| ℹ️ 14:02:05 [Net] Upload: Success (200 OK)       |
+| ℹ️ 14:01:55 [S3]  ListObjects: tracks/2023/10    |
+| ⚠️ 14:01:40 [Wtch] Heartbeat: OK                 |
+| ℹ️ Oct 26 14:00 [Bat] Level: 84% (Discharging)   |
+|                                        [ v ]     |  <-- Jump to Bottom FAB
 +--------------------------------------------------+
 | [Dashboard]    Map      [Logs]     Settings      |
++--------------------------------------------------+
+```
+
+**ASCII Wireframe (Detail Bottom Sheet):**
+```text
++--------------------------------------------------+
+| (Dimmed Background)                              |
+|                                                  |
+| +----------------------------------------------+ |
+| | ❌ ERROR                    2023-10-27...    | |
+| | Tag: [LocationManager]                       | |
+| |----------------------------------------------| |
+| | java.lang.IllegalStateException: Location    | |
+| | provider not ready.                          | |
+| |   at com.locus.service.LocService...         | |
+| |   at android.os.Looper...                  | |
+| |                                              | |
+| | (Scrollable Monospace Text)                  | |
+| |                                              | |
+| |----------------------------------------------| |
+| | [ < Prev ]   [ Copy ] [ Share ]   [ Next > ] | |
+| +----------------------------------------------+ |
 +--------------------------------------------------+
 ```
