@@ -7,10 +7,14 @@
 ## 1. Layout Behavior
 *   **Grouped List:** Settings are organized into distinct categories (Identity, General, Data) with headers.
 *   **Standard List Items:** Uses standard Material Design list items with switches or chevrons.
-*   **Tablet Constraint:** Content restricted to a max-width (e.g., 600dp) and centered.
+*   **Tablet Layout (>600dp):** Two-pane layout.
+    *   **Pane 1 (Left):** **Navigation Rail** (Persistent).
+    *   **Pane 2 (Right):** Content is centered with a **max-width of 600dp**.
 
 ## 2. Components
+*   **Icon:** `settings`
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
+    *   **Loading State:** If these values are being fetched asynchronously (e.g., from DataStore/SharedPreferences), display a small **Inline Progress Spinner** next to the label until the data is available.
 *   **Preferences (General):**
     *   "Theme": Tapping opens a Dialog to select [System Default | Light | Dark].
     *   "Unit System": Toggle (Metric/Imperial). Changes must reflect immediately across the app.

@@ -14,9 +14,12 @@
         2.  A specific **Filter** (other than "All") is active.
         3.  The **Search** input is active.
     *   **Resumed:** Tapping the "Jump to Bottom" FAB re-enables auto-scroll.
-*   **Tablet Constraint:** Content is restricted to a max-width of **800dp** and centered horizontally on the screen to ensure readability on large devices.
+*   **Tablet Layout (>600dp):** Two-pane layout.
+    *   **Pane 1 (Left):** **Navigation Rail** (Persistent).
+    *   **Pane 2 (Right):** Content (Logs List) is centered horizontally with a **max-width of 800dp** to ensure readability on large devices.
 
 ## 2. Components
+*   **Icon:** `terminal`
 
 ### 2.1. Top App Bar & Search
 *   **Search Action:** A "Magnifying Glass" icon in the top-right.
@@ -74,7 +77,8 @@
 ## 3. States
 
 ### 3.1. Loading States
-*   **Initial Load:** If the local buffer is large, a centered **Circular Progress Indicator** appears immediately upon opening the screen until the first page of data is ready.
+*   **Initial Load:** A **Centered Circular Progress Indicator** must appear immediately upon opening the screen while the initial database fetch is performed, before the list content becomes visible.
+*   **History Fetch:** Small spinner at the top of the list (as described in Infinite Scroll).
 *   **Exporting:** When "Share/Export" is tapped:
     *   The menu item becomes **Disabled**.
     *   A **Circular Progress Spinner** replaces the icon.
