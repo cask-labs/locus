@@ -33,9 +33,20 @@ graph TD
 *   **Layout Constraint (All Screens):**
     *   **Landscape/Tablet:** Use a **Scrollable Column** layout centered on the screen with a maximum width (e.g., `600dp`). Do not use split-pane layouts for Onboarding to keep the flow linear and simple.
 
-## 2. Screen Specifications
+## 2. Technical Implementation Notes (State Persistence)
 
-### 2.1. Welcome Screen
+To ensure robustness against process death (OS killing the app) or user backgrounding, the flow relies on a "State Machine Persister" using `EncryptedSharedPreferences`.
+
+*   **Provisioning Persistence:**
+    *   When the user begins **Provisioning**, a state flag `PROVISIONING_STARTED` is saved to disk along with the `stack_name`.
+    *   If the app is killed and relaunched, it detects this flag and **immediately restores the Provisioning Progress screen**, checking `WorkManager` status or polling CloudFormation directly.
+*   **The "Setup Trap" (Permissions):**
+    *   Upon successful provisioning, the state updates to `PERMISSIONS_PENDING`.
+    *   If the user closes the app before granting permissions, future launches **bypass** Welcome/Dashboard and land directly on **Permission Step 1**. The user is "trapped" in the flow until completion.
+
+## 3. Screen Specifications
+
+### 3.1. Welcome Screen
 **Purpose:** Introduce the "Bring Your Own Cloud" concept and provide guidance.
 
 **Components:**
@@ -66,7 +77,7 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.2. Key Generation Guide (Bottom Sheet)
+### 3.2. Key Generation Guide (Bottom Sheet)
 **Trigger:** Tapping "How to generate AWS Keys" on the Welcome Screen.
 **Purpose:** Step-by-step instructions for users to generate temporary keys via CloudShell.
 
@@ -93,16 +104,18 @@ graph TD
 |  | aws sts get-session-token ...              |  |
 |  |                           [Share] [Copy]   |  | <-- Code Block with Actions
 |  +--------------------------------------------+  |
-|  3. Copy the output values.                      |
+|  3. Copy the output values (JSON).               |
 |                                                  |
 |           [ CLOSE ]                              |
 +--------------------------------------------------+
 ```
 
-### 2.3. Credential Entry
+### 3.3. Credential Entry
 **Purpose:** Collect AWS credentials to bootstrap the connection.
 
 **Components:**
+*   **Convenience Action:** **"Paste JSON"** (Text Button or Icon).
+    *   *Behavior:* Parses clipboard content for a `Credentials` object containing `AccessKeyId`, `SecretAccessKey`, and `SessionToken`. Automatically fills fields. Errors if invalid JSON.
 *   **Inputs:** Access Key ID, Secret Access Key (masked), Session Token (**Required**).
 *   **Validation:** "Validate Credentials" button (performs Dry Run).
 *   **Feedback:**
@@ -115,6 +128,8 @@ graph TD
 |  < Back                                          |
 +--------------------------------------------------+
 |  Connect AWS Account                             |
+|                                                  |
+|  [ Paste JSON ]                                  | <--- Auto-fill Action
 |                                                  |
 |  Enter your temporary 'Bootstrap' credentials.   |
 |                                                  |
@@ -134,7 +149,7 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.4. Choice Screen
+### 3.4. Choice Screen
 **Purpose:** Determine if this is a new installation or a recovery of an existing one.
 
 **Components:**
@@ -167,16 +182,20 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.5. Path A: New Device Setup
+### 3.5. Path A: New Device Setup
 **Purpose:** Define the device identity and deploy infrastructure.
 
 **Components:**
 *   **Input:** Device Name (default: System Model, e.g., "pixel-7").
 *   **Validation:**
-    *   **Strict Formatting:** The UI must enforce AWS-compatible naming conventions (lowercase, alphanumeric, hyphens only).
-    *   **Auto-Format:** Spaces are automatically converted to hyphens; uppercase characters are converted to lowercase as the user types.
-    *   **Availability:** Check for name collisions against existing stacks.
-*   **Action:** "Deploy Infrastructure".
+    *   **Strict Formatting:** Lowercase, alphanumeric, hyphens only (auto-formatted).
+    *   **Debounced Availability Check:** Triggers 500ms after typing stops.
+    *   **States:**
+        *   *Idle:* No indicator.
+        *   *Checking:* Small inline spinner/text "Checking availability..."
+        *   *Taken:* Red error text "Name already in use. Please choose another."
+        *   *Available:* Green checkmark / "Available".
+*   **Action:** "Deploy Infrastructure" (Disabled if invalid or name taken).
 
 **ASCII Wireframe:**
 ```text
@@ -189,22 +208,43 @@ graph TD
 |                                                  |
 |  Device Name                                     |
 |  [ pixel-7                     ]                 |
-|  (Checked: Available)                            |
+|  (O) Checking availability...                    | <--- Debounced State
 |                                                  |
 +--------------------------------------------------+
 |         [ DEPLOY INFRASTRUCTURE ]                |
 +--------------------------------------------------+
 ```
 
-### 2.6. Path B: Recovery (Link Store)
+### 3.6. Path B: Recovery (Link Store)
 **Purpose:** Select an existing Locus store to link.
 
+**States:**
+1.  **Loading:** Initial state while fetching buckets via `s3:ListBuckets`.
+2.  **Error:** Network failure or Access Denied. Requires "Retry" button.
+3.  **Content (Populated):** List of buckets matching `locus-` prefix.
+    *   *Data:* Bucket Name only. (Date is omitted for performance).
+4.  **Empty:** No buckets found.
+
 **Components:**
-*   **List:** List of detected buckets/stores (e.g., "Locus-Pixel6", "Locus-iPhone").
-    *   *Mechanism:* `s3:ListBuckets` filtered for `locus-` prefix.
-    *   *Validation (Optional):* If possible, attempt to list objects with prefix `locus-stack.yaml` inside the bucket to confirm validity. If invalid, the list item might be disabled or fail gracefully upon selection.
-    *   *Empty State:* If `s3:ListBuckets` returns no valid `locus-` buckets, display "No Locus stores found."
 *   **Action:** Tap a list item to select.
+
+**ASCII Wireframe (Loading/Error):**
+```text
++--------------------------------------------------+
+|  < Back                                          |
++--------------------------------------------------+
+|  Select Existing Store                           |
+|                                                  |
+|      ( Circular Progress Indicator )             | <--- Loading State
+|              Finding stores...                   |
+|                                                  |
+|  [ OR ]                                          |
+|                                                  |
+|      ( Icon: cloud_off )                         | <--- Error State
+|      Failed to load stores.                      |
+|           [ RETRY ]                              |
++--------------------------------------------------+
+```
 
 **ASCII Wireframe (List Populated):**
 ```text
@@ -216,47 +256,33 @@ graph TD
 |  Found 2 Locus stores:                           |
 |                                                  |
 |  [ (Bucket Icon) Locus-Pixel6                 ]  |
-|    Last active: 2 days ago                       |
 |                                                  |
 |  [ (Bucket Icon) Locus-iPhone                 ]  |
-|    Last active: 1 month ago                      |
 |                                                  |
 +--------------------------------------------------+
 ```
 
-**ASCII Wireframe (Empty State):**
-```text
-+--------------------------------------------------+
-|  < Back                                          |
-+--------------------------------------------------+
-|  Select Existing Store                           |
-|                                                  |
-|  ( Icon: search_off )                            |
-|                                                  |
-|  No Locus stores found.                          |
-|                                                  |
-+--------------------------------------------------+
-```
-
-### 2.7. Provisioning (Progress)
+### 3.7. Provisioning (Progress)
 **Purpose:** Visual feedback during long-running CloudFormation tasks.
 
 **Behaviors:**
-*   **Back Button:** Pressing the Back Button during this critical phase does *not* cancel the process (which runs in a Foreground Service). Instead, it minimizes the app (Backgrounds it), returning the user to the Android Home Screen. A Toast ("Deployment is running in the background") should appear upon minimization.
-*   **App Launch:** Wherever the app is opened from (Launcher, Notification, Recent Apps), if the Provisioning Service is active, the app must **always** restore this Provisioning Progress screen, preventing re-entry into the start of the flow.
+*   **Back Button:** Minimizes the app (Backgrounds it). Does **not** cancel the process.
+*   **App Launch:** Always restores this screen if provisioning is active (via State Persistence).
 
 **Displayed Steps:**
-*   *Note: These steps correspond to the resources defined in `locus-stack.yaml`.*
-1.  **"Validating CloudFormation Template..."** (Client-side validation & S3 Upload)
-2.  **"Creating Storage Stack..."** (Initiate CloudFormation Stack Creation)
-3.  **"Provisioning Resources..."** (AWS creating S3 Buckets, IAM User, & Policies)
-4.  **"Generating Runtime Keys..."** (Retrieving `AccessKey` from Stack Outputs)
-5.  **"Finalizing Setup..."** (Saving Runtime Keys to Keystore, Deleting Bootstrap Keys)
+1.  **"Validating CloudFormation Template..."**
+2.  **"Creating Storage Stack..."**
+3.  **"Provisioning Resources..."**
+4.  **"Generating Runtime Keys..."**
+5.  **"Finalizing Setup..."**
 
 **States:**
-*   **In Progress:** Shows progress bar and current step.
-*   **Failure:** Shows Error Icon, Error Message, and "Retry" or "View Logs" button.
-*   **Success:** Shows Checkmark, "Setup Complete", and transitions automatically or via button to Permission Flow.
+*   **In Progress:** Progress bar + Step.
+*   **Success:** Checkmark + "Setup Complete". Auto-transitions to Permissions.
+*   **Hard Failure (e.g., Rollback):**
+    *   Shows Error Icon & "Deployment Failed".
+    *   **Action:** "Back to Setup" (Redirects to New Device Screen).
+    *   *Note:* The app does **not** attempt to delete the failed stack.
 
 **ASCII Wireframe (In Progress):**
 ```text
@@ -273,14 +299,9 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.8. Permission Step 1: Foreground (Rationale)
-**Purpose:** Request the initial "While Using" location permission. This is the prerequisite for background access on Android 11+.
-
-**Components:**
-*   **Icon:** Standard Material Symbol: `location_on`.
-*   **Title:** "Step 1: Enable Tracking"
-*   **Body:** "Locus needs to access your location to record your journey."
-*   **Action:** "Continue" (Triggers System Dialog: "While Using").
+### 3.8. Permission Step 1: Foreground
+**Purpose:** Request the initial "While Using" location permission.
+**Constraint:** If the user exits here, relaunching the app returns *immediately* to this screen ("Setup Trap").
 
 **ASCII Wireframe:**
 ```text
@@ -302,14 +323,8 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.9. Permission Step 2: Background (Rationale)
-**Purpose:** Explain the necessity of "Always Allow" location permissions before redirecting to settings (Android 11+).
-
-**Components:**
-*   **Icon:** Standard Material Symbol: `location_on` (or a variation indicating background).
-*   **Title:** "Step 2: Enable Background"
-*   **Body:** "To prevent gaps in your history when the screen is off, Locus needs 'Always Allow' access."
-*   **Action:** "Open Settings" (Triggers System Settings).
+### 3.9. Permission Step 2: Background
+**Purpose:** Explain the necessity of "Always Allow" location permissions.
 
 **ASCII Wireframe:**
 ```text
@@ -331,18 +346,12 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.10. Permission Denied (Blocking)
-**Purpose:** Blocks the user from proceeding if they deny the required permissions during the flow. This ensures no user enters the Dashboard in a broken state.
+### 3.10. Permission Denied (Blocking)
+**Purpose:** Blocks the user from proceeding if permissions are missing.
 
 **Behavior:**
-*   **Trigger:** User denies permissions or returns from settings without granting "Always Allow".
-*   **Immediacy:** This blocking state triggers *immediately* upon returning to the app if the required permission is not granted.
-*   **Re-Check Loop:** When the app resumes (`onResume`) from the System Settings, it **automatically** re-checks the permission status.
-    *   *If Granted:* The app automatically advances to the Success Screen (no user action needed).
-    *   *If Still Denied:* The app remains on this blocking screen.
-*   **Manual Re-Check:** A secondary "Check Again" text button is provided in case the automatic check fails.
-*   **State:** The screen transitions to this blocking state.
-*   **Action:** "Open Settings" is the *primary and only* prominent action.
+*   **Automatic Re-Check:** Re-checks permissions in `onResume` (returning from Settings).
+*   **Permanent Denial:** If the user has selected "Don't ask again" (system dialog blocked), the "Open Settings" button must Intent specifically to the **App Info** screen (`ACTION_APPLICATION_DETAILS_SETTINGS`) rather than general Location Settings, to allow manual toggle.
 
 **ASCII Wireframe:**
 ```text
@@ -365,7 +374,7 @@ graph TD
 +--------------------------------------------------+
 ```
 
-### 2.11. Success (Completion)
+### 3.11. Success (Completion)
 **Purpose:** Final confirmation before entering the dashboard.
 
 **ASCII Wireframe:**
