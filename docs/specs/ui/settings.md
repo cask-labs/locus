@@ -17,6 +17,20 @@
     *   "Share Anonymous Stats": Toggle (Opt-in). Help improve Locus by sharing crash reports and basic health stats.
 *   **Danger Zone:**
     *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this triggers a confirmation dialog. If confirmed, the button enters a **Loading/Disabled State** (Indeterminate Spinner) while the database deletion occurs.
+        *   *Dialog Wireframe:*
+            ```text
+            +--------------------------------------------------+
+            |  Delete Unsynced Data?                           |
+            |                                                  |
+            |  You are about to delete 1,240 points from       |
+            |  the local device buffer.                        |
+            |                                                  |
+            |  This data has NOT been uploaded to S3 yet.      |
+            |  This action cannot be undone.                   |
+            |                                                  |
+            |      [ CANCEL ]       [ DELETE PERMANENTLY ]     |
+            +--------------------------------------------------+
+            ```
         *   *Feedback:* Upon successful completion, display a **Snackbar** ("Local buffer cleared") and revert the button to its enabled state.
     *   "Reset App" (Red Text). *Warning:* Wipes all keys (Runtime Keys in `EncryptedSharedPreferences`), databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
         *   *Feedback:* This action triggers a **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.

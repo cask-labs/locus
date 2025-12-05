@@ -29,6 +29,20 @@
 *   **Stop Tracking Action:** A secondary action to manually stop the tracking service.
     *   *Placement:* Located **inside the Status Card** (top right icon button) to keep the context tight and the layout clean.
     *   *Interaction:* Tapping triggers a **Confirmation Dialog** to prevent accidental data gaps.
+    *   *Dialog Wireframe:*
+        ```text
+        +--------------------------------------------------+
+        |  Stop Tracking?                                  |
+        |                                                  |
+        |  Location recording will cease.                  |
+        |  The app will enter a "User Stopped" state.      |
+        |                                                  |
+        |  (Note: You can resume anytime from the          |
+        |   Dashboard).                                    |
+        |                                                  |
+        |      [ CANCEL ]       [ STOP TRACKING ]          |
+        +--------------------------------------------------+
+        ```
 *   **Recent Activity:** A simple list showing the last few days of tracking summary (e.g., "Yesterday: 14km").
     *   *Limit:* The list displays a maximum of **5 items** (e.g., the last 5 days with activity).
     *   *Interaction:* Tapping an item in this list navigates the user to the **Map Tab**, pre-loading the selected date.

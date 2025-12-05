@@ -6,7 +6,7 @@ This document defines the user interface architecture, navigation flows, and vis
 
 ## Index
 
-*   **[Design System & Accessibility](ui/design_system.md)**
+*   **[Design Guidelines](../design_guidelines.md)**
     *   Visual Style (Material You)
     *   Philosophy: "Subtle by Default"
     *   Accessibility Requirements
@@ -29,8 +29,10 @@ This document defines the user interface architecture, navigation flows, and vis
 *   **[Settings](ui/settings.md)**
     *   Identity & Preferences
     *   Danger Zone
-*   **[Feedback Mechanisms](ui/feedback.md)**
-    *   Persistent Notification
-    *   In-App Feedback (Snackbars, Dialogs)
+*   **[Notifications (System Status)](ui/notifications.md)**
+    *   Persistent Notification States (Active, Paused, Error)
+*   **[Error Handling](ui/error_handling.md)**
+    *   Blocking Full-Screen Errors (Tier 3)
+    *   Global Patterns (Snackbars, Dialogs)
 *   **[Onboarding (Setup)](ui/onboarding.md)**
     *   Detailed flows for Welcome, Credentials, and Recovery.
