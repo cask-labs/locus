@@ -98,11 +98,23 @@ To ensure the "Fail-Open" mandate:
     *   **The system shall not** retry immediately (to preserve battery).
     *   **Implicit Retry:** The failed logs **remain in the Local Circular Buffer**. They will naturally be included in the **next scheduled upload batch**, provided they have not been evicted by newer logs (FIFO).
     *   **Trade-off:** This prioritizes battery life over guaranteed delivery. If the buffer overflows before the next successful sync, old logs are dropped.
-3.  **Partial Failure Strategy:**
-    *   **Scenario:** S3 upload succeeds, but Community (Firebase) upload fails.
-    *   **Resolution:** The data is considered **successfully synced**. The Local Circular Buffer marks the range as uploaded and deletes it to free space.
-    *   **Rationale:** Community telemetry is optional; its failure must not cause local storage bloat or block the deletion of data that is already safely backed up to S3.
-    *   **Inverse:** If S3 fails, the data **remains** in the buffer, regardless of Community success.
+
+3.  **Dual Cursor Partial Success Strategy:**
+    To maximize data retention without blocking the primary flow, the Local Circular Buffer must implement a **Dual Cursor** architecture.
+    *   **Independent Pointers:**
+        *   `Cursor_S3`: Tracks the offset successfully uploaded to the User's S3 bucket.
+        *   `Cursor_Community`: Tracks the offset successfully uploaded to the Community Service (if enabled).
+    *   **Non-Blocking Progress:**
+        *   The S3 Worker reads from `Cursor_S3` and advances it upon success. It does **not** wait for `Cursor_Community`.
+        *   This ensures that failures in the optional Community upload (e.g., Firebase down) **never** delay the primary S3 backup.
+    *   **Lazy Deletion:**
+        *   Physical deletion of data from the disk buffer occurs only up to the **minimum** of the two cursors: `min(Cursor_S3, Cursor_Community)`.
+        *   This allows the Community Worker to "catch up" later without data loss.
+    *   **Safety Valve (Storage Limit):**
+        *   **Constraint:** The buffer has a hard size limit (e.g., 5MB).
+        *   **Override:** If the buffer hits this limit, the system **must force-overwrite** the oldest data, even if `Cursor_Community` (or `Cursor_S3`) has not yet processed it.
+        *   **Rationale:** This preserves the "Fail-Open" principle—the app must never crash or stop tracking due to a full disk, even if it means losing some diagnostic history.
+
 4.  **Circuit Breaking:**
     *   **IF** telemetry uploads fail consecutively for > 5 attempts, **THEN** the Telemetry Module **shall** enter a "Backoff" state for 6 hours.
 

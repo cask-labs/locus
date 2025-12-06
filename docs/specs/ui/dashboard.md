@@ -115,6 +115,20 @@
 +--------------------------------------------------+
 ```
 
+**Status Card (Paused - Data Limit):**
+```text
++--------------------------------------------------+
+|  [ STATUS CARD ] (Orange/Info Background)        |
+|  Status: Sync Paused (Daily Limit)               |
+|  State:  Buffered                                |
+|  ----------------------------------------------  |
+|  Daily network quota (50MB) reached.             |
+|  Sync will resume automatically tomorrow.        |
+|                                                  |
+|           [ FORCE SYNC NOW ]                     | <--- Overrides Limit
++--------------------------------------------------+
+```
+
 **Status Card (User Stopped):**
 ```text
 +--------------------------------------------------+

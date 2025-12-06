@@ -78,11 +78,17 @@ To prevent unexpected costs or battery drain due to infinite loops or aggressive
 *   **Implementation:**
     *   Network client wraps requests in a `TrafficMeasuringInterceptor`.
     *   Persists daily totals in `SharedPreferences`.
-    *   Resets at 00:00 local time.
+    *   **Lazy Reset Logic:**
+        *   The interceptor checks the `last_reset_date` before every request.
+        *   If `last_reset_date != current_date` (local midnight), the counter is reset to 0 *before* proceeding.
+        *   This avoids the need for a potentially unreliable "midnight" background job.
 *   **Action:**
     *   If `usage > 50MB`: Throw `QuotaExceededException`.
     *   The `WorkManager` job catches this and disables background sync until the next day.
-    *   **Exception:** "Manual Sync" requested by the user overrides this check (requires explicit confirmation).
+    *   **Manual Override:**
+        *   **Scenario:** User explicitly presses "Sync Now".
+        *   **Mechanism:** The `SyncWorker` injects a header `X-Locus-Force: true` into the request context.
+        *   **Interceptor Behavior:** If this header is present, the interceptor logs the usage but **bypasses the 50MB limit check**, allowing the request to proceed.
 
 ### 2.3. Credentials Providers
 *   **Bootstrap:** `StaticCredentialsProvider` using the Access Key ID and Secret Key entered by the user.
