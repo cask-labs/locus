@@ -1,4 +1,4 @@
-# Domain Layer Specification (Phase 2)
+# Domain Layer Specification
 
 **Related Requirements:** [Process Definition](../process_implementation_definition.md), [Android Architecture](../android_architecture.md)
 

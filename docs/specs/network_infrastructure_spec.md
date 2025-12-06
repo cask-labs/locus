@@ -1,4 +1,4 @@
-# Network & Infrastructure Specification (Phase 4)
+# Network & Infrastructure Specification
 
 **Related Requirements:** [Process Definition](../process_implementation_definition.md), [Infrastructure](../infrastructure.md), [Domain Layer Spec](domain_layer_spec.md)
 

@@ -1,6 +1,6 @@
-# Requirements Determination Phases
+# Requirements Determination Process
 
-The process for determining the requirements for the Locus project consists of the following high-level phases.
+The process for determining the requirements for the Locus project consists of the following high-level steps.
 
 ## 1. Define Core Principles (Philosophy)
 Establish the non-negotiable pillars of the project. This includes ensuring data sovereignty (user ownership) and high-precision tracking (1Hz).

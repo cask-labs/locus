@@ -49,8 +49,8 @@ Now that the app can see the account, the user decides the path.
     *   App attaches a restricted policy (Bucket Access Only) to this user.
     *   App saves these **Runtime Keys** and discards the Bootstrap Keys.
 4.  **Permissions:** The "Two-Step Dance" for Location Permissions.
-    *   *Phase A:* Request "While Using".
-    *   *Phase B:* Request "Allow all the time" (Background).
+    *   *Step 1:* Request "While Using".
+    *   *Step 2:* Request "Allow all the time" (Background).
 5.  **Completion:** The user sees a **Success Screen** confirmation ("You're all set!").
     *   *Action:* User explicitly taps **"GO TO DASHBOARD"**.
     *   *Outcome:* The Onboarding screens are cleared from the navigation stack, and the user lands on the active Dashboard. Tracking begins.

@@ -1,4 +1,4 @@
-# Data Persistence Specification (Phase 1)
+# Data Persistence Specification
 
 **Status:** Draft
 **Related Requirements:** [Data Storage](../requirements/data_storage.md), [Data Strategy](../data_strategy.md)
@@ -136,4 +136,4 @@ To enforce the **500MB Soft Limit** without expensive file size checks, we use a
 
 ## 6. Migration Strategy
 *   **Version 1:** Initial Schema.
-*   **Future:** `fallbackToDestructiveMigration()` is authorized for the Prototype/Alpha phase.
+*   **Future:** `fallbackToDestructiveMigration()` is authorized for initial development.

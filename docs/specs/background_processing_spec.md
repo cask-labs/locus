@@ -1,4 +1,4 @@
-# Background Processing Specification (Phase 3)
+# Background Processing Specification
 
 **Status:** Draft
 **Related Requirements:** [Data Collection](../requirements/data_collection.md), [Data Storage](../requirements/data_storage.md), [Android Architecture](../android_architecture.md)

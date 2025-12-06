@@ -2,7 +2,7 @@
 
 **Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
 
-**Purpose:** Provide deep technical insight into the system's operation. While essential for verification during the "Implementation Definition" phase, this screen also serves as a critical diagnostic tool for users to verify system health in production.
+**Purpose:** Provide deep technical insight into the system's operation. While essential for verification, this screen also serves as a critical diagnostic tool for users to verify system health in production.
 
 ## 1. Layout Behavior
 *   **Sticky Header:** The Top App Bar (containing the Title/Search) and the Filter Chips row remain pinned to the top.

@@ -1,6 +1,6 @@
 # Implementation Definition Process
 
-This document outlines the systematic process for defining the technical implementation details of the Locus project. The goal of this phase is to bridge the gap between "Requirements" (What) and "Code" (How) by specifying the exact technical structures, patterns, and logic to be used.
+This document outlines the systematic process for defining the technical implementation details of the Locus project. The goal of this process is to bridge the gap between "Requirements" (What) and "Code" (How) by specifying the exact technical structures, patterns, and logic to be used.
 
 ## 1. Data Persistence Specification
 **Goal:** Define the exact local storage schema and access patterns.
