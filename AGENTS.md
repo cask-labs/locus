@@ -17,5 +17,6 @@ This document serves as the entry point for agents working on this repository. Y
 *   **Communication** (`agents/rules/communication.md`): **(ALWAYS APPLIES)** Instructs the agent to account for voice transcription errors, interpret ambiguous input phonetically and contextually, and always provide recommendations.
 *   **Kotlin** (`agents/rules/kotlin.md`): Outlines coding standards focusing on immutability, coroutines usage, null safety, naming conventions, and data classes.
 *   **Requirements** (`agents/rules/requirements.md`): Mandates that requirements are technology-agnostic and written using the EARS syntax.
+*   **Style** (`agents/rules/style.md`): Enforces snake_case resource naming with prefixes and the use of Material Theme tokens for colors.
 *   **Testing** (`agents/rules/testing.md`): Requires unit and instrumentation tests, infrastructure validation, high test coverage, and continuous integration.
 *   **Writing Rules** (`agents/rules/writing_rules.md`): Instructions for writing concise, direct, positive, and code-free documentation.
