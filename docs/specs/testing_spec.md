@@ -33,7 +33,7 @@ Reusable Fakes, Mocks, and Test Utilities (e.g., `MainDispatcherRule`) must be l
 
 ## 3. Test Tiers (Validation Pipeline)
 
-This strategy directly maps to the Validation Pipeline Tiers defined in `../operations/ci_pipeline.md`.
+This strategy directly maps to the Validation Pipeline Tiers defined in `automation_scripts_spec.md`.
 
 | Tier | Description | Included Tests |
 | :--- | :--- | :--- |
