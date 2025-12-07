@@ -1,7 +1,7 @@
 # Background Processing Specification
 
 **Status:** Draft
-**Related Requirements:** [Data Collection](../requirements/data_collection.md), [Data Storage](../requirements/data_storage.md), [Android Architecture](../android_architecture.md)
+**Related Requirements:** [Data Collection](../requirements/data_collection.md), [Data Storage](../requirements/data_storage.md), [Android Architecture](../android_architecture.md), [Telemetry](telemetry_spec.md), [Watchdog](runtime_watchdog_spec.md)
 
 This document details the technical implementation of the Android Services, Workers, and State Machines that power the "Always On" nature of the application.
 
@@ -27,19 +27,12 @@ The core data collection engine is the `TrackerService`.
     1.  Release WakeLock.
     2.  Unregister all observers.
     3.  Stop Location Updates.
-    4.  Cancel "Passive Heartbeat" Alarm.
+    4.  Cancel Heartbeat Coroutine.
 
-### 1.2. Notification Channels
-To separate "Background Status" from "Critical Alerts", two channels are defined:
-
-1.  **Tracking Status (`channel_tracking`)**
-    *   **Importance:** `LOW` (Silent, Minimized).
-    *   **Usage:** The persistent notification required for the Foreground Service.
-    *   **Content:** "Recording • GPS: 3m • Buffer: 120 pts".
-2.  **Critical Alerts (`channel_alerts`)**
-    *   **Importance:** `HIGH` (Sound + Vibration).
-    *   **Usage:** Fatal Errors (e.g., "Location Permission Revoked", "Tracking Failed").
-    *   **Bypass:** Triggers even if the app is in "Subtle Mode" (unless system DND is on).
+### 1.2. Notification Strategy
+The Foreground Service must display a persistent notification.
+*   **Channels & Behavior:** Defined in [UI Notifications Specification](ui/notifications.md).
+*   **Content:** The service must update the notification text dynamically based on state (Recording, Uploading, Warning). The exact string formats are defined in [UI Notifications Specification](ui/notifications.md).
 
 ## 2. State Machine & Precedence
 
@@ -54,7 +47,7 @@ The service behavior is governed by the intersection of **Motion State** and **S
 | **Low Power** | Battery < 10%. | Reduced (10s) | HELD* | Battery falls below 10%. |
 | **Critical** | Battery < 3%. | OFF | RELEASED | Battery falls below 3%. |
 
-*\*Rationale: In "Low Power" mode (10s interval), holding the WakeLock prevents "CPU Thrashing" (suspending and waking every 10 seconds), which would consume more energy than staying awake.*
+*\*Rationale: In "Low Power" mode (10s interval), holding the WakeLock prevents "CPU Thrashing" (suspending and waking every 10 seconds). This is implemented via `delay(10_000)` in the collection coroutine loop.*
 
 ### 2.2. State Diagram
 
@@ -75,7 +68,7 @@ stateDiagram-v2
 
     state LowPower {
         [*] --> ReducedRecording
-        note right of ReducedRecording : 10s Interval, WakeLock Held
+        note right of ReducedRecording : 10s Interval (delay), WakeLock Held
     }
 
     state Critical {
@@ -87,9 +80,8 @@ stateDiagram-v2
 ### 2.3. Precedence Rules
 
 1.  **Critical Battery Overrides All:** If Battery < 3%, the system enforces the "Deep Sleep" state (GPS OFF, WakeLock RELEASED) to prevent total shutdown.
-    *   *Mechanism:* Active tracking stops. "Periodic Burst" checks (FOSS) are disabled. We rely solely on hardware interrupts (`TYPE_SIGNIFICANT_MOTION`) or user intervention (Charging).
 2.  **Stationary Overrides Active:** If `Stationary` is detected, GPS is suspended.
-3.  **Manual Override:** A "Manual Sync" or "Test Mode" temporarily overrides Low Power constraints.
+3.  **Manual Override:** A "Manual Sync" temporarily overrides Low Power constraints.
 
 ## 3. Component Specifications
 
@@ -97,73 +89,54 @@ stateDiagram-v2
 Encapsulates the logic for detecting when the device is still.
 
 *   **Interface:** `StationaryManager`
-    *   `fun startMonitoring()`
-    *   `fun stopMonitoring()`
     *   `val isStationary: Flow<Boolean>`
 *   **Implementations (Injected via Hilt):**
-    *   **Standard (`FusedStationaryManager`):** Uses Google Play Services `ActivityRecognitionClient` (Transition API: `STILL` vs `WALKING/VEHICLE`).
+    *   **Standard (`FusedStationaryManager`):** Uses Google Play Services `ActivityRecognitionClient`.
     *   **FOSS (`SensorStationaryManager`):**
         *   **Primary:** `Sensor.TYPE_SIGNIFICANT_MOTION` (One-shot hardware interrupt).
-        *   **Fallback:** "Periodic Burst" (AlarmManager wakes every 5 mins -> Sample Accel @ 10Hz for 5s -> Analyze Variance).
+        *   **Fallback:** "Periodic Burst" (AlarmManager wakes every 5 mins -> Sample Accel @ 10Hz for 5s).
+        *   **Threshold:** Variance Sum < **0.5** (m/s²) is considered Stationary.
 
 ### 3.2. Watchdog (Reliability Layer)
-Ensures the `TrackerService` remains alive.
-
-*   **Mechanism:** `WorkManager` (Periodic, 15 minutes).
-*   **Heartbeat Contract:**
-    *   `TrackerService` writes `last_heartbeat_ts` to `EncryptedSharedPreferences` once per hour (via `AlarmManager`).
-    *   *Note:* Heartbeat continues even in Stationary Mode (Service wakes briefly to write).
-*   **Logic (`CheckServiceHealthUseCase`):**
-    1.  Check `isServiceRunning(TrackerService)`.
-    2.  Read `last_heartbeat_ts`.
-    3.  **Zombie Detection:** If `Running` BUT `ts > 90 mins ago`:
-        *   Log "Zombie Detected".
-        *   Call `stopService()` (Kill process).
-        *   Attempt Restart (see below).
-    4.  **Dead Detection:** If `Not Running`:
-        *   Log "Service Dead".
-        *   Attempt Restart (see below).
-    5.  **Circuit Breaker:** If restart fails 3 times consecutively, post `Fatal Error` notification.
-
-    **Android 12+ (SDK 31) Compliance:**
-    *   **Restriction:** Android 12 restricts apps from starting Foreground Services while running in the background (e.g., from a WorkManager job) to prevent "surprise" battery drain by silent services. Doing so throws a `ForegroundServiceStartNotAllowedException`.
-    *   **Alternatives Considered:**
-        *   *Exemption via Exact Alarm:* We could use `AlarmManager` with `SCHEDULE_EXACT_ALARM` to trigger the restart, which grants a temporary exemption. However, this permission requires strict Play Store justification and is intended for time-critical events (alarms/timers), not service restarts.
-        *   *User Interaction (Chosen):* The safest, most policy-compliant method is to ask the user to resume.
-    *   **Strategy:**
-        1.  Attempt `startForegroundService()`.
-        2.  Catch `ForegroundServiceStartNotAllowedException` (or check SDK version).
-        3.  **Fallback:** Post a **High Priority Notification** ("Tracking Paused Unexpectedly") with a `PendingIntent` that restarts the service when tapped by the user.
+Ensures the `TrackerService` remains alive and healthy.
+*   **Logic & Specification:** Defined in [Runtime Watchdog Specification](runtime_watchdog_spec.md).
+*   **Responsibility:** The `TrackerService` simply runs the heartbeat loop; the `WatchdogWorker` performs the checks and restarts.
 
 ## 4. Background Workers (WorkManager)
 
 ### 4.1. SyncWorker
-Handles data upload.
+Handles data upload logic defined in the Domain Layer.
 
 *   **Type:** `CoroutineWorker`.
 *   **Schedule:** Periodic (15 minutes).
 *   **Constraints:**
-    *   `NetworkType`: **CONNECTED** (Metered is OK).
+    *   `NetworkType`: **CONNECTED**.
     *   `BatteryNotLow`: **TRUE** (Auto-pauses if < 10%).
-    *   `RequiresCharging`: **FALSE**.
-*   **Logic:**
-    *   Executes `PerformSyncUseCase(REGULAR)`.
-    *   *Note:* Must handle `Sync` (S3) and `Telemetry` (Community) in isolated `try/catch` blocks.
+*   **Flow Diagram:**
+
+```mermaid
+flowchart TD
+    Start[Start Worker] --> CheckQuota{Check Traffic Quota}
+    CheckQuota -- Exceeded --> Pause[Result.success]
+    note right of Pause: Pause until next run (15m)
+
+    CheckQuota -- OK --> Sync[PerformSyncUseCase]
+
+    Sync --> Res{Result}
+    Res -- Success --> Done[Result.success]
+    Res -- Failure --> Retry[Result.retry]
+```
+
+*   **Traffic Guardrail:** The Worker checks the daily traffic quota before attempting sync. If `QuotaExceededException` is encountered (or quota check fails), it returns `Result.success()` to prevent immediate WorkManager backoff retries, effectively pausing sync until the next periodic interval (15 mins later) when the quota might be reset (new day).
 
 ### 4.2. Manual Sync
 Triggered by user.
-
-*   **Type:** `OneTimeWorkRequest` (uses same `SyncWorker` class).
-*   **Policy:** `EXPEDITED`.
-*   **Input Data:** `inputData = workDataOf("force" to true)`.
-*   **Logic:**
-    *   Worker detects "force" flag.
-    *   Executes `PerformSyncUseCase(MANUAL)` (Ignores Battery constraints).
+*   **Input Data:** `workDataOf("force" to true)`.
+*   **Logic:** Executes `PerformSyncUseCase(MANUAL)` which ignores Battery and Traffic Guardrail constraints.
 
 ### 4.3. Boot & Update Receivers
 Ensures "Always On" persistence.
-
 *   **Triggers:** `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`.
 *   **Logic:**
-    1.  Check `AuthRepository.isIdentitySet()` (Don't start if not onboarding).
+    1.  Check `AuthRepository.isIdentitySet()`.
     2.  Call `startForegroundService()`.
