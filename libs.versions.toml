@@ -30,6 +30,7 @@ mockk = "1.13.9"
 turbine = "1.0.0"
 truth = "1.4.0"
 robolectric = "4.11.1"
+uiautomator = "2.3.0"
 
 [libraries]
 # Core
@@ -89,6 +90,7 @@ mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "moc
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
