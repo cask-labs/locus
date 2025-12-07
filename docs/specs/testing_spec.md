@@ -33,7 +33,7 @@ Reusable Fakes, Mocks, and Test Utilities (e.g., `MainDispatcherRule`) must be l
 
 ## 3. Test Tiers (Validation Pipeline)
 
-This strategy directly maps to the Validation Pipeline Tiers defined in `automation_scripts_spec.md`.
+This strategy directly maps to the Validation Pipeline Tiers defined in `../operations/ci_pipeline.md`.
 
 | Tier | Description | Included Tests |
 | :--- | :--- | :--- |
@@ -158,5 +158,4 @@ Prefer **Fakes** over Mocks for complex shared dependencies.
 
 *   **Class:** `[ClassUnderTest]Test` (e.g., `PerformSyncUseCaseTest`).
 *   **Method:** Backtick syntax describing the behavior.
-    *   `methodName_condition_expectedResult`
     *   `returns failure when network is unavailable` (Preferred for readability).

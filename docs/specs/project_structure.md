@@ -15,6 +15,8 @@ graph TD
     App[:app] --> Data[:core:data]
     App[:app] --> Domain[:core:domain]
     Data[:core:data] --> Domain[:core:domain]
+    App[:app] --> Testing[:core:testing]
+    Data[:core:data] --> Testing[:core:testing]
 ```
 
 ### 1.2. Module Definitions
@@ -30,6 +32,12 @@ graph TD
     *   **Dependencies:** `:core:domain`, Room, Retrofit, AWS SDK.
     *   **Contents:** Repository Implementations, Room Entities/DAOs, Network Clients, Shared Preferences.
     *   **Purpose:** Data retrieval and persistence.
+
+*   **`:core:testing`**
+    *   **Type:** Android Library.
+    *   **Dependencies:** `:core:domain`.
+    *   **Contents:** Shared Fakes, Mocks, Test Rules (e.g., `MainDispatcherRule`).
+    *   **Purpose:** Reusable test fixtures for all modules.
 
 *   **`:app`**
     *   **Type:** Android Application.
