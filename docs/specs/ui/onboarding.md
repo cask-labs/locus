@@ -116,6 +116,10 @@ To ensure robustness against process death (OS killing the app) or user backgrou
 **Components:**
 *   **Convenience Action:** **"Paste JSON"** (Text Button or Icon).
     *   *Behavior:* Parses clipboard content for a `Credentials` object containing `AccessKeyId`, `SecretAccessKey`, and `SessionToken`. Automatically fills fields. Errors if invalid JSON.
+    *   *JSON Schema:* The parser strictly accepts the following keys (case-insensitive):
+        *   `AccessKeyId`
+        *   `SecretAccessKey`
+        *   `SessionToken`
 *   **Inputs:** Access Key ID, Secret Access Key (masked), Session Token (**Required**).
 *   **Validation:** "Validate Credentials" button (performs Dry Run).
 *   **Feedback:**
@@ -371,6 +375,8 @@ To ensure robustness against process death (OS killing the app) or user backgrou
 |           [    OPEN SETTINGS    ]                |
 |                                                  |
 |               (Check Again)                      |
+|                                                  |
+|          [ Reset / Start Over ] (Small Text)     | <--- "Safety Hatch" Action
 +--------------------------------------------------+
 ```
 

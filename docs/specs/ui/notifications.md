@@ -1,5 +1,7 @@
 # Persistent Notifications
 
+**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
+
 **Related Requirements:** [UI Feedback](../../requirements/ui_feedback.md), [Background Processing](../background_processing_spec.md)
 
 **Purpose:** Keep the service alive, prevent OS termination, and provide transparent status without opening the app.
@@ -22,7 +24,8 @@ To adhere to the "Subtle by Default" philosophy while ensuring critical alerts a
 *   **Foreground Service:** The notification is anchored to a Foreground Service that runs as long as tracking is active, initializing, or stopping.
 *   **Visibility:** It must remain visible on the Lock Screen (public version, hiding sensitive content if configured by system).
 *   **Action Strategy:**
-    *   **"Stop Tracking":** The primary action for active states. This minimizes accidental interactions.
+    *   **"Stop Tracking":** The primary action for active states.
+        *   *Behavior:* This action does **not** stop the service immediately. Instead, it opens the Dashboard with the **Stop Confirmation Dialog** pre-triggered. This ensures users do not accidentally create data gaps.
     *   **"Resume Tracking":** Strictly reserved for the **Watchdog Rescue** state.
     *   **Tap Behavior:** Tapping the notification body opens the **Dashboard** (or deep-links to the error resolution screen for Fatal Errors).
 

@@ -1,5 +1,7 @@
 # Dashboard (Home)
 
+**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
+
 **Purpose:** Provide an "at-a-glance" view of system health and allow manual overrides.
 
 ## 1. Layout Behavior
@@ -21,14 +23,13 @@
 *   **Actions:** "Sync Now" button.
     *   *Placement:* On phones, this button is placed **below** the Stats Grid (scrolling). On tablets, it is fixed in Pane 2 (Middle).
     *   *Behavior:* When tapped, transforms into a **Linear Progress Indicator** showing "Uploading batch X of Y..." until completion.
-    *   *Force Sync:* Tapping this button **always** acts as a "Force Sync", bypassing any active constraints (e.g., Daily Data Limit, Low Battery). If the app is currently paused due to these limits, tapping this button will immediately trigger an upload.
     *   *Empty Buffer Behavior:* If the local buffer is empty (0 points), the button remains **enabled**. Tapping it triggers a transient **Snackbar** ("Buffer is empty") to provide immediate system feedback that the command was received but no work is needed.
     *   *Offline Behavior:* If the device is offline, the button remains enabled, but tapping it triggers a "Fail Fast" behavior: a **Snackbar** appears immediately ("No Internet Connection"), and no network request is attempted.
     *   *Error Handling:* Transient failures (e.g., "Network Error" during upload) must revert the button state and appear as a **Snackbar** anchored above the bottom navigation.
 *   **Sensor Status:** Small indicators for GPS, Network, and Battery state.
     *   *Design:* These must use an **Icon + Short Value** format (e.g., [Icon] High, [Icon] 85%) and leverage dynamic **color and icon changes** (e.g., Green Check, Red Alert, Grey Slash) to indicate state.
 *   **Stop Tracking Action:** A secondary action to manually stop the tracking service.
-    *   *Placement:* Located **inside the Status Card** (top right icon button) to keep the context tight and the layout clean.
+    *   *Placement:* Located **within the Status Card** actions area (e.g., as an Outlined Button) to keep the context tight and the layout clean.
     *   *Interaction:* Tapping triggers a **Confirmation Dialog** to prevent accidental data gaps.
     *   *Dialog Wireframe:*
         ```text
@@ -44,6 +45,9 @@
         |      [ CANCEL ]       [ STOP TRACKING ]          |
         +--------------------------------------------------+
         ```
+*   **Resume Tracking Action:** A primary action shown *only* when the status is "User Stopped" or "Service Halted".
+    *   *Placement:* Replaces the "Sync Now" or "Stop Tracking" buttons within the Status Card.
+    *   *Interaction:* Immediately restarts the foreground service and transitions the UI to the "Initializing" state.
 *   **Recent Activity:** A simple list showing the last few days of tracking summary (e.g., "Yesterday: 14km").
     *   *Limit:* The list displays a maximum of **5 items** (e.g., the last 5 days with activity).
     *   *Interaction:* Tapping an item in this list navigates the user to the **Map Tab**, pre-loading the selected date.
@@ -124,7 +128,7 @@
 |  Daily network quota (50MB) reached.             |
 |  Sync will resume automatically tomorrow.        |
 |                                                  |
-|  (Note: Use "SYNC NOW" below to force upload)    |
+|           [ FORCE SYNC NOW ]                     | <--- Overrides Limit
 +--------------------------------------------------+
 ```
 

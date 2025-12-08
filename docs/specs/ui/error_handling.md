@@ -30,6 +30,14 @@
 *   They prevent navigation to other screens (Dashboard, Map, etc.).
 *   They persist until the condition is resolved.
 
+### 2.0. Emergency Menu (Diagnostics)
+To prevent users from being "bricked" (locked out) if a resolution fails, all Tier 3 screens must include an **Emergency Menu** in the top-right corner (via Top App Bar or Floating Icon).
+
+**Actions:**
+*   **"Export Diagnostic Logs":** Triggers the log export action (dumping the local buffer to a file/share sheet).
+*   **"Reset Application":** Triggers the [Settings Danger Zone](settings.md) reset logic (Wipe Data + Return to Onboarding).
+*   **"About/Version":** Displays the current build version.
+
 ### 2.1. Permission Revoked
 *   **Trigger:** The user (or OS) revokes `ACCESS_FINE_LOCATION` or `ACCESS_BACKGROUND_LOCATION`.
 
