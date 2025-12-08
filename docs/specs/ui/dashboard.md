@@ -1,7 +1,5 @@
 # Dashboard (Home)
 
-**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
-
 **Purpose:** Provide an "at-a-glance" view of system health and allow manual overrides.
 
 ## 1. Layout Behavior
@@ -23,6 +21,7 @@
 *   **Actions:** "Sync Now" button.
     *   *Placement:* On phones, this button is placed **below** the Stats Grid (scrolling). On tablets, it is fixed in Pane 2 (Middle).
     *   *Behavior:* When tapped, transforms into a **Linear Progress Indicator** showing "Uploading batch X of Y..." until completion.
+    *   *Force Sync:* Tapping this button **always** acts as a "Force Sync", bypassing any active constraints (e.g., Daily Data Limit, Low Battery). If the app is currently paused due to these limits, tapping this button will immediately trigger an upload.
     *   *Empty Buffer Behavior:* If the local buffer is empty (0 points), the button remains **enabled**. Tapping it triggers a transient **Snackbar** ("Buffer is empty") to provide immediate system feedback that the command was received but no work is needed.
     *   *Offline Behavior:* If the device is offline, the button remains enabled, but tapping it triggers a "Fail Fast" behavior: a **Snackbar** appears immediately ("No Internet Connection"), and no network request is attempted.
     *   *Error Handling:* Transient failures (e.g., "Network Error" during upload) must revert the button state and appear as a **Snackbar** anchored above the bottom navigation.
@@ -125,7 +124,7 @@
 |  Daily network quota (50MB) reached.             |
 |  Sync will resume automatically tomorrow.        |
 |                                                  |
-|           [ FORCE SYNC NOW ]                     | <--- Overrides Limit
+|  (Note: Use "SYNC NOW" below to force upload)    |
 +--------------------------------------------------+
 ```
 

@@ -1,7 +1,5 @@
 # Persistent Notifications
 
-**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
-
 **Related Requirements:** [UI Feedback](../../requirements/ui_feedback.md), [Background Processing](../background_processing_spec.md)
 
 **Purpose:** Keep the service alive, prevent OS termination, and provide transparent status without opening the app.

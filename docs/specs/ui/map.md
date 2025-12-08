@@ -1,13 +1,14 @@
 # Map (Visualization)
 
-**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
-
 **Purpose:** Verify and explore historical movement data.
 
 ## 1. Layout Behavior
 *   **Full Screen:** The map view occupies the entire screen behind transparent system bars.
 *   **Overlays:** Controls and Action Buttons are anchored to the edges (safe area insets).
 *   **Bottom Sheet:** A persistent sheet that peaks at the bottom (minimized height) and expands on drag or tap. It does *not* cover the whole map when minimized, only showing essential text.
+*   **Back Button Behavior:**
+    *   **Hierarchy:** Close Point Detail -> Collapse Bottom Sheet -> **Return to Dashboard**.
+    *   *Rationale:* The Dashboard is the "Start Destination". Pressing Back from the Map should follow standard navigation patterns and return the user to the home screen, not exit the application immediately.
 *   **Tablet Layout (>600dp):** Two-pane layout.
     *   **Pane 1 (Left):** **Navigation Rail** (Persistent).
     *   **Pane 2 (Right):** Full-screen **Map View**.
@@ -22,6 +23,7 @@
     *   *Offline State:* If the map is viewed offline and **any** tiles are not cached (showing an empty grid), a transient **Snackbar** ("Map Offline") must appear to explain the missing visual context.
 *   **Controls:**
     *   **Zoom Buttons (+/-):** Floating buttons anchored to the **Bottom Right**, just above the Bottom Sheet peek height.
+        *   *Behavior:* These buttons must **fade out/hide** when the interface enters **Mode B (Point Detail)** to prevent visual clutter and accidental touches.
     *   **Share/Snapshot:** Floating button anchored to the **Top Right**.
         *   *Behavior:* Generates a static image (JPEG/PNG) of the current map viewport (including the visible track) and invokes the system Share Sheet.
 *   **Layer Switcher (Modal Bottom Sheet):**

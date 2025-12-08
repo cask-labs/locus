@@ -1,7 +1,5 @@
 # Settings
 
-**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
-
 **Purpose:** Manage configuration, identity, and application behavior.
 
 ## 1. Layout Behavior
@@ -14,6 +12,7 @@
 ## 2. Components
 *   **Icon:** `settings`
 *   **Identity:** Display current "Device ID" and "AWS Stack Name".
+    *   **Tap to Copy:** Tapping the row copies the value (Device ID or Stack Name) to the clipboard and displays a transient **Snackbar** ("Copied to clipboard").
     *   **Loading State:** If these values are being fetched asynchronously (e.g., from DataStore/SharedPreferences), display a small **Inline Progress Spinner** next to the label until the data is available.
 *   **Preferences (General):**
     *   "Theme": Tapping opens a Dialog to select [System Default | Light | Dark].

@@ -1,7 +1,5 @@
 # Logs (Diagnostics)
 
-**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
-
 **Purpose:** Provide deep technical insight into the system's operation. While essential for verification, this screen also serves as a critical diagnostic tool for users to verify system health in production.
 
 ## 1. Layout Behavior
@@ -29,7 +27,10 @@
     *   *Interaction:* Tapping expands a text input field, temporarily replacing the screen title.
     *   *Logic:* Search acts as an **AND** filter combined with active chips (e.g., `(Error OR Warn) AND "Network"`).
     *   *Matching:* Case-insensitive substring match against Tag and Message.
-*   **Context Menu:** Contains the "Export Logs" action.
+*   **Context Menu:**
+    *   **Export Logs:**
+        *   *Format:* **Plain Text (`.txt`)**. This ensures the file is easily readable on any device without specialized tools.
+        *   *Content:* The complete current contents of the local buffer, formatted line-by-line.
 
 ### 2.2. Filter Chips
 *   **Type:** Multi-select Choice Chips.

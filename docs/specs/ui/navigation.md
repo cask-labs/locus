@@ -1,7 +1,5 @@
 # Navigation Architecture
 
-**Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
-
 The application uses an adaptive hierarchy that switches between a **Bottom Navigation Bar** (Phone) and a **Navigation Rail** (Tablet) for top-level destinations.
 
 ## 1. Layout Strategy
