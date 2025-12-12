@@ -30,6 +30,7 @@
 *   **Stop Tracking Action:** A secondary action to manually stop the tracking service.
     *   *Placement:* Located **inside the Status Card** (top right icon button) to keep the context tight and the layout clean.
     *   *Interaction:* Tapping triggers a **Confirmation Dialog** to prevent accidental data gaps.
+    *   *External Trigger:* This dialog must also be capable of being triggered via an **Intent** (e.g., from the Persistent Notification's "Stop Tracking" action), requiring the Dashboard to handle this intent and show the dialog immediately upon launch.
     *   *Dialog Wireframe:*
         ```text
         +--------------------------------------------------+

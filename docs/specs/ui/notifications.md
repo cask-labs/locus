@@ -22,7 +22,7 @@ To adhere to the "Subtle by Default" philosophy while ensuring critical alerts a
 *   **Foreground Service:** The notification is anchored to a Foreground Service that runs as long as tracking is active, initializing, or stopping.
 *   **Visibility:** It must remain visible on the Lock Screen (public version, hiding sensitive content if configured by system).
 *   **Action Strategy:**
-    *   **"Stop Tracking":** The primary action for active states. This minimizes accidental interactions.
+    *   **"Stop Tracking":** The primary action for active states. **Crucially**, this action does **not** stop the service immediately. It opens the **Dashboard** with the **Confirmation Dialog** pre-triggered to prevent accidental stops.
     *   **"Resume Tracking":** Strictly reserved for the **Watchdog Rescue** state.
     *   **Tap Behavior:** Tapping the notification body opens the **Dashboard** (or deep-links to the error resolution screen for Fatal Errors).
 
@@ -97,7 +97,7 @@ The notification title and body must strictly follow this format to ensure consi
 ```
 
 ### 3.5. Stopping (Transient)
-*   **Context:** User tapped "Stop Tracking". Service is flushing buffer and releasing resources (approx. 1-3s).
+*   **Context:** User confirmed "Stop Tracking" in the Dashboard dialog. Service is flushing buffer and releasing resources (approx. 1-3s).
 *   **Channel:** `channel_tracking` (Low).
 *   **Icon:** `@drawable/ic_stat_tracking`
 *   **Action:** None (Buttons removed to prevent double-taps).
