@@ -112,6 +112,7 @@ Handles data upload logic defined in the Domain Layer.
 *   **Constraints:**
     *   `NetworkType`: **CONNECTED**.
     *   `BatteryNotLow`: **TRUE** (Auto-pauses if < 10%).
+*   **Responsibility:** Executes `PerformSyncUseCase`, which logically dispatches uploads to all active destinations (S3, Community). This single worker ensures radio wakeups are batched efficiently.
 *   **Flow Diagram:**
 
 ```mermaid

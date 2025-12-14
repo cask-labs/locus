@@ -125,8 +125,16 @@ Manages diagnostic logs.
 ```kotlin
 interface LogRepository {
     suspend fun log(entry: LogEntry)
-    suspend fun getOldestBatch(limit: Int): Result<List<LogEntry>>
-    suspend fun deleteBefore(time: Instant): Result<Unit>
+
+    // Read batch specifically for a given cursor
+    suspend fun getBatchAfter(cursorId: Long, limit: Int): Result<List<LogEntry>>
+
+    // Cursor Management
+    suspend fun getCursor(key: String): Result<Long>
+    suspend fun updateCursor(key: String, lastId: Long): Result<Unit>
+
+    // Note: No 'deleteBefore' is exposed.
+    // Logs are only deleted via FIFO eviction (handled implicitly by Data Layer).
 }
 ```
 
@@ -215,19 +223,36 @@ Encapsulates specific business rules.
 
 ### 4.1. PerformSyncUseCase
 **Role:** Orchestrates the upload process (Location + Logs).
+**Responsibility:**
+*   Manages "Independent Cursors" for S3 vs Community logs.
+*   Handles partial failures (e.g., S3 succeeds, Community fails).
+*   Performs anonymization hashing (`SHA256(device_id + salt)`) before invoking Community Remote.
+
 **Logic:**
 1.  Check `DeviceState` (skip if Critical Battery, unless Manual Sync).
-2.  Fetch `OldestBatch` from `LocationRepository`.
-3.  Compress (Gzip).
-4.  Upload to S3 (via Infrastructure Interface).
-5.  If Success: `LocationRepository.deleteBefore()`.
-6.  Repeat for Logs (Upload to S3 + Community).
+2.  **Location Sync:**
+    *   Fetch `OldestBatch` -> Compress -> Upload S3.
+    *   Success: `LocationRepository.deleteBefore()`.
+3.  **Log Sync (Dual Dispatch):**
+    *   **S3 Path:**
+        *   Get `Cursor_S3`.
+        *   Fetch batch > `Cursor_S3`.
+        *   Upload S3.
+        *   Success: Update `Cursor_S3`.
+    *   **Community Path:**
+        *   Get `Cursor_Community`.
+        *   Fetch batch > `Cursor_Community`.
+        *   Generate Anonymized ID (`SHA256`).
+        *   Upload Community (via Adapter).
+        *   Success: Update `Cursor_Community`.
 
 ```kotlin
 class PerformSyncUseCase(
     private val locationRepo: LocationRepository,
     private val logRepo: LogRepository,
+    private val configRepo: ConfigurationRepository, // For Salt
     private val remoteStore: RemoteStorageInterface, // Infrastructure layer
+    private val communityRemote: CommunityTelemetryRemote,
     private val deviceStateRepo: DeviceStateRepository
 ) {
     suspend operator fun invoke(type: SyncType): Result<SyncStats>
@@ -308,13 +333,12 @@ class BatteryCriticalException : DomainException("Battery too low for operation"
 ## 6. Workflow Diagrams
 
 ### 6.1. Sync Workflow (PerformSyncUseCase)
-This diagram illustrates the orchestration of uploading location and log data, handling different sync types, and managing local storage cleanup.
+This diagram illustrates the orchestration of uploading location and log data, specifically highlighting the independent cursor management for logs.
 
 ```mermaid
 sequenceDiagram
     participant Worker as SyncWorker
     participant UseCase as PerformSyncUseCase
-    participant DeviceState as DeviceStateRepository
     participant LocRepo as LocationRepository
     participant LogRepo as LogRepository
     participant Remote as RemoteStorageInterface
@@ -322,46 +346,39 @@ sequenceDiagram
     Worker->>UseCase: invoke(SyncType)
     activate UseCase
 
-    UseCase->>DeviceState: getCurrentSystemState()
-    DeviceState-->>UseCase: SystemState (e.g., Normal)
-
-    alt Battery Critical and SyncType != MANUAL
-        UseCase-->>Worker: Result.Failure(BatteryCriticalException)
-    else
-        par Sync Locations
-            loop While Batch Available
-                UseCase->>LocRepo: getOldestBatch(limit)
-                LocRepo-->>UseCase: List<LocationPoint>
-                UseCase->>UseCase: Compress Data (Gzip)
-                UseCase->>Remote: uploadTrack(data)
-
-                alt Upload Success
-                    Remote-->>UseCase: Success
-                    UseCase->>LocRepo: deleteBefore(timestamp)
-                else Upload Failure
-                    Remote-->>UseCase: Failure
-                    note right of UseCase: Stop Location Sync Loop
-                end
-            end
-        and Sync Logs
-            loop While Batch Available
-                UseCase->>LogRepo: getOldestBatch(limit)
-                LogRepo-->>UseCase: List<LogEntry>
-                UseCase->>UseCase: Compress Data
-                UseCase->>Remote: uploadLogs(data)
-
-                alt Upload Success
-                    Remote-->>UseCase: Success
-                    UseCase->>LogRepo: deleteBefore(timestamp)
-                else Upload Failure
-                    Remote-->>UseCase: Failure
-                    note right of UseCase: Stop Log Sync Loop
-                end
+    par Sync Locations
+        loop While Batch Available
+            UseCase->>LocRepo: getOldestBatch(limit)
+            LocRepo-->>UseCase: List<LocationPoint>
+            UseCase->>Remote: uploadTrack(data)
+            alt Upload Success
+                UseCase->>LocRepo: deleteBefore(timestamp)
             end
         end
-
-        UseCase-->>Worker: Result.Success(SyncStats)
+    and Sync Logs (S3)
+        loop While Batch Available
+            UseCase->>LogRepo: getCursor("S3")
+            UseCase->>LogRepo: getBatchAfter(cursor)
+            LogRepo-->>UseCase: List<LogEntry>
+            UseCase->>Remote: uploadLogs(data)
+            alt Upload Success
+                UseCase->>LogRepo: updateCursor("S3", lastId)
+            end
+        end
+    and Sync Logs (Community)
+        loop While Batch Available
+            UseCase->>LogRepo: getCursor("COMMUNITY")
+            UseCase->>LogRepo: getBatchAfter(cursor)
+            LogRepo-->>UseCase: List<LogEntry>
+            UseCase->>UseCase: Hash(DeviceId + Salt)
+            UseCase->>Remote: uploadCrashReports(hashedId, data)
+            alt Upload Success
+                UseCase->>LogRepo: updateCursor("COMMUNITY", lastId)
+            end
+        end
     end
+
+    UseCase-->>Worker: Result.Success(SyncStats)
     deactivate UseCase
 ```
 

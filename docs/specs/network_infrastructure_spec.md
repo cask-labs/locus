@@ -75,6 +75,7 @@ All AWS clients must be configured with consistent timeouts, retry policies, and
 To prevent unexpected costs or battery drain due to infinite loops or aggressive syncing, the network layer must enforce a strict daily quota.
 
 *   **Limit:** **50MB per day** (Upload + Download).
+*   **Scope:** This limit applies to **ALL** network traffic, including Diagnostics/Telemetry uploads and Historical Track downloads.
 *   **Implementation:**
     *   Network client wraps requests in a `TrafficMeasuringInterceptor`.
     *   Persists daily totals in `SharedPreferences`.
@@ -96,11 +97,13 @@ To prevent unexpected costs or battery drain due to infinite loops or aggressive
 
 ## 3. Data Transformation & Serialization
 
-### 3.1. NDJSON Format
+### 3.1. NDJSON Format (Wire Format)
 Data is serialized into **Newline Delimited JSON** to support streaming and easy concatenation.
 
 *   **Library:** `kotlinx.serialization`.
-*   **Schema:** Defined in Domain Models (`LocationPoint`, `LogEntry`), mapped to DTOs if wire format differs (e.g., shortening keys).
+*   **Schema:** Defined in Domain Models (`LocationPoint`, `LogEntry`), mapped to DTOs if wire format differs.
+*   **Mapping Responsibility:**
+    *   For **Logs**: The Network Layer is strictly responsible for mapping the Domain Model (which maps to a flat DB Entity) into the **Nested Wire Format** defined in `telemetry_spec.md`. The `ctx` object (Context) must be reconstructed from the flat fields before serialization.
 
 ### 3.2. Compression
 All uploaded files must be Gzipped.

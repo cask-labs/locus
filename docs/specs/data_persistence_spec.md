@@ -45,6 +45,7 @@ This entity stores the high-frequency track data buffer waiting for upload.
 
 ### 2.2. LogEntity (`logs`)
 This entity stores diagnostic logs and telemetry in a Circular Buffer.
+**Note:** This schema uses a flat structure to optimize SQLite indexing and filtering (e.g., filtering by `level` or `tag`). The Network Layer is responsible for mapping this flat structure into the nested JSON Wire Format defined in `telemetry_spec.md`.
 
 | Field | Column Name | Type (Kotlin) | Type (SQLite) | Constraints | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -131,6 +132,7 @@ interface LogDao {
     suspend fun getBatchAfter(cursorId: Long, limit: Int): List<LogEntity>
 
     // FIFO Eviction: Delete oldest points if buffer full
+    // This is the ONLY mechanism for log deletion. Logs are never deleted based on upload status.
     @Query("DELETE FROM logs WHERE id IN (SELECT id FROM logs ORDER BY time ASC LIMIT :limit)")
     suspend fun deleteOldest(limit: Int)
 

@@ -19,19 +19,21 @@ graph TD
 
     subgraph Telemetry Module
         Log -->|1. Dispatch| Buffer[Local Circular Buffer]
-        Buffer -->|2. Batch| Dispatcher[Telemetry Dispatcher]
+        Buffer -->|2. Batch| Dispatcher[Telemetry Dispatcher Logic]
     end
 
-    Dispatcher --x|Try/Catch| S3Worker[S3 Diagnostics Worker]
-    Dispatcher --x|Try/Catch| ExtWorker[Community Service Worker]
+    Dispatcher --x|Try/Catch| S3Unit[S3 Dispatch Logic]
+    Dispatcher --x|Try/Catch| ExtUnit[Community Dispatch Logic]
 
-    S3Worker -->|Upload| UserBucket[(User S3 Bucket)]
-    ExtWorker -->|Upload| ExtService["Community Service (Firebase)"]
+    S3Unit -->|Upload| UserBucket[(User S3 Bucket)]
+    ExtUnit -->|Upload| ExtService["Community Service (Firebase)"]
 
     style UserBucket fill:#ccf,stroke:#333
     style ExtService fill:#fcc,stroke:#333,stroke-dasharray: 5 5
 ```
 *Note: The above diagram can be rendered using any Markdown editor with Mermaid support.*
+
+**Important Clarification:** `S3 Dispatch Logic` and `Community Dispatch Logic` are **internal logical units** executed sequentially within the single `SyncWorker`. They are **not** separate Android `ListenableWorker` classes. This consolidation minimizes battery impact by waking the radio only once for both operations.
 
 ### 2.1. Build Variants (Flavors)
 
@@ -44,7 +46,7 @@ To respect user privacy and FOSS principles, the application **shall** be compil
 2.  **FOSS (`foss`):**
     *   **Excludes:** All proprietary libraries (Firebase, GMS).
     *   **Purpose:** F-Droid, privacy-conscious manual installs.
-    *   **Behavior:** The `Community Service Worker` is a "No-Op" stub. Community telemetry settings are hidden or disabled.
+    *   **Behavior:** The `Community Dispatch Logic` interacts with a "No-Op" stub. Community telemetry settings are hidden or disabled.
 
 ## 3. Destinations
 
@@ -54,8 +56,9 @@ To respect user privacy and FOSS principles, the application **shall** be compil
 *   **Retention:** Controlled by S3 Lifecycle Policy (Strict **30 Days**).
 *   **Format:** NDJSON (Newline Delimited JSON) for machine parseability.
 
-#### Log Schema (NDJSON)
-Each line in the log file **must** adhere to the following schema:
+#### Log Schema (Wire Format)
+The following JSON schema defines the **Wire Format** (NDJSON) used for uploads. Note that the internal database schema (defined in `data_persistence_spec.md`) may be flatter for performance; the Network Layer is responsible for mapping to this nested structure.
+
 ```json
 {
   "ts": "2023-10-27T10:00:00.123Z",  // ISO 8601 Timestamp
@@ -110,8 +113,9 @@ To ensure the "Fail-Open" mandate:
         *   **Eviction:** Data is **ONLY** overwritten/deleted from the buffer when the buffer reaches its capacity (5MB).
         *   **Rationale:** This guarantees that the user always has access to the most recent ~5MB of logs for immediate on-device debugging, even if all network uploads are failing or have already succeeded.
 
-4.  **Circuit Breaking:**
-    *   **IF** telemetry uploads fail consecutively for > 5 attempts, **THEN** the Telemetry Module **shall** enter a "Backoff" state for 6 hours.
+4.  **Circuit Breaking & Traffic Guardrails:**
+    *   **Failures:** IF telemetry uploads fail consecutively for > 5 attempts, **THEN** the Telemetry Module **shall** enter a "Backoff" state for 6 hours.
+    *   **Traffic Quota:** The daily **50MB Traffic Guardrail** defined in the [Network & Infrastructure Spec](network_infrastructure_spec.md) applies to **all** network traffic, including Diagnostics and Telemetry. Telemetry uploads must be paused if this quota is exceeded (unless manually forced).
 
 ## 5. Implementation Definition
 
