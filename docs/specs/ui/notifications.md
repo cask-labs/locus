@@ -55,7 +55,7 @@ The notification title and body must strictly follow this format to ensure consi
 *   **Variations:**
     *   *High Accuracy:* GPS locked.
     *   *Stationary:* Significant Motion only (GPS Suspended).
-    *   *Buffer Warning:* **Warning:** Local buffer > 10k items (Risk of data loss).
+    *   *Buffer Warning:* **Warning:** Local Track buffer > 10k points (Risk of data loss).
 
 ```text
 +--------------------------------------------------+

@@ -2,7 +2,8 @@
 
 ## 2.1. Local Buffering
 *   **Reliability:** The system must store captured data in a persistent local buffer immediately upon capture to prevent data loss in case of application termination or power failure.
-*   **Retention:** Data must remain in the local buffer until it is successfully confirmed as stored in the remote destination.
+*   **Track Retention:** Location/Track data must remain in the local buffer until it is successfully confirmed as stored in the remote destination.
+*   **Log Retention:** Diagnostic Log data must be retained in a local circular buffer until the buffer exceeds its capacity (e.g., 5MB). Log data must **never** be deleted simply because it has been uploaded; it is strictly evicted on a "First-In-First-Out" (FIFO) basis when the buffer is full.
 
 ## 2.2. Remote Synchronization
 *   **User Ownership:** The system must transmit data exclusively to a storage repository owned and controlled by the user (e.g., a personal AWS S3 Bucket).

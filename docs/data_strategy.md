@@ -79,9 +79,12 @@ The application builds its knowledge of history *on demand* rather than maintain
 Full track data is only downloaded when the user explicitly interacts with a specific date.
 
 ## Retention Strategy
-*   **Local Buffer:**
-    *   **FIFO Protocol:** A 500MB soft limit is enforced. If the buffer is full, the oldest *unsynced* records are deleted to make room for new data.
+*   **Local Buffer (Tracks):**
+    *   **FIFO Protocol:** A **500MB** soft limit is enforced. If the buffer is full, the oldest *unsynced* records are deleted to make room for new data.
     *   **Cleanup:** Synced records are deleted from the local buffer only after successful S3 upload verification (`200 OK`).
+*   **Local Buffer (Logs):**
+    *   **Circular Protocol:** A **5MB** strict limit is enforced.
+    *   **Retention:** Log data is **NEVER** deleted based on upload status. It is strictly evicted on a FIFO basis when the buffer exceeds 5MB, regardless of whether it has been uploaded to S3.
 *   **Remote Storage:**
     *   **Tracks:** Indefinite (100 Years). The application explicitly sets the S3 Object Lock Retention Header to 100 years.
     *   **Diagnostics:** 30 Days. The application does not set a retention header, allowing the S3 Lifecycle Policy to expire these objects automatically.

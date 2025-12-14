@@ -19,14 +19,14 @@
     *   "Unit System": Toggle (Metric/Imperial). Changes must reflect immediately across the app.
     *   "Share Anonymous Stats": Toggle (Opt-in). Help improve Locus by sharing crash reports and basic health stats.
 *   **Danger Zone:**
-    *   "Clear Local Buffer" (Red Text). *Warning:* Tapping this triggers a confirmation dialog. If confirmed, the button enters a **Loading/Disabled State** (Indeterminate Spinner) while the database deletion occurs.
+    *   "Clear Local Track Buffer" (Red Text). *Warning:* Tapping this triggers a confirmation dialog. If confirmed, the button enters a **Loading/Disabled State** (Indeterminate Spinner) while the **Track** database deletion occurs. This action does not affect the Diagnostic Log buffer.
         *   *Dialog Wireframe:*
             ```text
             +--------------------------------------------------+
-            |  Delete Unsynced Data?                           |
+            |  Delete Unsynced Track Data?                     |
             |                                                  |
             |  You are about to delete 1,240 points from       |
-            |  the local device buffer.                        |
+            |  the local track buffer.                         |
             |                                                  |
             |  This data has NOT been uploaded to S3 yet.      |
             |  This action cannot be undone.                   |
@@ -34,7 +34,7 @@
             |      [ CANCEL ]       [ DELETE PERMANENTLY ]     |
             +--------------------------------------------------+
             ```
-        *   *Feedback:* Upon successful completion, display a **Snackbar** ("Local buffer cleared") and revert the button to its enabled state.
+        *   *Feedback:* Upon successful completion, display a **Snackbar** ("Local track buffer cleared") and revert the button to its enabled state.
     *   "Reset App" (Red Text). *Warning:* Wipes all keys (Runtime Keys in `EncryptedSharedPreferences`), databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
         *   *Feedback:* This action triggers a **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.
 *   **About (Section):** Displayed as a grouped section at the bottom of the main settings list.
@@ -56,7 +56,7 @@
 |  [ ] Share Anonymous Stats                       |
 |  ----------------------------------------------  |
 |  Danger Zone                                     |
-|  [ Clear Local Cache (!)      ]                  | <--- Triggers Confirmation Dialog
+|  [ Clear Local Track Buffer (!) ]                | <--- Triggers Confirmation Dialog
 |  [ Reset Application (!)      ]                  | <--- Triggers Confirmation Dialog
 |  ----------------------------------------------  |
 |  About                                           |
