@@ -1,6 +1,6 @@
 # Network & Infrastructure Specification
 
-**Related Requirements:** [Process Definition](../process_implementation_definition.md), [Infrastructure](../infrastructure.md), [Domain Layer Spec](domain_layer_spec.md)
+**Related Requirements:** [Process Definition](../process_implementation_definition.md), [Infrastructure](../infrastructure.md), [Domain Layer Spec](domain_layer_spec.md), [Data Strategy](../data_strategy.md)
 
 This document defines the implementation of the network layer, detailing how the application interacts with AWS (CloudFormation, S3) and the optional Community Telemetry service. It mandates the use of the **AWS SDK for Kotlin** to leverage Coroutines and a "Pure Kotlin" architecture.
 
@@ -69,9 +69,22 @@ All AWS clients must be configured with consistent timeouts, retry policies, and
     *   **Max Retries:** 3.
     *   **Base Delay:** 1 second.
     *   **Factor:** 2.0.
-    *   **Scope:** Transient errors (IOException, 5xx). 4xx errors are fatal.
 
-### 2.2. Traffic Guardrail (Circuit Breaker)
+### 2.2. Error Classification
+The network layer must strictly classify errors to prevent battery drain from useless retries or data loss from incorrect aborts.
+
+*   **Transient (Retry Allowed):**
+    *   HTTP `408` (Request Timeout)
+    *   HTTP `429` (Too Many Requests)
+    *   HTTP `5xx` (Server Errors: 500, 502, 503, 504)
+    *   `IOException` / `SocketTimeoutException` (Network Connectivity)
+*   **Fatal (Abort Immediately):**
+    *   HTTP `400` (Bad Request)
+    *   HTTP `401` (Unauthorized) - Triggers Auth Alert.
+    *   HTTP `403` (Forbidden) - Triggers Auth Alert.
+    *   HTTP `404` (Not Found) - Bucket or Path missing.
+
+### 2.3. Traffic Guardrail (Circuit Breaker)
 To prevent unexpected costs or battery drain due to infinite loops or aggressive syncing, the network layer must enforce a strict daily quota.
 
 *   **Limit:** **50MB per day** (Upload + Download).
@@ -85,13 +98,13 @@ To prevent unexpected costs or battery drain due to infinite loops or aggressive
         *   This avoids the need for a potentially unreliable "midnight" background job.
 *   **Action:**
     *   If `usage > 50MB`: Throw `QuotaExceededException`.
-    *   The `WorkManager` job catches this and disables background sync until the next day.
+    *   **Pause, Do Not Backoff:** This exception is treated as a **Pause** instruction (stop syncing until tomorrow). It **DOES NOT** count as a failure for the Telemetry "6-hour Backoff" logic.
     *   **Manual Override:**
         *   **Scenario:** User explicitly presses "Sync Now".
-        *   **Mechanism:** The `SyncWorker` injects a header `X-Locus-Force: true` into the request context.
+        *   **Mechanism:** The `SyncWorker` injects the header `X-Locus-Force: true` into the request context.
         *   **Interceptor Behavior:** If this header is present, the interceptor logs the usage but **bypasses the 50MB limit check**, allowing the request to proceed.
 
-### 2.3. Credentials Providers
+### 2.4. Credentials Providers
 *   **Bootstrap:** `StaticCredentialsProvider` using the Access Key ID and Secret Key entered by the user.
 *   **Runtime:** `StaticCredentialsProvider` using the keys stored in `EncryptedSharedPreferences`.
 
@@ -101,19 +114,22 @@ To prevent unexpected costs or battery drain due to infinite loops or aggressive
 Data is serialized into **Newline Delimited JSON** to support streaming and easy concatenation.
 
 *   **Library:** `kotlinx.serialization`.
-*   **Schema:** Defined in Domain Models (`LocationPoint`, `LogEntry`), mapped to DTOs if wire format differs.
+*   **Schema & Header:** defined in [Data Strategy](../data_strategy.md).
+    *   **Header Object:** The **first line** of every file must be a JSON Header Object (Type, Version, Device ID, Start Time).
+    *   **Short Keys:** The payload must use the specific short-keys (`bat`, `cs`, `cd`) defined in the Data Strategy.
 *   **Mapping Responsibility:**
-    *   For **Logs**: The Network Layer is strictly responsible for mapping the Domain Model (which maps to a flat DB Entity) into the **Nested Wire Format** defined in `telemetry_spec.md`. The `ctx` object (Context) must be reconstructed from the flat fields before serialization.
+    *   For **Logs**: The Network Layer is **strictly responsible** for mapping the flat `LogEntity` from the database into the **Nested Wire Format** (`ctx` object) defined in `telemetry_spec.md`. The database schema is flat for SQL performance; the wire format is nested for logical structure.
 
 ### 3.2. Compression
 All uploaded files must be Gzipped.
 
 *   **Implementation:** `GZIPOutputStream` wrapping a `ByteArrayOutputStream` (for small batches) or a file stream.
 *   **Flow:**
-    1.  Serialize List<T> to JSON String (line by line).
-    2.  Write line + `\n` to GZIP stream.
-    3.  Close stream.
-    4.  Upload resulting bytes.
+    1.  Serialize Header Object to JSON String + `\n`.
+    2.  Serialize List<T> items to JSON String (line by line).
+    3.  Write lines to GZIP stream.
+    4.  Close stream.
+    5.  Upload resulting bytes.
 
 #### Data Pipeline Diagram
 ```mermaid
@@ -178,7 +194,8 @@ sequenceDiagram
     *   **Key:** Generated Path.
     *   **Body:** ByteStream (Gzipped content).
     *   **Metadata:**
-        *   `x-amz-object-lock-retain-until-date`: **Current Date + 100 Years** (Tracks Only).
+        *   **Tracks:** `x-amz-object-lock-retain-until-date` = **Current Date + 100 Years**.
+        *   **Diagnostics:** **NO** Object Lock header (Relies on S3 Lifecycle Policy for 30-day expiration).
     *   **Error Handling:**
         *   `S3Exception` (403/401) -> `AuthException` (Trigger user alert).
         *   `S3Exception` (5xx) / `IOException` -> `NetworkException` (Retry later).
@@ -201,6 +218,7 @@ The Domain Layer defines the contract:
 ```kotlin
 interface CommunityTelemetryRemote {
     fun recordCrash(t: Throwable)
+    // Accepts the ALREADY HASHED ID. Hashing logic is strictly in Domain Layer.
     fun setUserId(anonymizedId: String)
     fun setCustomKey(key: String, value: String)
 }
@@ -212,7 +230,7 @@ interface CommunityTelemetryRemote {
     *   **Wraps:** `com.google.firebase.crashlytics` SDK.
     *   **Logic:**
         *   `recordCrash` -> `FirebaseCrashlytics.getInstance().recordException(t)`
-        *   `setUserId` -> `FirebaseCrashlytics.getInstance().setUserId(id)`
+        *   `setUserId` -> `FirebaseCrashlytics.getInstance().setUserId(anonymizedId)`
     *   **Rationale:** Uses the managed service for the default Play Store build.
 
 *   **`foss` Flavor (`NoOpTelemetryRemote`):**
