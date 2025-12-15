@@ -6,15 +6,15 @@ This document defines the automated verification and delivery pipeline for Locus
 
 The validation pipeline is designed to be **Local-First**.
 *   **Principle:** "If it fails on CI, it must fail locally."
-*   **Implementation:** All CI steps are wrappers around local scripts defined in the [Automation Scripts Specification](../specs/automation_scripts_spec.md).
-*   **Determinism:** All tools (linters, scanners) must use **Strict Version Pinning** via lockfiles to ensure the local environment matches CI exactly.
+*   **Implementation:** All CI steps are wrappers around local scripts as defined in the [Automation Scripts Specification](automation_scripts_spec.md).
+*   **Determinism:** All tools (linters, scanners) must use **Strict Version Pinning** via lockfiles (required implementation) to ensure the local environment matches CI exactly.
 *   **Benefit:** Developers can verify their work fully without pushing to a remote server, supporting the offline/sovereign development model.
 
 ## 2. Tool Versioning Strategy
 
 To ensure reproducible builds, all validation tools must be pinned.
 
-*   **Python Tools:** Managed via `requirements.txt`.
+*   **Python Tools:** Managed via a required `requirements.txt` file (to be created).
     *   Includes: `cfn-lint`, `checkov`, `taskcat`, `boto3`.
     *   **Rule:** Developers must install these via `./scripts/setup_ci_env.sh`.
 *   **Gradle Plugins:** Managed via `libs.versions.toml` (Version Catalog).
@@ -56,7 +56,7 @@ The pipeline executes checks in order of speed and cost.
     *   **Simulated Scenarios:** Robolectric tests for Non-Functional requirements (Battery Safety, Network Backoff).
 *   **Architecture Governance:**
     *   **Tool:** `ArchUnit`
-    *   **Scope:** Enforces rules defined in `agents/rules/android_architecture.md` (e.g., "Domain layer must not depend on Android SDK").
+    *   **Scope:** Enforces rules defined in `agents/rules/android_architecture.md` and detailed in the [Testing Specification](testing_spec.md#9-architecture-validation-archunit).
 *   **Privacy Regression:**
     *   **Scope:** Telemetry & Data Transmission.
     *   **Check:** Verify that `CommunityUploadWorker` *never* executes if the user setting `opt_in_community` is `false`.
@@ -73,18 +73,17 @@ The pipeline executes checks in order of speed and cost.
     *   **Scope:** Scans Kotlin code for SQL Injection, Insecure Intents, or Unsafe Reflection.
 *   **Command:** `./scripts/verify_security.sh`
 
-## 4. Continuous Integration (GitHub Actions)
 ### Tier 4: Infrastructure Audit (Optional)
 *   **Scope:** Validation of CloudFormation deployment logic (Dry Run).
 *   **Tool:** `taskcat`.
 *   **Command:** `./scripts/audit_infrastructure.sh`
-*   **Details:** Verifies quota limits and circular dependencies without permanent deployment. See [Advanced Validation Strategy](advanced_validation.md).
+*   **Details:** Verifies quota limits and circular dependencies without permanent deployment. See [Advanced Validation Strategy](advanced_validation_spec.md).
 
 ### Tier 5: Device Farm & Hardware (Pre-Release)
 *   **Scope:** Full end-to-end verification on physical devices.
 *   **Trigger:** Manual only (`workflow_dispatch`).
 *   **Tool:** AWS Device Farm (via `scripts/run_device_farm.py`).
-*   **Details:** See [Advanced Validation Strategy](advanced_validation.md).
+*   **Details:** See [Advanced Validation Strategy](advanced_validation_spec.md).
 
 ## 5. Continuous Integration (GitHub Actions)
 

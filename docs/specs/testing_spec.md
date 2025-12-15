@@ -1,6 +1,6 @@
 # Testing Strategy Specification
 
-**Related Requirements:** [Testing Rules](../../agents/rules/testing.md), [Advanced Validation](../operations/advanced_validation.md), [Automation Scripts](automation_scripts_spec.md)
+**Related Requirements:** [Testing Rules](../../agents/rules/testing.md), [Advanced Validation](advanced_validation_spec.md), [Automation Scripts](automation_scripts_spec.md)
 
 This document defines the strict testing standards, libraries, and patterns required for the Locus Android application.
 
@@ -159,3 +159,14 @@ Prefer **Fakes** over Mocks for complex shared dependencies.
 *   **Class:** `[ClassUnderTest]Test` (e.g., `PerformSyncUseCaseTest`).
 *   **Method:** Backtick syntax describing the behavior.
     *   `returns failure when network is unavailable` (Preferred for readability).
+
+## 9. Architecture Validation (ArchUnit)
+
+Architecture tests enforce structural rules to maintain modularity and prevent circular dependencies.
+
+*   **Scope:** All modules.
+*   **Tool:** `ArchUnit` (via JUnit 5).
+*   **Rules Enforced:**
+    1.  **Layer Isolation:** Classes in `:core:domain` must be **Pure Kotlin** and must not depend on `android.*` packages.
+    2.  **Feature Isolation:** Feature modules (e.g., `:app:features:dashboard`) must not depend on each other. Interaction must occur via the Domain Layer or Navigation.
+    3.  **Data Layer Safety:** `Room` Entities (Data Layer) must not be exposed to the UI Layer. ViewModels must consume Domain Models mapped by Repositories.

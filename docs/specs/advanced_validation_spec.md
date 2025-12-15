@@ -11,7 +11,7 @@ To ensure the application behaves correctly across the fragmented Android ecosys
 This tier validates that the Infrastructure-as-Code (CloudFormation) is not only syntactically correct but also deployable within the constraints of the AWS environment.
 
 *   **Trigger:** Manual (`workflow_dispatch`) or Local Execution.
-*   **Philosophy:** **Local-First.** The logic must be encapsulated in a script (e.g., `scripts/audit_infrastructure.sh`) that can run on a developer's machine given valid AWS credentials.
+*   **Philosophy:** **Local-First.** The logic must be encapsulated in a required script (e.g., `scripts/audit_infrastructure.sh`, to be implemented) that can run on a developer's machine given valid AWS credentials.
 *   **Mechanism:**
     *   **Tool:** `taskcat` (AWS CloudFormation testing tool).
     *   **Scope:** Attempts to stage the `locus-stack.yaml` in a temporary test stack (e.g., `locus-test-<uuid>`).
