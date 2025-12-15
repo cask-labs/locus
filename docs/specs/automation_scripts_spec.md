@@ -1,78 +1,113 @@
 # Automation Scripts Specification
 
-**Related Documents:** [CI Pipeline](ci_pipeline_spec.md), [Advanced Validation](advanced_validation_spec.md)
+**Related Documents:** [CI Pipeline](ci_pipeline_spec.md), [Advanced Validation](advanced_validation_spec.md), [Build Specification](build_spec.md)
 
-This document defines the requirements for the automation scripts used in the Validation Pipeline. These scripts serve as the "Interface" between the developer/CI system and the underlying tools.
+This document defines the interface and requirements for the automation scripts used in the Validation Pipeline. These scripts serve as the abstraction layer between the developer/CI system and the underlying tools (Gradle, Python, Bash), ensuring that validation is consistent regardless of where it is executed.
 
-## 1. General Requirements
+## 1. General Architecture
 
-*   **Language Strategy:** The project enforces a strict "Right Tool for the Job" split:
-    *   **Bash (`.sh`):** Strictly for "Glue Code" (e.g., CI wrappers, simple file operations, invoking Gradle/Git).
-    *   **Python 3 (`.py`):** Strictly for "Logic" (e.g., parsing JSON/XML, complex validation, AWS `boto3` interactions).
+*   **Language Strategy:**
+    *   **Bash (`.sh`):** strictly for "Glue Code" (e.g., wrappers, simple file operations, invoking Gradle).
+    *   **Python 3 (`.py`):** strictly for "Logic" (e.g., parsing, complex validation, AWS interactions).
 *   **Locality:** Scripts must be executable on a local developer machine (macOS/Linux) without modification.
-*   **Idempotency:** Re-running a script should be safe and deterministic.
-*   **Exit Codes:** Scripts must return `0` for Success and non-zero for Failure.
-*   **Dependencies:** Scripts must check for required tools (e.g., `checkov`, `aws`) and fail with a clear message if they are missing.
+*   **Idempotency:** Re-running a script must be safe.
+*   **Dependencies:** All Python dependencies are defined in `scripts/requirements.txt`.
 
-## 2. Script Definitions
+## 2. Environment Variables
 
-### 2.1. `scripts/setup_ci_env.sh`
-**Purpose:** Bootstraps the environment by installing all pinned dependencies.
+Scripts rely on standard environment variables for configuration. These must be set in the CI environment or a local `.env` file (if supported by the runner).
 
-*   **Inputs:** None (Reads `requirements.txt`, `Gemfile`, etc.).
+| Variable | Description | Required By |
+| :--- | :--- | :--- |
+| `AWS_ACCESS_KEY_ID` | Standard AWS Credentials. | `audit_infrastructure`, `run_device_farm` |
+| `AWS_SECRET_ACCESS_KEY` | Standard AWS Credentials. | `audit_infrastructure`, `run_device_farm` |
+| `AWS_SESSION_TOKEN` | (Optional) Standard AWS Credentials. | `audit_infrastructure`, `run_device_farm` |
+| `AWS_REGION` | Target AWS Region (e.g., `us-east-1`). | `audit_infrastructure`, `run_device_farm` |
+| `LOCUS_KEYSTORE_FILE` | Base64 content or path to Release Keystore. | `build_artifacts` (Release) |
+| `LOCUS_KEYSTORE_PASSWORD` | Password for the Keystore. | `build_artifacts` (Release) |
+| `LOCUS_KEY_ALIAS` | Key Alias. | `build_artifacts` (Release) |
+| `LOCUS_KEY_PASSWORD` | Key Password. | `build_artifacts` (Release) |
+
+## 3. Script Inventory
+
+### 3.1. `scripts/setup_ci_env.sh`
+**Purpose:** Bootstraps the environment by installing all external tools and pinned dependencies.
+
 *   **Logic:**
-    1.  Check for Python 3.
-    2.  Install Python dependencies from `requirements.txt` (e.g., `checkov`, `cfn-lint`, `taskcat`).
-    3.  Install specific binary versions if not managed by package managers (e.g., specific `ktlint` version).
+    1.  Verify Python 3 is available.
+    2.  Install Python dependencies from `scripts/requirements.txt` (e.g., `checkov`, `taskcat`, `boto3`).
+    3.  Verify/Install binary tools (e.g., `ktlint` if not managed by Gradle).
 *   **Output:** Standard installation logs.
 
-### 2.2. `scripts/audit_infrastructure.sh`
-**Purpose:** Validates CloudFormation templates using `taskcat`.
+### 3.2. `scripts/run_local_validation.sh` (Tier 2 Wrapper)
+**Purpose:** Executes the full suite of "Fast" local tests. This is the "Pre-Flight" check for developers.
 
-*   **Inputs:** AWS Credentials (via Environment Variables).
 *   **Logic:**
-    1.  Verify AWS credentials exist.
-    2.  **Generate Config:** Create a temporary `_taskcat_override.yml` on-the-fly. This allows injecting a randomized stack name (e.g., `locus-audit-$RANDOM`) to ensure isolation.
-    3.  **Run:** Execute `taskcat test run` using the generated config.
-    4.  **Cleanup:** Must strictly ensure the stack is deleted, even if the test fails (Taskcat handles this, but verify configuration).
-*   **Output:** Pass/Fail status based on stack creation success.
+    1.  **Static Analysis:** Run Lint (`./gradlew lint`) and ArchUnit tests.
+    2.  **Security:** Run `verify_security.sh` (see below).
+    3.  **Unit Tests:** Run all Tier 2 tests (`./gradlew testDebugUnitTest`).
+*   **Output:** Pass/Fail status. Fails if *any* check fails.
 
-### 2.3. `scripts/verify_security.sh`
+### 3.3. `scripts/build_artifacts.sh`
+**Purpose:** Wraps the Gradle build commands to generate distributable artifacts.
+
+*   **Inputs:**
+    *   `--flavor`: `standard` or `foss`.
+    *   `--build-type`: `debug` or `release`.
+*   **Logic:**
+    1.  Map inputs to Gradle tasks (e.g., `assembleStandardRelease`).
+    2.  Execute the Gradle wrapper.
+    3.  Move/Copy artifacts to a standard output directory (e.g., `dist/`).
+*   **Output:** Path to the generated AAB or APK.
+
+### 3.4. `scripts/verify_security.sh`
 **Purpose:** Runs security scanners on the codebase.
 
-*   **Inputs:** Codebase path (defaults to current directory).
 *   **Logic:**
-    1.  **Secret Scanning:** Run `trufflehog` (or equivalent) to check for committed keys.
+    1.  **Secret Scanning:** Run `trufflehog` (filesystem scan).
     2.  **IaC Scanning:** Run `checkov` against `docs/locus-stack.yaml`.
-        *   *Config:* Must suppress "Encryption" rules for S3 if they conflict with the "User-Owned" requirement (though they shouldn't).
-    3.  **SAST:** Run `semgrep` or `CodeQL` (if available locally) for Kotlin security checks.
-*   **Output:** Aggregate report of vulnerabilities. Fail if any "High" or "Critical" issues are found.
+    3.  **SAST:** Run `semgrep` (using local rules or standard registry).
+*   **Output:** Aggregate report. Fail on High/Critical severities.
 
-### 2.4. `scripts/run_device_farm.py`
+### 3.5. `scripts/audit_infrastructure.sh` (Tier 4)
+**Purpose:** Validates CloudFormation templates using `taskcat`.
+
+*   **Prerequisite:** AWS Credentials must be active.
+*   **Logic:**
+    1.  Generate a temporary `_taskcat_override.yml` with a randomized Stack Name (e.g., `locus-audit-$RANDOM`).
+    2.  Execute `taskcat test run`.
+    3.  Ensure stack deletion (handled by Taskcat, verified by script).
+*   **Output:** Taskcat Report.
+
+### 3.6. `scripts/run_device_farm.py` (Tier 5)
 **Purpose:** Orchestrates the upload and execution of tests on AWS Device Farm.
 
 *   **Inputs:**
-    *   `--app-path`: Path to the `.apk`.
-    *   `--test-path`: Path to the instrumentation test APK.
-    *   `--project-arn`: AWS Device Farm Project ARN.
-    *   `--device-pool-arn`: AWS Device Farm Device Pool ARN.
+    *   `--app-path`: Path to app APK (Default: `app/build/outputs/apk/debug/app-debug.apk`).
+    *   `--test-path`: Path to test APK (Default: `app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`).
+    *   `--project-arn`: Device Farm Project ARN.
+    *   `--device-pool-arn`: Device Farm Device Pool ARN.
 *   **Logic:**
-    1.  **Upload:** Use `boto3` to upload both APKs to Device Farm.
-    2.  **Wait:** Poll `get_upload` until status is `SUCCEEDED`.
-    3.  **Schedule:** Call `schedule_run` with the specific configuration.
-    4.  **Monitor:** Poll `get_run` every 30 seconds.
-        *   *Timeout:* Fail if run takes > 30 minutes.
-    5.  **Artifacts:** On completion, list and download the XML test reports and screenshots.
-*   **Output:** Final Run Result (`PASSED`, `FAILED`, `ERRORED`) and path to directory containing downloaded artifacts (for downstream parsing).
+    1.  **Upload:** `boto3` upload of both APKs.
+    2.  **Schedule:** Create a run with the specified configuration.
+    3.  **Monitor:** Poll status every 30s (Max 30m).
+    4.  **Artifacts:** Download XML reports and Screenshots to `test_results/`.
+*   **Output:** Exit Code 0 for Pass, 1 for Fail/Timeout.
 
-## 3. Tool Versioning Strategy
+## 4. Dependency Definition (`scripts/requirements.txt`)
 
-To ensure determinism, the project relies on a `requirements.txt` file at the root (or in `scripts/`) to pin Python-based tools.
+This file acts as the lockfile for all Python-based automation tools.
 
-**Required Pins (Baseline):**
-*   `cfn-lint >= 0.86.0`
-*   `checkov >= 3.0.0`
-*   `taskcat >= 0.9.0`
-*   `boto3 >= 1.34.0`
+```text
+# Infrastructure Validation
+taskcat>=0.9.0
+cfn-lint>=0.86.0
+checkov>=3.0.0
 
-*Note: Developers should freeze specific versions (e.g., `3.0.12`) when initializing the project.*
+# AWS Interaction
+boto3>=1.34.0
+
+# Security
+semgrep>=1.50.0
+# trufflehog is typically a binary, but if a python wrapper exists, list it here.
+```
