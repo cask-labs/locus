@@ -73,11 +73,11 @@ The pipeline executes checks in order of speed and cost.
     *   **Scope:** Scans Kotlin code for SQL Injection, Insecure Intents, or Unsafe Reflection.
 *   **Command:** `./scripts/verify_security.sh`
 
-### Tier 4: Infrastructure Audit (Optional)
+### Tier 4: Infrastructure Audit (Manual Execution)
 *   **Scope:** Validation of CloudFormation deployment logic (Dry Run).
 *   **Tool:** `taskcat`.
 *   **Command:** `./scripts/audit_infrastructure.sh`
-*   **Details:** Verifies quota limits and circular dependencies without permanent deployment. See [Advanced Validation Strategy](advanced_validation_spec.md).
+*   **Details:** Verifies quota limits and circular dependencies without permanent deployment. Requires AWS credentials. See [Advanced Validation Strategy](advanced_validation_spec.md).
 
 ### Tier 5: Device Farm & Hardware (Pre-Release)
 *   **Scope:** Full end-to-end verification on physical devices.

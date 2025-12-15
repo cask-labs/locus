@@ -32,8 +32,8 @@ This document defines the requirements for the automation scripts used in the Va
 *   **Inputs:** AWS Credentials (via Environment Variables).
 *   **Logic:**
     1.  Verify AWS credentials exist.
-    2.  Run `taskcat test run` using a temporary config file generated on-the-fly or a static `.taskcat.yml`.
-    3.  **Constraint:** Must use a randomized stack name (e.g., `locus-audit-$RANDOM`) to avoid collisions.
+    2.  **Generate Config:** Create a temporary `_taskcat_override.yml` on-the-fly. This allows injecting a randomized stack name (e.g., `locus-audit-$RANDOM`) to ensure isolation.
+    3.  **Run:** Execute `taskcat test run` using the generated config.
     4.  **Cleanup:** Must strictly ensure the stack is deleted, even if the test fails (Taskcat handles this, but verify configuration).
 *   **Output:** Pass/Fail status based on stack creation success.
 
@@ -61,9 +61,9 @@ This document defines the requirements for the automation scripts used in the Va
     2.  **Wait:** Poll `get_upload` until status is `SUCCEEDED`.
     3.  **Schedule:** Call `schedule_run` with the specific configuration.
     4.  **Monitor:** Poll `get_run` every 30 seconds.
-        *   *Timeout:* Fail if run takes > 20 minutes.
+        *   *Timeout:* Fail if run takes > 30 minutes.
     5.  **Artifacts:** On completion, list and download the XML test reports and screenshots.
-*   **Output:** Final Run Result (`PASSED`, `FAILED`, `ERRORED`) and path to downloaded artifacts.
+*   **Output:** Final Run Result (`PASSED`, `FAILED`, `ERRORED`) and path to directory containing downloaded artifacts (for downstream parsing).
 
 ## 3. Tool Versioning Strategy
 

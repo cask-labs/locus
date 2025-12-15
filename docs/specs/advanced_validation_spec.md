@@ -6,11 +6,11 @@ This document details the strategy for **Advanced Validation** (Tiers 4 & 5). Th
 
 To ensure the application behaves correctly across the fragmented Android ecosystem (different OS versions, screen sizes, and manufacturers), complies with non-functional constraints (Battery, Network), and correctly interfaces with AWS infrastructure.
 
-## 2. Tier 4: Infrastructure Audit (Optional)
+## 2. Tier 4: Infrastructure Audit (Manual Execution)
 
-This tier validates that the Infrastructure-as-Code (CloudFormation) is not only syntactically correct but also deployable within the constraints of the AWS environment.
+This tier validates that the Infrastructure-as-Code (CloudFormation) is not only syntactically correct but also deployable within the constraints of the AWS environment. It is labeled **Manual** because it requires valid AWS credentials, which are not available in the standard CI pull request environment for security reasons.
 
-*   **Trigger:** Manual (`workflow_dispatch`) or Local Execution.
+*   **Trigger:** Manual (`workflow_dispatch`) or Local Execution (Developers with AWS Creds).
 *   **Philosophy:** **Local-First.** The logic must be encapsulated in a script (e.g., `scripts/audit_infrastructure.sh`) that can run on a developer's machine given valid AWS credentials.
 *   **Mechanism:**
     *   **Tool:** `taskcat` (AWS CloudFormation testing tool).
@@ -25,6 +25,7 @@ We adopt a **Hybrid Strategy** to balance cost and confidence, separating "Simul
 ### 3.1. Non-Functional Validation (Simulated Scenarios)
 Before paying for real devices, we validate critical battery and network logic using fast, local simulations.
 
+*   **Execution:** These tests are executed as part of **Tier 2 (Local)** due to their speed and zero cost. They are listed here conceptually because they are the mandatory "Gatekeeper" before attempting a costly Device Farm run.
 *   **Scope:** Battery Safety Protocol, Network Backoff, Data Buffering.
 *   **Tool:** **Robolectric** (Unit Tests).
 *   **Method:**
@@ -36,7 +37,8 @@ Before paying for real devices, we validate critical battery and network logic u
 ### 3.2. Hardware Verification (AWS Device Farm)
 Real-world validation on physical devices to catch OEM-specific aggression (e.g., Samsung killing background services) or hardware sensor quirks.
 
-*   **Trigger:** **Strictly Manual** (`workflow_dispatch` input: "Release Candidate").
+*   **Trigger:** **Strictly Manual** (`workflow_dispatch`).
+    *   **Convention:** This is typically triggered only for a "Release Candidate" to verify final hardware compatibility.
 *   **Philosophy:** **Human-Initiated, Machine-Executed.** Once a human approves the cost, the entire process is fully automated.
 *   **Orchestration:**
     *   **Script:** A custom Python script (`scripts/run_device_farm.py`) orchestrates the workflow.
@@ -60,7 +62,9 @@ Real-world validation on physical devices to catch OEM-specific aggression (e.g.
 
 Raw logs from remote systems are difficult to parse. The validation pipeline must provide immediate, actionable feedback.
 
-*   **Mechanism:** The CI pipeline (or local script) must parse standard JUnit XML reports.
+*   **Mechanism:**
+    *   The orchestration script **downloads** the artifacts (JUnit XML, Screenshots).
+    *   The CI System (GitHub Actions) or the Developer **parses** the XML to generate a summary.
 *   **Output:**
     *   **GitHub Job Summary:** A Markdown table displayed on the Action run page summarizing Pass/Fail/Skip counts.
     *   **Pull Request Comment:** If triggered on a PR, the bot posts a sticky comment with the results.
