@@ -79,11 +79,13 @@ This entity acts as an index for the File-Based Historical Track Cache.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `key` | `file_key` | `String` | `TEXT` | **PK** | S3 Key / Local File Path (e.g., "tracks/2023/10/27..."). |
 | `date` | `date_str` | `String` | `TEXT` | **Index**, NotNull | Date string "YYYY-MM-DD" for calendar queries. |
+| `dev` | `device_id` | `String` | `TEXT` | **Index**, NotNull | Device ID extracted from filename. |
 | `sz` | `size_bytes` | `Long` | `INTEGER` | NotNull | File size in bytes (for eviction). |
 | `ts` | `last_accessed` | `Instant` | `INTEGER` | NotNull | Timestamp of last read (for LRU eviction). |
 
 **Indices:**
 *   `index_track_date` on `date_str` (ASC) - Used for populating Calendar dots.
+*   `index_track_device` on `device_id` (ASC) - Used for filtering by device.
 
 ## 3. Data Access Objects (DAOs)
 
@@ -159,8 +161,13 @@ interface CursorDao {
 ```kotlin
 @Dao
 interface TrackMetadataDao {
+    // Used for Calendar Dots (Any device)
     @Query("SELECT * FROM track_metadata WHERE date_str BETWEEN :startDate AND :endDate")
     fun getTracksForRange(startDate: String, endDate: String): Flow<List<TrackMetadataEntity>>
+
+    // Used for "Source Device" filter list
+    @Query("SELECT DISTINCT device_id FROM track_metadata WHERE date_str = :date")
+    suspend fun getDevicesForDate(date: String): List<String>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(metadata: TrackMetadataEntity)

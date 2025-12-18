@@ -29,9 +29,17 @@
 *   **Layer Switcher (Modal Bottom Sheet):**
     *   *Trigger:* FAB or Overlay Button.
     *   *Behavior:* Opens as a **Modal** Bottom Sheet (distinct from the persistent history sheet).
+    *   *Tablet Constraints:* Max-width **600dp**, centered within the Map Pane.
     *   *Content:*
         *   **Map Type:** Radio selection (Standard, Satellite).
         *   **Signal Overlay:** Radio selection (None, Signal: Cellular, Signal: WiFi). These are mutually exclusive to prevent visual clutter.
+        *   **Source Device:**
+            *   *Default:* **Current Device** (Strict Default). If no data exists for the current device on the selected day, the map is empty.
+            *   *Interaction:* **Single Select** via Radio Buttons.
+            *   *State:*
+                *   If only 1 device found: Display name as Read-Only Text.
+                *   If >1 device found: Display Radio Group.
+                *   If Loading: Display Shimmer effect.
 *   **Empty State (No History):**
     *   If no data is recorded/selected, Map centers on user location. Bottom Sheet displays "No data recorded today."
 *   **Empty State (Network Error):**
