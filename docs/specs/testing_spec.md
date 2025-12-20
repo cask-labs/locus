@@ -15,6 +15,7 @@ All tests must use the following libraries (defined in `libs.versions.toml`):
 *   **UI Tests:** `Compose UI Test` (JUnit 4).
 *   **System UI Tests:** `UiAutomator` (Permissions, Notifications).
 *   **Code Coverage:** `Kover` (Kotlin JaCoCo wrapper).
+*   **Architecture Validation:** `ArchUnit` (Java/Kotlin structure assertion).
 
 ## 2. Project Structure & Organization
 
@@ -63,7 +64,7 @@ fun `performSync returns failure when battery is critical`() = runTest {
     val result = useCase(SyncType.REGULAR)
 
     // Then
-    assertThat(result).isInstanceOf(Result.Failure::class.java)
+    assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
 }
 ```
 
@@ -110,6 +111,15 @@ These tests run on the JVM using **Robolectric** to simulate the Android framewo
 *   **Scope:** Room DAOs.
 *   **Tool:** `Room` in-memory database + `Robolectric`.
 *   **Rule:** Use `allowMainThreadQueries()` for simplicity in tests.
+
+### 5.3. Traffic Guardrail Integration Test
+*   **Mandatory Test Suite:** `TrafficGuardrailIntegrationTest`.
+*   **Objective:** Verify that the "Defense in Depth" (Explicit Class) guardrail is correctly blocking calls when the quota is exceeded.
+*   **Methodology:**
+    1.  Mock `TrafficGuardrail` to simulate an "Over Quota" state.
+    2.  Inject this mock into every Repository (`LocationRepository`, `LogRepository`, `AuthRepository`).
+    3.  Call **every** public network-accessing method in these repositories.
+    4.  **Assertion:** Verify that each call throws `QuotaExceededException` (or `LocusResult.Failure` with specific cause). If any call successfully delegates to the network client, the test fails.
 
 ## 6. System & UI Testing Strategy (Tier 5 - Device)
 
@@ -170,3 +180,4 @@ Architecture tests enforce structural rules to maintain modularity and prevent c
     1.  **Layer Isolation:** Classes in `:core:domain` must be **Pure Kotlin** and must not depend on `android.*` packages.
     2.  **Feature Isolation:** Feature modules (e.g., `:app:features:dashboard`) must not depend on each other. Interaction must occur via the Domain Layer or Navigation.
     3.  **Data Layer Safety:** `Room` Entities (Data Layer) must not be exposed to the UI Layer. ViewModels must consume Domain Models mapped by Repositories.
+    4.  **Network Safety:** Any class in `:core:data` that injects `S3Client` or `CloudFormationClient` **MUST** also inject `TrafficGuardrail`. This automated check prevents human error in omitting the quota check.

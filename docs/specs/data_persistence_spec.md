@@ -13,9 +13,32 @@ This document defines the technical implementation for the Local Data Persistenc
 *   **Encryption:** None (Relies on Android OS-level filesystem encryption).
 *   **Concurrency:** Write-Ahead Logging (WAL) enabled for non-blocking reads/writes.
 
-## 2. Entity Definitions
+## 2. Key-Value Storage (Preferences)
 
-### 2.1. LocationEntity (`locations`)
+For non-relational, simple data types, the application utilizes `EncryptedSharedPreferences`.
+
+### 2.1. Traffic Guardrail
+*   **File:** `traffic_stats`
+*   **Keys:**
+    *   `last_reset_date` (String, "YYYY-MM-DD"): Date of the last counter reset.
+    *   `daily_usage_bytes` (Long): Cumulative bytes sent/received today.
+
+### 2.2. Service Health (Watchdog)
+*   **File:** `service_health`
+*   **Keys:**
+    *   `last_heartbeat` (Long): Unix Epoch Timestamp of last service activity.
+    *   `failure_count` (Int): Consecutive failure count.
+
+### 2.3. Authentication
+*   **File:** `auth_creds` (Encrypted)
+*   **Keys:**
+    *   `access_key_id` (String)
+    *   `secret_access_key` (String)
+    *   `session_token` (String, optional)
+
+## 3. Entity Definitions
+
+### 3.1. LocationEntity (`locations`)
 This entity stores the high-frequency track data buffer waiting for upload.
 
 | Field | Column Name | Type (Kotlin) | Type (SQLite) | Constraints | Description |
@@ -43,7 +66,7 @@ This entity stores the high-frequency track data buffer waiting for upload.
 **Indices:**
 *   `index_locations_time` on `time` (ASC) - Used for range queries during Sync.
 
-### 2.2. LogEntity (`logs`)
+### 3.2. LogEntity (`logs`)
 This entity stores diagnostic logs and telemetry in a Circular Buffer.
 **Note:** This schema uses a flat structure to optimize SQLite indexing and filtering (e.g., filtering by `level` or `tag`). The Network Layer is responsible for mapping this flat structure into the nested JSON Wire Format defined in `telemetry_spec.md`.
 
@@ -64,7 +87,7 @@ This entity stores diagnostic logs and telemetry in a Circular Buffer.
 **Indices:**
 *   `index_logs_time` on `time` (ASC) - Used for range queries during Sync.
 
-### 2.3. CursorEntity (`cursors`)
+### 3.3. CursorEntity (`cursors`)
 This entity stores the independent upload progress for logs.
 
 | Field | Column Name | Type (Kotlin) | Type (SQLite) | Constraints | Description |
@@ -72,7 +95,7 @@ This entity stores the independent upload progress for logs.
 | `id` | `id` | `String` | `TEXT` | **PK** | Cursor Key (e.g., "log_s3", "log_community"). |
 | `last` | `last_processed_id` | `Long` | `INTEGER` | NotNull | The ID of the last successfully uploaded item. |
 
-### 2.4. TrackMetadataEntity (`track_metadata`)
+### 3.4. TrackMetadataEntity (`track_metadata`)
 This entity acts as an index for the File-Based Historical Track Cache.
 
 | Field | Column Name | Type (Kotlin) | Type (SQLite) | Constraints | Description |
@@ -85,9 +108,9 @@ This entity acts as an index for the File-Based Historical Track Cache.
 **Indices:**
 *   `index_track_date` on `date_str` (ASC) - Used for populating Calendar dots.
 
-## 3. Data Access Objects (DAOs)
+## 4. Data Access Objects (DAOs)
 
-### 3.1. LocationDao
+### 4.1. LocationDao
 
 ```kotlin
 @Dao
@@ -114,7 +137,7 @@ interface LocationDao {
 }
 ```
 
-### 3.2. LogDao
+### 4.2. LogDao
 
 ```kotlin
 @Dao
@@ -141,7 +164,7 @@ interface LogDao {
 }
 ```
 
-### 3.3. CursorDao
+### 4.3. CursorDao
 
 ```kotlin
 @Dao
@@ -154,7 +177,7 @@ interface CursorDao {
 }
 ```
 
-### 3.4. TrackMetadataDao
+### 4.4. TrackMetadataDao
 
 ```kotlin
 @Dao
@@ -180,7 +203,7 @@ interface TrackMetadataDao {
 }
 ```
 
-## 4. Type Converters
+## 5. Type Converters
 
 To map complex Kotlin types to SQLite primitives:
 
@@ -191,30 +214,30 @@ To map complex Kotlin types to SQLite primitives:
     *   `UUID` -> `String`
     *   `String` -> `UUID`
 
-## 5. Buffer Management Logic
+## 6. Buffer Management Logic
 
-### 5.1. The "Soft Limit" Proxy
+### 6.1. The "Soft Limit" Proxy
 To enforce the **500MB Soft Limit** for the Location Buffer without expensive file size checks, we use a **Row Count Proxy**.
 *   **Assumption:** Average `LocationEntity` size on disk (WAL + Indices) ≈ 200 bytes.
 *   **Limit:** 500,000,000 bytes / 200 bytes/row = **2,500,000 Rows**.
 *   **Enforcement:** The `SyncWorker` checks `LocationDao.getCount()` before insertion. If `count > 2,500,000`, it triggers `deleteOldest(chunk_size)`.
 
-### 5.2. Log Buffer Logic (Circular)
+### 6.2. Log Buffer Logic (Circular)
 *   **Circular Buffer:** `LogEntity` acts as a circular buffer.
 *   **Retention:** Data is **NEVER** deleted based on upload status. It is only deleted when the buffer exceeds its capacity (e.g., 5MB limit).
 *   **Upload Progress:** Tracked via `CursorEntity`.
 *   **Fail-Open:** If `cursor_community` fails to advance, `cursor_s3` can still proceed.
 
-## 6. Historical Track Cache (File-Based)
+## 7. Historical Track Cache (File-Based)
 
 To support visualization of historical data without constant S3 downloads, the system employs a **Local File Cache**.
 
-### 6.1. Strategy
+### 7.1. Strategy
 *   **Files:** Gzipped NDJSON files are stored directly on the internal filesystem, mirroring the S3 Key structure (e.g., `files/tracks/2023/10/27/device_123.json.gz`).
 *   **Immutability:** Historical files are treated as read-only.
 *   **Index:** `TrackMetadataEntity` tracks the existence and metadata of these files to allow the UI (Calendar) to query availability without filesystem I/O.
 
-### 6.2. LRU Eviction Policy
+### 7.2. LRU Eviction Policy
 *   **Limit:** **500MB** Hard Limit for the cache directory.
 *   **Trigger:** Checked after every new file download.
 *   **Logic:**
@@ -225,6 +248,6 @@ To support visualization of historical data without constant S3 downloads, the s
     5.  Delete the rows from `TrackMetadataDao`.
     6.  Repeat until under limit.
 
-## 7. Migration Strategy
+## 8. Migration Strategy
 *   **Version 1:** Initial Schema.
 *   **Future:** `fallbackToDestructiveMigration()` is authorized for initial development.

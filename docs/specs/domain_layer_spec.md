@@ -8,7 +8,7 @@ This document defines the business logic, state management, and data contracts f
 
 *   **Pure Kotlin:** The Domain Layer must be purely Kotlin code with **zero** dependencies on `android.*` (except generic types if absolutely necessary, but preferably none).
 *   **Reactive:** Data streams are exposed as `Flow<T>`. One-shot operations (single request-response interactions) use `suspend` functions.
-*   **Result Pattern:** All operations that can fail must return a sealed `Result<T>` wrapper, never throwing unchecked exceptions.
+*   **Result Pattern:** All operations that can fail must return a sealed `LocusResult<T>` wrapper, never throwing unchecked exceptions.
 *   **Use Cases:** Complex logic involving multiple repositories or specific business rules is encapsulated in "Use Case" classes.
 
 ## 2. Domain Models
@@ -105,17 +105,14 @@ Manages track data.
 ```kotlin
 interface LocationRepository {
     // Write
-    suspend fun recordPoint(point: LocationPoint): Result<Unit>
-
-    // Read (Stream for UI)
-    fun getPointsInTimeRange(start: Instant, end: Instant): Flow<List<LocationPoint>>
+    suspend fun recordPoint(point: LocationPoint): LocusResult<Unit>
 
     // Read (One-shot for Sync)
-    suspend fun getOldestBatch(limit: Int): Result<List<LocationPoint>>
+    suspend fun getOldestBatch(limit: Int): LocusResult<List<LocationPoint>>
 
     // Maintenance
-    suspend fun deleteBefore(time: Instant): Result<Unit>
-    suspend fun getBufferCount(): Result<Long>
+    suspend fun deleteBefore(time: Instant): LocusResult<Unit>
+    suspend fun getBufferCount(): LocusResult<Long>
 }
 ```
 
@@ -126,16 +123,24 @@ Manages diagnostic logs.
 interface LogRepository {
     suspend fun log(entry: LogEntry)
 
+    // Read for UI (Reactive with Filtering)
+    fun getLogs(filter: LogFilter): Flow<List<LogEntry>>
+
     // Read batch specifically for a given cursor
-    suspend fun getBatchAfter(cursorId: Long, limit: Int): Result<List<LogEntry>>
+    suspend fun getBatchAfter(cursorId: Long, limit: Int): LocusResult<List<LogEntry>>
 
     // Cursor Management
-    suspend fun getCursor(key: String): Result<Long>
-    suspend fun updateCursor(key: String, lastId: Long): Result<Unit>
+    suspend fun getCursor(key: String): LocusResult<Long>
+    suspend fun updateCursor(key: String, lastId: Long): LocusResult<Unit>
 
     // Note: No 'deleteBefore' is exposed.
     // Logs are only deleted via FIFO eviction (handled implicitly by Data Layer).
 }
+
+data class LogFilter(
+    val levels: List<LogLevel>, // e.g., [WARN, ERROR]
+    val searchQuery: String? = null // Optional search term
+)
 ```
 
 ### 3.3. AuthRepository
@@ -147,10 +152,10 @@ interface AuthRepository {
     fun getAuthState(): Flow<AuthState> // Uninitialized -> Bootstrap -> Runtime
 
     // Actions
-    suspend fun saveBootstrapCredentials(creds: BootstrapCredentials): Result<Unit>
-    suspend fun promoteToRuntimeCredentials(creds: RuntimeCredentials): Result<Unit>
-    suspend fun clearBootstrapCredentials(): Result<Unit>
-    suspend fun getRuntimeCredentials(): Result<RuntimeCredentials>
+    suspend fun saveBootstrapCredentials(creds: BootstrapCredentials): LocusResult<Unit>
+    suspend fun promoteToRuntimeCredentials(creds: RuntimeCredentials): LocusResult<Unit>
+    suspend fun clearBootstrapCredentials(): LocusResult<Unit>
+    suspend fun getRuntimeCredentials(): LocusResult<RuntimeCredentials>
 }
 
 sealed class AuthState {
@@ -168,7 +173,7 @@ interface ConfigurationRepository {
     val deviceId: String // Immutable after creation
     val telemetrySalt: String // Immutable
 
-    suspend fun initializeIdentity(deviceId: String, salt: String): Result<Unit>
+    suspend fun initializeIdentity(deviceId: String, salt: String): LocusResult<Unit>
     fun isIdentitySet(): Boolean
 }
 ```
@@ -227,17 +232,18 @@ Encapsulates specific business rules.
 *   Manages "Independent Cursors" for S3 vs Community logs.
 *   Handles partial failures (e.g., S3 succeeds, Community fails).
 *   Performs anonymization hashing (`SHA256(device_id + salt)`) before invoking Community Remote.
+*   **Force Sync:** When `SyncType.MANUAL` is used, the use case MUST pass a `force=true` flag to the `RemoteStorageInterface` methods (and subsequently to the Repositories) to bypass the daily 50MB Traffic Guardrail.
 
 **Logic:**
 1.  Check `DeviceState` (skip if Critical Battery, unless Manual Sync).
 2.  **Location Sync:**
-    *   Fetch `OldestBatch` -> Compress -> Upload S3.
+    *   Fetch `OldestBatch` -> Compress -> Upload S3 (with `force` flag if Manual).
     *   Success: `LocationRepository.deleteBefore()`.
 3.  **Log Sync (Dual Dispatch):**
     *   **S3 Path:**
         *   Get `Cursor_S3`.
         *   Fetch batch > `Cursor_S3`.
-        *   Upload S3.
+        *   Upload S3 (with `force` flag if Manual).
         *   Success: Update `Cursor_S3`.
     *   **Community Path:**
         *   Get `Cursor_Community`.
@@ -255,7 +261,7 @@ class PerformSyncUseCase(
     private val communityRemote: CommunityTelemetryRemote,
     private val deviceStateRepo: DeviceStateRepository
 ) {
-    suspend operator fun invoke(type: SyncType): Result<SyncStats>
+    suspend operator fun invoke(type: SyncType): LocusResult<SyncStats>
 }
 
 enum class SyncType {
@@ -278,7 +284,7 @@ class StartTrackingUseCase(
     private val deviceStateRepo: DeviceStateRepository,
     private val strategyRepo: TrackingStrategyRepository
 ) {
-    suspend operator fun invoke(): Result<Unit>
+    suspend operator fun invoke(): LocusResult<Unit>
 }
 ```
 
@@ -287,7 +293,7 @@ class StartTrackingUseCase(
 
 ```kotlin
 class StopTrackingUseCase {
-    suspend operator fun invoke(): Result<Unit>
+    suspend operator fun invoke(): LocusResult<Unit>
 }
 ```
 
@@ -319,9 +325,9 @@ sealed class ServiceHealthStatus {
 
 ### 5.1. Result Pattern
 ```kotlin
-sealed class Result<out T> {
-    data class Success<out T>(val data: T) : Result<T>()
-    data class Failure(val exception: DomainException) : Result<Nothing>()
+sealed class LocusResult<out T> {
+    data class Success<out T>(val data: T) : LocusResult<T>()
+    data class Failure(val exception: DomainException) : LocusResult<Nothing>()
 }
 
 open class DomainException(message: String) : Exception(message)
@@ -350,7 +356,7 @@ sequenceDiagram
         loop While Batch Available
             UseCase->>LocRepo: getOldestBatch(limit)
             LocRepo-->>UseCase: List<LocationPoint>
-            UseCase->>Remote: uploadTrack(data)
+            UseCase->>Remote: uploadTrack(data, force)
             alt Upload Success
                 UseCase->>LocRepo: deleteBefore(timestamp)
             end
@@ -360,7 +366,7 @@ sequenceDiagram
             UseCase->>LogRepo: getCursor("S3")
             UseCase->>LogRepo: getBatchAfter(cursor)
             LogRepo-->>UseCase: List<LogEntry>
-            UseCase->>Remote: uploadLogs(data)
+            UseCase->>Remote: uploadLogs(data, force)
             alt Upload Success
                 UseCase->>LogRepo: updateCursor("S3", lastId)
             end
@@ -378,7 +384,7 @@ sequenceDiagram
         end
     end
 
-    UseCase-->>Worker: Result.Success(SyncStats)
+    UseCase-->>Worker: LocusResult.Success(SyncStats)
     deactivate UseCase
 ```
 

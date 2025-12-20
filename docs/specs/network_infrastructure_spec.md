@@ -89,24 +89,23 @@ To prevent unexpected costs or battery drain due to infinite loops or aggressive
 
 *   **Limit:** **50MB per day** (Upload + Download).
 *   **Scope:** This limit applies to **ALL** network traffic, including Diagnostics/Telemetry uploads and Historical Track downloads.
-*   **Implementation:**
-    *   Network client wraps requests in a `TrafficMeasuringInterceptor`.
-    *   Persists daily totals in `SharedPreferences`.
-    *   **Lazy Reset Logic:**
-        *   The interceptor checks the `last_reset_date` before every request.
-        *   If `last_reset_date != current_date` (local midnight), the counter is reset to 0 *before* proceeding.
-        *   This avoids the need for a potentially unreliable "midnight" background job.
-*   **Action:**
-    *   If `usage > 50MB`: Throw `QuotaExceededException`.
-    *   **Pause, Do Not Backoff:** This exception is treated as a **Pause** instruction (stop syncing until tomorrow). It **DOES NOT** count as a failure for the Telemetry "6-hour Backoff" logic.
-    *   **Manual Override:**
-        *   **Scenario:** User explicitly presses "Sync Now".
-        *   **Mechanism:** The `SyncWorker` injects the header `X-Locus-Force: true` into the request context.
-        *   **Interceptor Behavior:** If this header is present, the interceptor logs the usage but **bypasses the 50MB limit check**, allowing the request to proceed.
+*   **Mechanism: Explicit Guardrail Class**
+    *   An explicit `TrafficGuardrail` class is injected into all Repositories/RemoteDataSources that perform network operations.
+    *   **Usage:** Before *any* network call, the repository must call `guardrail.checkQuota(force = isForced)`.
+    *   If `quota > 50MB` AND `force == false`, the method throws `QuotaExceededException`.
+    *   This exception is treated as a **Pause** instruction (stop syncing until tomorrow).
+*   **Validation:** ArchUnit tests ensure that any class injecting `S3Client` must also inject `TrafficGuardrail`.
+*   **Manual Override:**
+    *   **Scenario:** User explicitly presses "Sync Now".
+    *   **Mechanism:** The `SyncWorker` passes `force = true` to the Repository.
+    *   **Behavior:** The `TrafficGuardrail` logs the usage but **bypasses the exception**, allowing the request to proceed.
 
 ### 2.4. Credentials Providers
 *   **Bootstrap:** `StaticCredentialsProvider` using the Access Key ID and Secret Key entered by the user.
-*   **Runtime:** `StaticCredentialsProvider` using the keys stored in `EncryptedSharedPreferences`.
+*   **Runtime:** **Dynamic Credentials Provider** (Strict Requirement).
+    *   The `S3Client` MUST NOT be initialized with static keys.
+    *   It must use a custom `CredentialsProvider` that queries `EncryptedSharedPreferences` *on demand* for every request.
+    *   This ensures that if the user authenticates (or rotates keys), the client immediately uses the new credentials without needing to be recreated or the app restarted.
 
 ## 3. Data Transformation & Serialization
 
@@ -188,6 +187,8 @@ sequenceDiagram
 ### 4.2. Runtime Client (S3)
 **Interface:** `RemoteStorageInterface`
 
+*   **Method Signature:** `uploadTrack(data: ByteArray, force: Boolean)`
+    *   **Note:** The `force` parameter is required to bypass the Traffic Guardrail during Manual Sync.
 *   **Upload Data:**
     *   **Call:** `PutObject`.
     *   **Bucket:** From Config.
@@ -244,13 +245,14 @@ interface CommunityTelemetryRemote {
 
 ### 6.1. `NetworkModule` (InstallIn: SingletonComponent)
 *   Provides: `Json` (kotlinx configuration), `OkHttpClient` (shared configuration).
+*   Provides: `TrafficGuardrail` (Singleton, injecting SharedPreferences).
 
 ### 6.2. `BootstrapModule` (InstallIn: ViewModelComponent)
 *   Provides: `CloudFormationClient` (Scoped to Onboarding).
 
 ### 6.3. `RuntimeModule` (InstallIn: SingletonComponent)
 *   Provides: `S3Client`, `CommunityTelemetryRemote`.
-*   **Note:** `S3Client` provider must lazily check for credentials. If credentials are missing (not yet set up), it should defer creation or throw a specific initialization error caught by the repository.
+*   **Note:** `S3Client` provider must use a **Dynamic Credentials Provider** that reads from `EncryptedSharedPreferences` on every request.
 
 ## 7. Security Considerations
 
