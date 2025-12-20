@@ -22,13 +22,13 @@
 *   **Behavior:** Modal overlay that dims the background. User must choose an action or dismiss (if cancellable).
 *   **Specifics:** See [Dashboard](dashboard.md) for "Stop Tracking" and [Settings](settings.md) for "Clear Buffer".
 
-## 2. Tier 3 Fatal Errors (Blocking Full-Screen)
+## 2. Tier 3 Fatal Errors
 
 **Definition:** Critical failures where the application **cannot function** without user intervention.
-**Behavior:**
-*   These screens appear immediately when the app is foregrounded.
-*   They prevent navigation to other screens (Dashboard, Map, etc.).
-*   They persist until the condition is resolved.
+
+**Presentation Styles:**
+1.  **Blocking Full-Screen:** The default for system-critical issues (Auth, Permissions). Prevents navigation to other screens.
+2.  **Dashboard Status Card:** For operational failures (e.g., Service Instability), the error is displayed within the Dashboard's Status Card, allowing the user to access Logs or Settings.
 
 ### 2.1. Permission Revoked
 *   **Trigger:** The user (or OS) revokes `ACCESS_FINE_LOCATION` or `ACCESS_BACKGROUND_LOCATION`.
@@ -92,3 +92,9 @@
 |            [ TRY AGAIN ]                         |
 +--------------------------------------------------+
 ```
+
+### 2.4. Service Instability (Circuit Breaker)
+*   **Trigger:** The Background Service has crashed or failed to start 3 consecutive times (Watchdog Circuit Breaker).
+*   **Presentation:** **Dashboard Status Card** (Red).
+*   **Action:** User must manually resume tracking to reset the circuit breaker.
+*   **Specifics:** See [Dashboard](dashboard.md) for the "Service Instability" card layout.
