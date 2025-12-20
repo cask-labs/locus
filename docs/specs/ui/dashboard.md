@@ -155,3 +155,17 @@
 |  [ FIX ISSUE (Opens Settings) ]                  |
 +--------------------------------------------------+
 ```
+
+**Status Card (Service Instability - Circuit Breaker):**
+```text
++--------------------------------------------------+
+|  [ STATUS CARD ] (Red Background)                |
+|  Status: Service Halted                          |
+|  Error:  Service Unstable                        |
+|  ----------------------------------------------  |
+|  Tracking stopped due to repeated crashes.       |
+|  Tap below to attempt a restart.                 |
+|                                                  |
+|           [ RESUME TRACKING ]                    |
++--------------------------------------------------+
+```

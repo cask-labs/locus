@@ -75,7 +75,7 @@ To prevent infinite restart loops when a fatal bug exists within the Service its
 5.  **Strike Three (Trip):** IF `ConsecutiveRestartCount >= 3`:
     *   **Stop Retrying.**
     *   **Action:** Trigger **Tier 3 Fatal Error**: "Tracking Failed: Service Unstable."
-6.  **Reset Condition:** The Circuit Breaker is reset to Closed (0) **only** when the user manually opens the application or toggles tracking, acknowledging the error.
+6.  **Reset Condition:** The Circuit Breaker is reset to Closed (0) **only** when the user manually toggles tracking, acknowledging the error.
 
 ## 4. Telemetry Integration
 
