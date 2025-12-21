@@ -9,10 +9,10 @@
 ---
 
 ## 1. Location Acquisition
-*   **While** the tracking service is active, the system **shall** record geospatial location data (Latitude, Longitude, Altitude) at a default frequency of 1Hz.
-*   **While** the tracking service is active, the system **shall** prioritize the high-accuracy, low-power location provider where available.
-*   **If** the high-accuracy provider is unavailable, **then** the system **shall** fall back to the raw hardware location provider.
-*   **While** the application is in the background or the device is sleeping, the system **shall** maintain continuous data collection via a visible background process with a partial wake lock.
+*   **While** the tracking service is active, the system **shall** record geospatial location data (Latitude, Longitude, Altitude) at a standard frequency of 10 seconds.
+*   **While** recording, the system **shall** utilize hardware batching (max latency 2 minutes) to minimize CPU wake-ups.
+*   **While** the tracking service is active, the system **shall** utilize the Android Native `LocationManager` as the primary provider.
+*   **While** the application is in the background or the device is sleeping, the system **shall** maintain continuous data collection via the batched foreground process.
 *   **While** the OS "Battery Saver" mode is active, the system **shall** ignore OS throttling suggestions and continue standard data collection operations.
 
 ## 2. Sensor Fusion & Enrichment

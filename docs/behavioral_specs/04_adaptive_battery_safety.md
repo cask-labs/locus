@@ -9,7 +9,7 @@
 
 ## 1. Low Battery State (< 10%)
 *   **While** the battery capacity is less than 10% (and greater than 3%), the system **shall** enter "Low Power Mode".
-*   **While** in Low Power Mode, the system **shall** reduce the location recording frequency to a fixed interval of 10 seconds.
+*   **While** in Low Power Mode, the system **shall** reduce the location recording frequency to a fixed interval of 30 seconds.
 *   **While** in Low Power Mode, the system **shall** pause all automatic background synchronization jobs.
 *   **When** a Manual Sync is requested during Low Power Mode, the system **shall** permit the upload.
 

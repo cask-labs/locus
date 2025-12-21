@@ -14,19 +14,17 @@ The core data collection engine is the `TrackerService`.
 *   **Binding:** **None.** The service uses a "Fire and Forget" pattern. Communication to the UI is handled via the Domain Layer (Repositories/Flows), and commands from the UI are sent via standard `Intents` (`startService`, `stopService`).
 *   **Wake Lock:**
     *   **Type:** `PARTIAL_WAKE_LOCK`.
-    *   **Behavior:** Held continuously while in the **Active Tracking** state. Released when entering **Stationary (Deep Sleep)** state to allow the CPU to sleep.
+    *   **Behavior:** Held **Transiently**. The Service does NOT hold a continuous lock. Instead, the `LocationManager` (via hardware batching) wakes the CPU periodically. The service acquires a lock only while processing the batch, then releases it to return to sleep.
 
 ### 1.1. Lifecycle Methods
 *   `onStartCommand()`:
-    1.  Acquire/Verify WakeLock.
-    2.  Check `StartTrackingUseCase` (Permissions/Battery).
+    1.  Check `StartTrackingUseCase` (Permissions/Battery).
     3.  If valid, transition to `Tracking` state.
     4.  Register `StationaryManager` and `BatteryState` observers.
     5.  Return `START_STICKY`.
 *   `onDestroy()`:
-    1.  Release WakeLock.
-    2.  Unregister all observers.
-    3.  Stop Location Updates.
+    1.  Unregister all observers.
+    2.  Stop Location Updates.
     4.  Cancel Heartbeat Coroutine.
 
 ### 1.2. Notification Strategy
@@ -42,12 +40,12 @@ The service behavior is governed by the intersection of **Motion State** and **S
 
 | State | Description | GPS | WakeLock | Triggers |
 | :--- | :--- | :--- | :--- | :--- |
-| **Active** | Default moving state. | ON (1Hz) | HELD | Movement detected. |
+| **Active** | Default moving state. | ON (10s) | TRANSIENT | Movement detected. |
 | **Stationary** | Device is still. | OFF | RELEASED | No movement for 2 mins. |
-| **Low Power** | Battery < 10%. | Reduced (10s) | HELD* | Battery falls below 10%. |
+| **Low Power** | Battery < 10%. | Reduced (30s) | TRANSIENT | Battery falls below 10%. |
 | **Critical** | Battery < 3%. | OFF | RELEASED | Battery falls below 3%. |
 
-*\*Rationale: In "Low Power" mode (10s interval), holding the WakeLock prevents "CPU Thrashing" (suspending and waking every 10 seconds). This is implemented via `delay(10_000)` in the collection coroutine loop.*
+*\*Rationale: Both Active and Low Power modes utilize hardware batching to allow the CPU to sleep between updates. The "WakeLock" column refers to a continuous hold; "TRANSIENT" means held only during processing.*
 
 ### 2.2. State Diagram
 
@@ -68,12 +66,12 @@ stateDiagram-v2
 
     state LowPower {
         [*] --> ReducedRecording
-        note right of ReducedRecording : 10s Interval (delay), WakeLock Held
+        note right of ReducedRecording : 30s Interval, Batched
     }
 
     state Critical {
         [*] --> DeepSleep
-        note right of DeepSleep : GPS OFF, WakeLock Released
+        note right of DeepSleep : GPS OFF
     }
 ```
 

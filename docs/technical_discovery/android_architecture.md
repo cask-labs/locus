@@ -11,7 +11,7 @@ The Android application acts as both the data collector and the infrastructure c
 To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (Beta) requirements, the application utilizes **Product Flavors**:
 
 *   **Standard (`standard`):**
-    *   **External Dependencies:** Includes **Firebase Crashlytics** and **Google Play Services**.
+    *   **External Dependencies:** Includes **Firebase Crashlytics** and **Google Play Services** (Strictly for Activity Recognition).
     *   **Goal:** Used for the Play Store and internal Beta testing to gather community crash statistics (Opt-In).
     *   **Dependency List:**
         *   `com.google.firebase:firebase-crashlytics`
@@ -20,7 +20,7 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
     *   **External Dependencies:** **Zero.** All proprietary libraries are stripped at compile time.
     *   **Goal:** Used for F-Droid and privacy-focused manual installation.
     *   **Mechanism:** Uses "No-Op" stubs for the Community Telemetry interface.
-    *   **Implication:** FOSS users lose access to "Community Health Stats" (aggregated crash reports and performance metrics, e.g., ANRs) and the "Fused Location Provider" (relying on Raw GPS instead).
+    *   **Implication:** FOSS users lose access to "Community Health Stats" (aggregated crash reports and performance metrics, e.g., ANRs).
 
 ## 3. Provisioner (Setup)
 *   **Role:** Handles the one-time setup and infrastructure creation.
@@ -36,10 +36,10 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
 *   **Role:** Performs the "Always-on" data collection.
 *   **Component:** `ForegroundService`.
 *   **Key Mechanisms:**
-    *   **Wake Locks:** Uses `PARTIAL_WAKE_LOCK` to ensure CPU uptime.
+    *   **Wake Locks:** Uses `PARTIAL_WAKE_LOCK` transiently during batch processing, allowing CPU sleep between batches.
     *   **Location Strategy:**
-        *   **Primary:** Fused Location Provider (Google Play Services) for battery efficiency, rapid fix, and indoor accuracy.
-        *   **Fallback:** Raw Android Location Manager (GPS/Network) if Play Services are unavailable or disabled by the user.
+        *   **Standard:** Native Android `LocationManager` using hardware batching (10s interval, 2m max latency).
+        *   **Provider:** Uses `GPS_PROVIDER` (High Accuracy) or `NETWORK_PROVIDER` based on availability, unified across all flavors.
     *   **Stationary Manager:**
         *   **Primary:** Significant Motion Sensor (`TYPE_SIGNIFICANT_MOTION`). This is a specific hardware interrupt that wakes the Application Processor (AP) from suspend only when movement is detected, avoiding the battery cost of continuous polling.
         *   **Fallback:** Periodic Burst Sampling (if hardware sensor is missing). The system uses `AlarmManager` to wake the CPU every few minutes (e.g., 5 minutes), samples the accelerometer at 10Hz for a short burst (e.g., 5 seconds), and resumes active tracking if variance exceeds a threshold.
@@ -88,11 +88,11 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
 To ensure transparency and manage user expectations, we estimate the battery impact of the "Always On" architecture.
 
 *   **High Impact (GPS/Network):**
-    *   *Raw GPS:* Heavy drain (~5-10% per hour active).
-    *   *Mitigation:* Fused Location Provider (FLP) drastically reduces this by using low-power WiFi scanning. Stationary Mode completely suspends GPS when not moving.
+    *   *Raw GPS:* Moderate drain (~2-5% per hour with batching).
+    *   *Mitigation:* Hardware Batching allows the GPS radio to operate autonomously while the Application Processor (CPU) sleeps. Stationary Mode completely suspends GPS when not moving.
 *   **Medium Impact (Wake Locks):**
-    *   *CPU Awake:* `PARTIAL_WAKE_LOCK` keeps the CPU active.
-    *   *Mitigation:* Significant Motion Sensor allows the CPU to enter Deep Sleep during stationary periods (e.g., sitting at a desk, sleeping).
+    *   *CPU Awake:* Minimal impact.
+    *   *Mitigation:* By removing the constant `PARTIAL_WAKE_LOCK` requirement and relying on batching, the CPU stays in deep sleep for ~90% of the active tracking time.
 *   **Low Impact (Uploads):**
     *   *Radio usage:* Cellular radio power is high but bursty.
     *   *Mitigation:* Batching uploads via `WorkManager` allows the radio to sleep for long intervals.
