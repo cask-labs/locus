@@ -1,0 +1,33 @@
+name: Validation Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup CI Environment
+      run: |
+        # In CI, we need to install trufflehog explicitly or use a container.
+        # For this script to work, we need to satisfy its dependencies.
+        # GitHub Runners have python3.
+        # We need to install trufflehog.
+        curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+        ./scripts/setup_ci_env.sh
+
+    - name: Run Local Validation
+      run: ./scripts/run_local_validation.sh
