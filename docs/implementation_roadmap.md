@@ -18,7 +18,7 @@ This document defines the step-by-step implementation plan for the Locus project
 *   **Versioning:** Implement automated versioning based on Git Tags.
 
 ### 2. Validation Infrastructure (Maintenance)
-*   **Automation Scripts:** Implement the core scripts defined in `docs/specs/automation_scripts_spec.md`:
+*   **Automation Scripts:** Implement the core scripts defined in `docs/technical_discovery/specs/automation_scripts_spec.md`:
     *   `scripts/setup_ci_env.sh`: Installs pinned dependencies.
     *   `scripts/run_local_validation.sh`: Runs the full local test suite.
     *   `scripts/verify_security.sh`: Runs security checks (SAST, Secrets).
@@ -36,7 +36,7 @@ This document defines the step-by-step implementation plan for the Locus project
 
 ## Phase 1: Onboarding & Identity
 
-**Reference:** `docs/specs/behavior/01_onboarding_identity.md`
+**Reference:** `docs/behavioral_specs/01_onboarding_identity.md`
 **Goal:** The user can generate keys, provision resources, and successfully authenticate.
 
 *   **Domain:** Implement `AuthRepository` and `ProvisioningUseCase`.
@@ -49,7 +49,7 @@ This document defines the step-by-step implementation plan for the Locus project
 
 ## Phase 2: Intelligent Tracking
 
-**Reference:** `docs/specs/behavior/02_intelligent_tracking.md`
+**Reference:** `docs/behavioral_specs/02_intelligent_tracking.md`
 **Goal:** The application can collect location data locally.
 
 *   **Domain:** Implement `LocationRepository` and `TrackingManager`.
@@ -61,7 +61,7 @@ This document defines the step-by-step implementation plan for the Locus project
 
 ## Phase 3: Cloud Synchronization
 
-**Reference:** `docs/specs/behavior/03_cloud_synchronization.md`
+**Reference:** `docs/behavioral_specs/03_cloud_synchronization.md`
 **Goal:** The application can upload buffered data to S3.
 
 *   **Domain:** Implement `SyncRepository` and `PerformSyncUseCase`.
@@ -73,7 +73,7 @@ This document defines the step-by-step implementation plan for the Locus project
 
 ## Phase 4: Adaptive Battery Safety
 
-**Reference:** `docs/specs/behavior/04_adaptive_battery_safety.md`
+**Reference:** `docs/behavioral_specs/04_adaptive_battery_safety.md`
 **Goal:** The application respects battery constraints and pauses operations when necessary.
 
 *   **Domain:** Implement `BatteryRepository` and `PowerManagementUseCase`.
@@ -84,7 +84,7 @@ This document defines the step-by-step implementation plan for the Locus project
 
 ## Phase 5: System Status & Feedback
 
-**Reference:** `docs/specs/behavior/05_system_status_feedback.md`
+**Reference:** `docs/behavioral_specs/05_system_status_feedback.md`
 **Goal:** The user has visibility into the system state via the Dashboard and Notifications.
 
 *   **UI:** Implement the `DashboardScreen` (Status Card, Stats Grid).
@@ -96,7 +96,7 @@ This document defines the step-by-step implementation plan for the Locus project
 
 ## Phase 6: Historical Visualization
 
-**Reference:** `docs/specs/behavior/06_historical_visualization.md`
+**Reference:** `docs/behavioral_specs/06_historical_visualization.md`
 **Goal:** The user can view their historical data on a map.
 
 *   **Domain:** Implement `HistoryRepository` and `GetTrackHistoryUseCase`.
@@ -108,7 +108,7 @@ This document defines the step-by-step implementation plan for the Locus project
 
 ## Phase 7: Service Reliability
 
-**Reference:** `docs/specs/behavior/07_service_reliability.md`
+**Reference:** `docs/behavioral_specs/07_service_reliability.md`
 **Goal:** The system automatically recovers from failures.
 
 *   **Domain:** Implement `ServiceHealthRepository`.

@@ -30,7 +30,7 @@ A **Sovereign, High-Precision Location Tracker** for Android.
 
 ## 📄 Documentation
 *   [Architecture Plan](PLANNING.md)
-*   [IAM Policy](docs/iam-bootstrap-policy.json)
+*   [IAM Policy](docs/technical_discovery/iam-bootstrap-policy.json)
 
 ## ⚖️ License
 GPLv3

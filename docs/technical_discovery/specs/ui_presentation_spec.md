@@ -1,6 +1,6 @@
 # UI & Presentation Specification
 
-**Related Requirements:** [UI Feedback](../requirements/ui_feedback.md), [Visualization](../requirements/visualization.md), [Setup & Onboarding](../requirements/setup_onboarding.md)
+**Related Requirements:** [UI Feedback](../../requirements/ui_feedback.md), [Visualization](../../requirements/visualization.md), [Setup & Onboarding](../../requirements/setup_onboarding.md)
 
 This document defines the user interface architecture, navigation flows, and visual presentation layer for the Locus Android application.
 
