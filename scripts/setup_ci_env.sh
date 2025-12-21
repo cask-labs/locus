@@ -12,11 +12,18 @@ echo "Python 3 is available."
 
 # 2. Install Python Dependencies
 echo "Installing Python dependencies from scripts/requirements.txt..."
+
+# Fix for PyYAML 5.4.1 build failure on Python 3.10+ (AttributeError: cython_sources)
+# This is caused by PyYAML 5.4.1 setup.py incompatibility with Cython 3.0.
+# We must ensure Cython < 3.0 is used during the build.
+# --no-build-isolation forces pip to use the installed packages (cython<3) instead of creating a fresh build env.
+pip install "cython<3.0.0" "wheel"
+pip install "pyyaml==5.4.1" --no-build-isolation
+
 pip install -r scripts/requirements.txt
 echo "Dependencies installed."
 
 # 3. Verify Trufflehog
-# According to memory, we use a 'Verify & Fail' strategy for trufflehog, requiring it to be pre-installed.
 if ! command -v trufflehog &> /dev/null; then
     echo "Error: trufflehog is not installed. Please install trufflehog."
     exit 1
