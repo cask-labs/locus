@@ -3,3 +3,4 @@ cfn-lint>=0.86.0
 checkov>=3.0.0
 boto3>=1.34.0
 semgrep>=1.50.0
+requests>=2.31.0
