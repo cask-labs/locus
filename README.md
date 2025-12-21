@@ -1,36 +1,26 @@
-# Locus (Project Title TBD)
+# Locus
 
-A **Sovereign, High-Precision Location Tracker** for Android.
+**A High-Precision Location Tracker for Android.**
 
-## 🚀 Core Features
-*   **1Hz Tracking:** Captures your location every single second.
-*   **User-Owned Data:** Data is stored directly in **your** AWS S3 bucket. No third-party servers.
-*   **Offline-First:** Buffers data locally and syncs when possible.
-*   **Battery Efficient:** Uses batch uploading and safety cutoffs to preserve battery.
-*   **Privacy:** No analytics (except optional crash reporting), no tracking, no ads.
+## 🎯 Core Philosophy
+*   **Data Ownership:** Your location history belongs to you. Data is stored directly in your own AWS S3 bucket. No third-party servers.
+*   **High Precision:** Designed for 1Hz tracking to capture every turn, not just "significant changes."
+*   **Battery Efficiency:** Smart batching and deep-sleep handling to ensure all-day battery life even with high-fidelity tracking.
+*   **Offline-First:** Robust local buffering ensures no data is lost when connectivity drops.
+
+## 📚 Documentation
+The project is heavily documented to ensure robustness and maintainability.
+*   **[PLANNING.md](PLANNING.md):** The central index for all documentation.
+*   **[Technical Discovery](docs/technical_discovery/):** Deep dives into Architecture, Infrastructure, and Security.
+*   **[Behavioral Specs](docs/behavioral_specs/):** Detailed functional specifications for each feature.
 
 ## 🛠 Architecture
-*   **Client:** Native Android (Kotlin) + Room Database + Foreground Service.
-*   **Cloud:** AWS S3 (User Provided).
-*   **Map:** OpenStreetMap.
-
-## 📦 Getting Started (The "Bootstrap" Flow)
-1.  **Create AWS Access:**
-    *   Go to your AWS Console -> IAM.
-    *   Create a user (e.g., `LocusApp`).
-    *   Attach the policy found in `docs/iam-bootstrap-policy.json`.
-    *   Generate Access Keys.
-2.  **Install App:**
-    *   Build the APK from source.
-    *   Install on your Android device.
-3.  **Setup:**
-    *   Open App -> Settings.
-    *   Paste your AWS Access Keys.
-    *   The app will automatically create the S3 bucket and start tracking.
-
-## 📄 Documentation
-*   [Architecture Plan](PLANNING.md)
-*   [IAM Policy](docs/technical_discovery/iam-bootstrap-policy.json)
+*   **Client:** Native Android (Kotlin)
+    *   **Architecture:** Clean Architecture (Domain/Data/UI separation)
+    *   **Pattern:** MVVM / MVI
+    *   **Tech Stack:** Compose, Room, WorkManager, Hilt, Coroutines
+*   **Cloud:** AWS S3 (User Provided) + CloudFormation (for setup)
+*   **Map:** OpenStreetMap (via osmdroid)
 
 ## ⚖️ License
 GPLv3
