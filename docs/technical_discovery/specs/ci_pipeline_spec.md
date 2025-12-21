@@ -109,14 +109,27 @@ jobs:
 
 ## 6. Release Automation
 
-To support the "User builds from source" model while offering convenience, we employ automated release generation.
+We employ a "Best Practice" automated release pipeline to publish to Google Play and GitHub simultaneously.
 
 *   **Trigger:** Pushing a tag (e.g., `v1.0.0`).
-*   **Process:**
-    1.  **Build:** `./gradlew assembleRelease`
-    2.  **Determinism:** Verify build reproducibility (checksum match against clean runner).
-    3.  **SBOM:** Generate a **Software Bill of Materials (CycloneDX)** listing all dependencies.
-    4.  **Sign:** Signs the APK using the Project Keystore.
-    5.  **Draft:** Creates a GitHub Release draft.
-    6.  **Attach:** Uploads `locus-v1.0.0.apk`, `locus-stack.yaml`, and `sbom.json`.
-*   **Verification:** The user can compare the checksum of the attached APK with their local build.
+*   **Prerequisite:** Release notes must be present in `distribution/fastlane/metadata/android/en-US/changelogs/default.txt`.
+
+### 6.1. Build & Sign
+1.  **Build:** Generates both flavors:
+    *   `standard`: Android App Bundle (`.aab`) for Google Play.
+    *   `foss`: Universal APK (`.apk`) for F-Droid/Sideloading.
+2.  **Sign:** Signs artifacts using the Release Keystore injected via secrets.
+3.  **SBOM:** Generate a **Software Bill of Materials (CycloneDX)**.
+
+### 6.2. Distribution
+*   **Google Play Store (Standard Flavor):**
+    *   **Action:** Automatically uploads the Signed AAB and Release Notes.
+    *   **Track:** **Internal** (Allows manual promotion to Production after verification).
+    *   **Tool:** Gradle Play Publisher (GPP) or GitHub Action.
+    *   **Credential:** Uses `LOCUS_PLAY_JSON` Service Account.
+
+*   **GitHub Release (FOSS Flavor):**
+    *   **Action:** Creates a GitHub Release.
+    *   **Assets:** Attaches the `foss` APK, `standard` AAB, mapping files, and SBOM.
+    *   **Notes:** Injects the content from the changelog file.
+    *   **F-Droid:** This release serves as the source for F-Droid (which pulls the source or binary) and manual users.

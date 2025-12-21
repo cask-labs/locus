@@ -11,6 +11,7 @@ To ensure consistency between local development and CI environments, strict vers
 *   **JDK Version:** **JDK 17 (LTS)** is the mandatory Java runtime for all builds.
 *   **Build System:** Gradle (via Wrapper `gradlew`).
 *   **Android Gradle Plugin (AGP):** Version defined in `libs.versions.toml`.
+*   **Publisher Plugin:** **Gradle Play Publisher (GPP)** (for Google Play uploads).
 *   **Reproducibility:** The build environment must use fixed timestamps and pinned dependencies to support deterministic builds.
 
 ## 2. Product Flavors & Artifacts
@@ -53,6 +54,7 @@ Signing keys are managed differently based on the build variant and security con
     *   `LOCUS_KEYSTORE_PASSWORD`: Password for the keystore.
     *   `LOCUS_KEY_ALIAS`: Alias of the signing key.
     *   `LOCUS_KEY_PASSWORD`: Password for the specific key.
+    *   `LOCUS_PLAY_JSON`: Google Play Service Account JSON key (Base64 Encoded) for API access.
 
 ### 4.3. Key Management Model
 *   **Standard (Google Play):** The key used in CI is the **Upload Key**. Google Play re-signs the artifact with the actual App Signing Key before distribution.
@@ -80,3 +82,14 @@ Signing keys are managed differently based on the build variant and security con
 *   **Implementation:**
     *   Use `standardImplementation` in `build.gradle.kts` for proprietary libs.
     *   Use `fossImplementation` for FOSS alternatives or No-Op stubs.
+
+## 7. Distribution Metadata
+
+To support automated releases, metadata must be stored in the repository following the **Fastlane** directory structure.
+
+*   **Root Directory:** `distribution/fastlane/metadata/android/`
+*   **Structure:**
+    *   `en-US/changelogs/default.txt`: The release notes for the next release.
+    *   `en-US/short_description.txt`: The short description for the Play Store.
+    *   `en-US/full_description.txt`: The full description for the Play Store.
+    *   `en-US/images/`: Screenshots and feature graphics.
