@@ -1,4 +1,3 @@
-PyYAML>=6.0.1
 taskcat>=0.9.0
 cfn-lint>=0.86.0
 checkov>=3.0.0
