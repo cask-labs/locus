@@ -13,6 +13,11 @@ To ensure consistency between local development and CI environments, strict vers
 *   **Android Gradle Plugin (AGP):** Version defined in `libs.versions.toml`.
 *   **Reproducibility:** The build environment must use fixed timestamps and pinned dependencies to support deterministic builds.
 
+### 1.1. Gradle Wrapper Verification
+To prevent supply chain attacks via compromised build tools, the Gradle Wrapper MUST be verified.
+*   **Mechanism:** The `gradle/wrapper/gradle-wrapper.properties` file must contain the `distributionSha256Sum` property.
+*   **Verification:** CI pipelines must fail if the checksum of the downloaded distribution does not match this property.
+
 ## 2. Product Flavors & Artifacts
 
 The project utilizes Gradle Product Flavors to produce distinct artifacts for different distribution channels.

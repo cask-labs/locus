@@ -10,7 +10,29 @@ The validation pipeline is designed to be **Local-First**.
 *   **Determinism:** All tools (linters, scanners) must use **Strict Version Pinning** via lockfiles to ensure the local environment matches CI exactly.
 *   **Benefit:** Developers can verify their work fully without pushing to a remote server, supporting the offline/sovereign development model.
 
-## 2. Tool Versioning Strategy
+## 2. Supply Chain Security
+
+To protect against compromised dependencies and build environments, the following mandates must be enforced in the CI/CD pipeline.
+
+### 2.1. Immutable Actions
+*   **Requirement:** All GitHub Actions must be referenced by their full **Commit SHA**, not mutable tags (e.g., `v3`).
+*   **Implementation:** `uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0`
+*   **Automation:** Dependabot must be configured to automatically open Pull Requests to update these hashes.
+
+### 2.2. Least Privilege
+*   **Requirement:** All workflows must explicitly declare minimal permissions.
+*   **Default:** `permissions: contents: read` must be set at the top level of every workflow to prevent unauthorized write access or token abuse.
+
+### 2.3. AWS Authentication (OIDC)
+*   **Requirement:** Use **OpenID Connect (OIDC)** for AWS authentication.
+*   **Prohibition:** Long-lived AWS Secret Access Keys are **strictly forbidden** in GitHub Secrets.
+*   **Mechanism:** Use `aws-actions/configure-aws-credentials` with an IAM Role Trust Policy that trusts the GitHub OIDC provider.
+
+### 2.4. Script Integrity
+*   **Prohibition:** **No Remote Execution**. Commands like `curl ... | bash` are strictly forbidden.
+*   **Requirement:** All scripts must be checked into the repository (`scripts/`), reviewed via PR, and linted (`shellcheck`) before execution.
+
+## 3. Tool Versioning Strategy
 
 To ensure reproducible builds, all validation tools must be pinned.
 
@@ -20,7 +42,7 @@ To ensure reproducible builds, all validation tools must be pinned.
 *   **Gradle Plugins:** Managed via `libs.versions.toml` (Version Catalog).
 *   **Shell Utilities:** Checked at runtime by the scripts (e.g., checking `java --version`).
 
-## 3. Developer Environment (Pre-Commit)
+## 4. Developer Environment (Pre-Commit)
 
 To catch issues early and prevent secrets from entering version control, developers must configure local Git hooks.
 
@@ -30,7 +52,7 @@ To catch issues early and prevent secrets from entering version control, develop
     *   **Syntax Check:** Basic linting for Kotlin, Markdown, and YAML.
     *   **File Size:** Prevents accidental commit of large binaries.
 
-## 4. Validation Tiers
+## 5. Validation Tiers
 
 The pipeline executes checks in order of speed and cost.
 
@@ -85,29 +107,40 @@ The pipeline executes checks in order of speed and cost.
 *   **Tool:** AWS Device Farm (via `scripts/run_device_farm.py`).
 *   **Details:** See [Advanced Validation Strategy](advanced_validation_spec.md).
 
-## 5. Continuous Integration (GitHub Actions)
+## 6. Continuous Integration (GitHub Actions)
 
 The `.github/workflows/validation.yml` workflow orchestrates Tiers 1-3 automatically. Tiers 4 and 5 are triggered manually.
 
 ```yaml
 name: Validation
 on: [push, pull_request]
+
+# Security: Restrict permissions to read-only by default
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      # Security: Use SHA pinning for immutable action references
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
       - name: Setup Tools (Deterministic)
         run: ./scripts/setup_ci_env.sh # Installs pinned versions
+
       - name: Tier 1 - Static Analysis
+        # Security: Scripts are local and linted, no curl | bash
         run: ./gradlew ktlintCheck detekt lintDebug && shellcheck scripts/*.sh
+
       - name: Tier 2 - Tests & Arch
         run: ./gradlew testDebugUnitTest
+
       - name: Tier 3 - Security Audit
         run: ./scripts/verify_security.sh
 ```
 
-## 6. Release Automation
+## 7. Release Automation
 
 To support the "User builds from source" model while offering convenience, we employ automated release generation.
 
