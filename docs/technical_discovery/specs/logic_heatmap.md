@@ -1,7 +1,7 @@
 # Heatmap Logic Specification
 
 **Parent:** [UI & Presentation Specification](ui_presentation_spec.md)
-**Related:** [Visualization Requirements](../requirements/visualization.md)
+**Related:** [Visualization Requirements](../../requirements/visualization.md)
 
 This document defines the mathematical and rendering logic for the Signal Quality Heatmap overlay on the Map screen.
 

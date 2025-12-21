@@ -1,7 +1,7 @@
 # Background Processing Specification
 
 **Status:** Draft
-**Related Requirements:** [Data Collection](../requirements/data_collection.md), [Data Storage](../requirements/data_storage.md), [Android Architecture](../android_architecture.md), [Telemetry](telemetry_spec.md), [Watchdog](runtime_watchdog_spec.md)
+**Related Requirements:** [Data Collection](../../requirements/data_collection.md), [Data Storage](../../requirements/data_storage.md), [Android Architecture](../android_architecture.md), [Telemetry](telemetry_spec.md), [Watchdog](runtime_watchdog_spec.md)
 
 This document details the technical implementation of the Android Services, Workers, and State Machines that power the "Always On" nature of the application.
 

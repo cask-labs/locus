@@ -1,6 +1,6 @@
 # Onboarding UI Specification
 
-**Related Requirements:** [Setup & Onboarding](../requirements/setup_onboarding.md), [UI Presentation Spec](ui_presentation_spec.md)
+**Related Requirements:** [Setup & Onboarding](../../../requirements/setup_onboarding.md), [UI Presentation Spec](../ui_presentation_spec.md)
 
 This document details the user interface for the Onboarding flow, covering the initial launch, credential entry, and the divergence between "New Device" and "Recovery" paths.
 

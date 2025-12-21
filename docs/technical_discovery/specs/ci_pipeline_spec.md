@@ -43,7 +43,7 @@ The pipeline executes checks in order of speed and cost.
     *   **Scope:** Validates all scripts in `scripts/` and hooks.
 *   **CloudFormation:**
     *   **Tool:** `cfn-lint` (Pinned Version)
-    *   **Scope:** Validates syntax and resource references in `docs/locus-stack.yaml`.
+    *   **Scope:** Validates syntax and resource references in `docs/technical_discovery/locus-stack.yaml`.
 *   **Legal:**
     *   **Tool:** License Compliance Check (e.g., `FOSSology` or Gradle License Plugin).
     *   **Scope:** Ensures no GPL/Proprietary libraries are linked.

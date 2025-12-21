@@ -30,7 +30,7 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
     *   Deploy the CloudFormation Stack to create the S3 Bucket.
     *   Validate unique Device IDs and Stack Names.
     *   Transition to Runtime Keys upon success.
-*   **Implements Requirements:** [Setup & Onboarding](requirements/setup_onboarding.md)
+*   **Implements Requirements:** [Setup & Onboarding](../requirements/setup_onboarding.md)
 
 ## 4. Tracker Service (The Engine)
 *   **Role:** Performs the "Always-on" data collection.
@@ -47,7 +47,7 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
     *   **Passive Heartbeat:** Uses `AlarmManager` to wake once per hour and write a current timestamp to SharedPreferences, proving to the Watchdog that the service thread is alive and not deadlocked.
     *   **Battery Monitor:** BroadcastReceiver to trigger "Battery Safety Protocol" state changes.
 *   **Output:** Writes raw `Location` objects to the local Room Database (Android's standard SQLite abstraction library).
-*   **Implements Requirements:** [Data Collection & Tracking](requirements/data_collection.md)
+*   **Implements Requirements:** [Data Collection & Tracking](../requirements/data_collection.md)
 
 ## 5. Reliability Layer (The Watchdog)
 *   **Role:** Ensures the Tracker Service remains active despite aggressive OEM battery optimizations (e.g., Samsung/Huawei killing background processes).
@@ -67,7 +67,7 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
     *   **Streaming Uploads:** Stream data directly from the Room DB through a Gzip compressor.
     *   **Buffer Management:** Enforce a **500MB Soft Limit** (FIFO eviction).
     *   **Transport:** Upload to S3 using the Runtime Keys.
-*   **Implements Requirements:** [Data Storage](requirements/data_storage.md) & [Telemetry](operations/telemetry.md)
+*   **Implements Requirements:** [Data Storage](../requirements/data_storage.md) & [Telemetry](specs/telemetry_spec.md)
 
 ## 7. Visualizer (The View)
 *   **Role:** Provides the user interface for exploring history.
@@ -76,7 +76,7 @@ To strictly satisfy both the "Privacy-First" (FOSS) and "Ease of Development" (B
     *   **Lazy-Load Indexing:** Maintain a local index of available dates. Verify against S3 using Prefix Search (`tracks/YYYY/MM/`) only when the user requests a specific month.
     *   **Rendering:** Draw tracks on the map using Bitmap Tiles (OSMDroid), applying downsampling for performance.
     *   **Caching:** Store downloaded track files locally to support offline viewing.
-*   **Implements Requirements:** [Visualization & History](requirements/visualization.md)
+*   **Implements Requirements:** [Visualization & History](../requirements/visualization.md)
 
 ## 8. Local Data Persistence
 *   **Role:** Intermediate buffer and state storage.

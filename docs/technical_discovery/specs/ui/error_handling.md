@@ -2,7 +2,7 @@
 
 **Parent:** [UI & Presentation Specification](../ui_presentation_spec.md)
 
-**Related Requirements:** [UI Feedback](../../requirements/ui_feedback.md)
+**Related Requirements:** [UI Feedback](../../../requirements/ui_feedback.md)
 
 **Purpose:** Define how the application communicates status, errors, and critical failures to the user.
 

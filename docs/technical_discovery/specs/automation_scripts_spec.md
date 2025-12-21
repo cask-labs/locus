@@ -65,7 +65,7 @@ Scripts rely on standard environment variables for configuration. These must be 
 
 *   **Logic:**
     1.  **Secret Scanning:** Run `trufflehog` (filesystem scan).
-    2.  **IaC Scanning:** Run `checkov` against `docs/locus-stack.yaml`.
+    2.  **IaC Scanning:** Run `checkov` against `docs/technical_discovery/locus-stack.yaml`.
     3.  **SAST:** Run `semgrep` (using local rules or standard registry).
 *   **Output:** Aggregate report. Fail on High/Critical severities.
 
