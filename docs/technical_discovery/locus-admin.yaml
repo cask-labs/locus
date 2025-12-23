@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Locus: Admin User Provisioning (Read-Only Access to All Locus Buckets)'
+
+# Architecture Notes:
+# - Admin Persona: Designed for "Supervisor" devices or specific "Admin Apps".
+# - Attribute-Based Access Control (ABAC): Uses Resource Tags to scope access.
+# - Scope: Grants Read-Only access (ListBucket, GetObject) to ANY bucket in the account
+#   that matches the tag "LocusRole: DeviceBucket".
+# - Security Model: Follows the same "Bootstrap -> Runtime" Key Swap pattern as standard users.
+
+Parameters:
+  StackName:
+    Type: String
+    Description: A unique name for this Admin User (e.g., AdminiPad, Supervisor1).
+    AllowedPattern: "^[a-zA-Z0-9]+$"
+    ConstraintDescription: Must be alphanumeric only.
+
+Resources:
+  # The Admin User
+  # Like standard users, this is a dedicated IAM User for this specific installation.
+  LocusAdminUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "locus-admin-${StackName}"
+      Tags:
+        - Key: LocusRole
+          Value: AdminUser
+
+  LocusAdminAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref LocusAdminUser
+
+  # Admin Policy (Read Only, Tag Scoped)
+  # Allows listing and reading from ANY bucket where Tag LocusRole = DeviceBucket.
+  # This creates a "Dynamic Group" effect without managing an actual IAM Group.
+  LocusAdminPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "locus-admin-policy-${StackName}"
+      Users:
+        - !Ref LocusAdminUser
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # Capability: Find buckets
+          - Effect: Allow
+            Action:
+              - s3:ListAllMyBuckets
+              - s3:GetBucketLocation
+            Resource: "*"
+
+          # Capability: Read contents of Locus Buckets
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+            Resource: "*"
+            Condition:
+              StringEquals:
+                s3:ResourceTag/LocusRole: "DeviceBucket"
+
+Outputs:
+  # Standard Outputs compatible with Locus App "Key Swap" flow
+  AccessKeyId:
+    Description: 'Runtime Admin Access Key ID'
+    Value: !Ref LocusAdminAccessKey
+  SecretAccessKey:
+    Description: 'Runtime Admin Secret Access Key'
+    Value: !GetAtt LocusAdminAccessKey.SecretAccessKey

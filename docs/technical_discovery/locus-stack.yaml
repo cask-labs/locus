@@ -45,6 +45,12 @@ Resources:
             Prefix: logs/s3-access/
             ExpirationInDays: 30
 
+      # Tagging for Admin/ABAC Support
+      # Allows Admin users to target "Locus Buckets" specifically via ResourceTag conditions
+      Tags:
+        - Key: LocusRole
+          Value: DeviceBucket
+
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -65,6 +71,9 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: !Sub "locus-user-${StackName}"
+      Tags:
+        - Key: LocusRole
+          Value: DeviceUser
 
   LocusAccessKey:
     Type: AWS::IAM::AccessKey

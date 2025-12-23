@@ -32,3 +32,9 @@
 *   **R1.1700** **When** the user confirms the Success Screen, the system **shall** clear the entire Onboarding navigation stack and transition to the Dashboard.
 *   **R1.1800** **When** the transition to the Dashboard occurs, the system **shall** immediately begin the Tracking and Watchdog processes.
 *   **R1.1900** **If** the user relaunches the app before completing the flow, **then** the system **shall** restore the last known provisioning state or return to the relevant step ("Setup Trap").
+
+## Admin Provisioning (Optional)
+*   **R1.2000** **When** the user wishes to provision an "Admin" or "Supervisor" device, the system **shall** support using a specialized Admin Template (`locus-admin.yaml`).
+*   **R1.2100** **When** provisioning an Admin identity, the system **shall** follow the same "Key Swap" security lifecycle (Bootstrap -> Runtime) as a standard device.
+*   **R1.2200** **When** the Admin Runtime User is created, it **shall** be granted broad Read-Only access (`ListBucket`, `GetObject`) strictly scoped to resources matching the Locus Project Tag (`LocusRole: DeviceBucket`).
+*   **R1.2300** **If** an Admin user attempts to access a bucket without the Locus Project Tag, **then** the operation **shall** be denied by the IAM Policy.

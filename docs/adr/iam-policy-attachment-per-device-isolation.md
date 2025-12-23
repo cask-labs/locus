@@ -115,6 +115,13 @@ Not viable—roles produce temporary credentials, not persistent AccessKeys need
 - If Checkov updates CKV_AWS_40 to account for single-user isolation patterns, this exception can be removed
 - If the architecture evolves to multi-device management in a single account, this decision may need revisiting (at that point, groups become appropriate)
 
+### Admin Access & ABAC
+While we reject **IAM Groups** for device isolation, we adopt **Resource Tagging** to support future "Admin" or "Supervisor" personas.
+- **Problem**: An Admin needs access to *all* Locus device buckets, but not unrelated buckets in the user's account.
+- **Solution**: We apply the tag `LocusRole: DeviceBucket` to all standard stacks.
+- **Mechanism**: The Admin Policy uses Attribute-Based Access Control (ABAC) via `Condition: { StringEquals: { s3:ResourceTag/LocusRole: DeviceBucket } }`.
+- **Benefit**: This allows the Admin to "see all devices" dynamically without requiring a central "Admin Group" resource.
+
 ## Sign-Off
 
 **Decision Maker:** Project Team (informed by architecture requirements and Checkov best-practice assessment)
