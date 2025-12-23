@@ -2,6 +2,7 @@ plugins {
     id("com.locus.android-library")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -29,4 +30,20 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    // Testing
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.truth)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+}
+
+koverReport {
+    verify {
+        rule {
+            minBound(80)
+        }
+    }
 }

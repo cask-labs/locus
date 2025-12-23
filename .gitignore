@@ -60,3 +60,4 @@ env/
 .venv/
 *.egg-info/
 
+android-sdk/
