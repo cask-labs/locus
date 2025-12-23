@@ -14,7 +14,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AppVersionRepositoryImplTest {
-
     private lateinit var context: Context
     private lateinit var repository: AppVersionRepositoryImpl
 
@@ -25,11 +24,12 @@ class AppVersionRepositoryImplTest {
     }
 
     @Test
-    fun `returns app version from package manager`() = runTest {
-        val result = repository.getAppVersion()
+    fun `returns app version from package manager`() =
+        runTest {
+            val result = repository.getAppVersion()
 
-        assertThat(result).isInstanceOf(LocusResult.Success::class.java)
-        val data = (result as LocusResult.Success).data
-        assertThat(data.versionName).isNotNull()
-    }
+            assertThat(result).isInstanceOf(LocusResult.Success::class.java)
+            val data = (result as LocusResult.Success).data
+            assertThat(data.versionName).isNotNull()
+        }
 }

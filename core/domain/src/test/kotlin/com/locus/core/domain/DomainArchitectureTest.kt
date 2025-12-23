@@ -7,10 +7,10 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import org.junit.Test
 
 class DomainArchitectureTest {
-
-    private val importedClasses = ClassFileImporter()
-        .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-        .importPackages("com.locus.core.domain")
+    private val importedClasses =
+        ClassFileImporter()
+            .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+            .importPackages("com.locus.core.domain")
 
     @Test
     fun `domain classes should not depend on android sdk`() {

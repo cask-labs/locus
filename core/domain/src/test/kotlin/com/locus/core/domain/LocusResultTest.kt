@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class LocusResultTest {
-
     @Test
     fun `success returns data and null exception`() {
         val data = "test"

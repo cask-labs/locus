@@ -11,7 +11,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 abstract class DataModule {
     @Binds
-    abstract fun bindAppVersionRepository(
-        impl: AppVersionRepositoryImpl
-    ): AppVersionRepository
+    abstract fun bindAppVersionRepository(impl: AppVersionRepositoryImpl): AppVersionRepository
 }
