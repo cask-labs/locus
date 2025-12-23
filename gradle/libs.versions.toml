@@ -6,6 +6,7 @@ agp = "8.2.0" # Android Gradle Plugin
 javax-inject = "1"
 kover = "0.7.6"
 archunit = "1.2.1"
+ktlint = "12.1.0"
 
 # Android & Compose
 core-ktx = "1.12.0"
@@ -105,3 +106,4 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
