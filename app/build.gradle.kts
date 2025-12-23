@@ -1,5 +1,37 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     id("com.locus.android-app")
+}
+
+fun getGitVersionName(): String {
+    return try {
+        val stdout = ByteArrayOutputStream()
+        exec {
+            commandLine("git", "describe", "--tags")
+            standardOutput = stdout
+            isIgnoreExitValue = true
+        }
+        val output = stdout.toString().trim()
+        if (output.isNotEmpty()) output else "0.0.0-dev"
+    } catch (e: Exception) {
+        "0.0.0-dev"
+    }
+}
+
+fun getGitVersionCode(): Int {
+    return try {
+        val stdout = ByteArrayOutputStream()
+        exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+            standardOutput = stdout
+            isIgnoreExitValue = true
+        }
+        val output = stdout.toString().trim()
+        if (output.isNotEmpty()) output.toInt() else 1
+    } catch (e: Exception) {
+        1
+    }
 }
 
 android {
@@ -7,8 +39,8 @@ android {
 
     defaultConfig {
         applicationId = "com.locus.android"
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = getGitVersionCode()
+        versionName = getGitVersionName()
     }
 }
 
@@ -42,4 +74,10 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Testing
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
