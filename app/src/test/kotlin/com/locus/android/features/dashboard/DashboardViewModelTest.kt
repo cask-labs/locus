@@ -2,8 +2,8 @@ package com.locus.android.features.dashboard
 
 import app.cash.turbine.test
 import com.locus.core.domain.AppVersion
-import com.locus.core.domain.GetAppVersionUseCase
 import com.locus.core.domain.LocusResult
+import com.locus.core.domain.usecase.GetAppVersionUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers

@@ -1,7 +1,7 @@
 package com.locus.core.data.di
 
-import com.locus.core.data.AppVersionRepositoryImpl
-import com.locus.core.domain.AppVersionRepository
+import com.locus.core.data.repository.AppVersionRepositoryImpl
+import com.locus.core.domain.repository.AppVersionRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

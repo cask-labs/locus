@@ -3,6 +3,7 @@ package com.locus.core.data
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.locus.core.data.repository.AppVersionRepositoryImpl
 import com.locus.core.domain.LocusResult
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
