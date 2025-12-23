@@ -6,10 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.locus.android.features.dashboard.DashboardScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -17,12 +16,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            locusTheme {
+            LocusTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    greeting("Locus")
+                    DashboardScreen()
                 }
             }
         }
@@ -30,26 +29,8 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun greeting(
-    name: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier,
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun greetingPreview() {
-    locusTheme {
-        greeting("Locus")
-    }
-}
-
-@Composable
-fun locusTheme(content: @Composable () -> Unit) {
+@Suppress("ktlint:standard:function-naming")
+fun LocusTheme(content: @Composable () -> Unit) {
     MaterialTheme {
         content()
     }
