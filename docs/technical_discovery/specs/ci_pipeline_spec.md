@@ -37,7 +37,7 @@ To protect against compromised dependencies and build environments, the followin
 To ensure reproducible builds, all validation tools must be pinned.
 
 *   **Python Tools:** Managed via `requirements.txt`.
-    *   Includes: `cfn-lint`, `checkov`, `taskcat`, `boto3`.
+    *   Includes: `cfn-lint`, `checkov`, `boto3`, `semgrep`, `requests`.
     *   **Rule:** Developers must install these via `./scripts/setup_ci_env.sh`.
 *   **Gradle Plugins:** Managed via `libs.versions.toml` (Version Catalog).
 *   **Shell Utilities:** Checked at runtime by the scripts (e.g., checking `java --version`).
@@ -96,10 +96,10 @@ The pipeline executes checks in order of speed and cost.
 *   **Command:** `./scripts/verify_security.sh`
 
 ### Tier 4: Infrastructure Audit (Manual Execution)
-*   **Scope:** Validation of CloudFormation deployment logic (Dry Run).
-*   **Tool:** `taskcat`.
+*   **Scope:** Real AWS CloudFormation deployment and resource validation.
+*   **Tool:** AWS CLI (native CloudFormation commands).
 *   **Command:** `./scripts/audit_infrastructure.sh`
-*   **Details:** Verifies quota limits and circular dependencies without permanent deployment. Requires AWS credentials. See [Advanced Validation Strategy](advanced_validation_spec.md).
+*   **Details:** Deploys CloudFormation stack to actual AWS environment, verifies resource creation, validates stack outputs, and automatically cleans up. Requires AWS credentials. See [Advanced Validation Strategy](advanced_validation_spec.md).
 
 ### Tier 5: Device Farm & Hardware (Pre-Release)
 *   **Scope:** Full end-to-end verification on physical devices.

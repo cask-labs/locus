@@ -35,8 +35,8 @@ Scripts rely on standard environment variables for configuration. These must be 
 
 *   **Logic:**
     1.  Verify Python 3 is available.
-    2.  Install Python dependencies from `scripts/requirements.txt` (e.g., `checkov`, `taskcat`, `boto3`).
-    3.  Verify/Install binary tools (e.g., `ktlint` if not managed by Gradle).
+    2.  Install Python dependencies from `scripts/requirements.txt` (e.g., `checkov`, `boto3`, `semgrep`).
+    3.  Verify/Install binary tools (e.g., `trufflehog`, `AWS CLI`).
 *   **Output:** Standard installation logs.
 
 ### 3.2. `scripts/run_local_validation.sh` (Tier 2 Wrapper)
@@ -70,14 +70,18 @@ Scripts rely on standard environment variables for configuration. These must be 
 *   **Output:** Aggregate report. Fail on High/Critical severities.
 
 ### 3.5. `scripts/audit_infrastructure.sh` (Tier 4)
-**Purpose:** Validates CloudFormation templates using `taskcat`.
+**Purpose:** Validates CloudFormation templates by deploying to AWS and verifying resource creation.
 
-*   **Prerequisite:** AWS Credentials must be active.
+*   **Prerequisite:** AWS Credentials must be active (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`, or IAM role).
 *   **Logic:**
-    1.  Generate a temporary `_taskcat_override.yml` with a randomized Stack Name (e.g., `locus-audit-$RANDOM`).
-    2.  Execute `taskcat test run`.
-    3.  Ensure stack deletion (handled by Taskcat, verified by script).
-*   **Output:** Taskcat Report.
+    1.  Generate a unique Stack Name with timestamp (e.g., `locus-audit-20241222-143000-12345`).
+    2.  Set up trap-based cleanup to ensure stack deletion even on failure or interrupt.
+    3.  Validate AWS credentials and template file existence.
+    4.  Deploy CloudFormation stack using `aws cloudformation deploy`.
+    5.  Verify stack status is `CREATE_COMPLETE`.
+    6.  Extract and validate all required outputs (BucketName, BucketArn, AccessKeyId, SecretAccessKey).
+    7.  Automatic cleanup deletes stack (triggered by trap on EXIT).
+*   **Output:** Success/failure status with detailed error messages on failure.
 
 ### 3.6. `scripts/run_device_farm.py` (Tier 5)
 **Purpose:** Orchestrates the upload and execution of tests on AWS Device Farm.
@@ -99,15 +103,20 @@ Scripts rely on standard environment variables for configuration. These must be 
 This file acts as the lockfile for all Python-based automation tools.
 
 ```text
-# Infrastructure Validation
-taskcat>=0.9.0
+# Infrastructure Validation (Static Analysis)
 cfn-lint>=0.86.0
-checkov>=3.0.0
+
+# Infrastructure Validation (Policy Compliance)
+checkov>=2.0.1000,<3.0.0
 
 # AWS Interaction
 boto3>=1.34.0
 
-# Security
+# Security (Static Application Security Testing)
 semgrep>=1.50.0
-# trufflehog is typically a binary, but if a python wrapper exists, list it here.
+
+# HTTP Client Library
+requests>=2.31.0
+
+# Note: AWS CLI and trufflehog are binary tools, not Python packages
 ```

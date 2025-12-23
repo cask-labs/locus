@@ -10,13 +10,17 @@ To ensure the application behaves correctly across the fragmented Android ecosys
 
 This tier validates that the Infrastructure-as-Code (CloudFormation) is not only syntactically correct but also deployable within the constraints of the AWS environment. It is labeled **Manual** because it requires valid AWS credentials, which are not available in the standard CI pull request environment for security reasons.
 
-*   **Trigger:** Manual (`workflow_dispatch`) or Local Execution (Developers with AWS Creds).
+*   **Trigger:** Manual (Local Execution by Developers with AWS Credentials).
 *   **Philosophy:** **Local-First.** The logic must be encapsulated in a script (e.g., `scripts/audit_infrastructure.sh`) that can run on a developer's machine given valid AWS credentials.
 *   **Mechanism:**
-    *   **Tool:** `taskcat` (AWS CloudFormation testing tool).
-    *   **Scope:** Attempts to stage the `locus-stack.yaml` in a temporary test stack (e.g., `locus-test-<uuid>`).
-    *   **Verification:** Checks for circular dependencies, quota limits, and valid property configurations that `cfn-lint` might miss.
-    *   **Cleanup:** Automatically deletes the test stack after verification to prevent cost accumulation.
+    *   **Tool:** AWS CLI (native CloudFormation commands).
+    *   **Scope:** Deploys the `locus-stack.yaml` to actual AWS environment in a temporary stack (e.g., `locus-audit-20241222-143000-12345`).
+    *   **Verification:**
+        *   Validates CloudFormation deployment succeeds without errors.
+        *   Verifies actual AWS resources are created (S3 bucket, IAM user, access keys).
+        *   Checks that all required stack outputs are present and valid.
+        *   Detects quota limits, circular dependencies, and configuration issues that static analysis might miss.
+    *   **Cleanup:** Automatically deletes the test stack after verification using trap-based cleanup (runs even on failure or Ctrl+C) to prevent cost accumulation.
 
 ## 3. Tier 5: Device Farm & Hardware (Pre-Release)
 

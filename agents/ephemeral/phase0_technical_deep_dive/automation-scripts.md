@@ -26,16 +26,27 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# Create venv if not exists
-if [ ! -d "venv" ]; then
-    python3 -m venv venv
+# Install Python dependencies
+pip install -r scripts/requirements.txt
+
+# Verify trufflehog (binary tool for secret scanning)
+if ! command -v trufflehog &> /dev/null; then
+    echo "Error: trufflehog is not installed."
+    exit 1
 fi
 
-# Activate venv
-source venv/bin/activate
+# Verify Java (required for Gradle)
+if ! command -v java &> /dev/null; then
+    echo "Error: java is not installed."
+    exit 1
+fi
 
-# Install deps
-pip install -r scripts/requirements.txt
+# Verify AWS CLI (required for infrastructure audit)
+if ! command -v aws &> /dev/null; then
+    echo "Warning: AWS CLI is not installed. Infrastructure audit (Tier 4) will fail."
+else
+    echo "AWS CLI is available: $(aws --version)"
+fi
 
 echo "Environment setup complete."
 ```
@@ -46,9 +57,11 @@ echo "Environment setup complete."
 
 **Content:**
 ```text
-boto3==1.34.0    # AWS SDK
-taskcat==0.9.53  # CloudFormation testing (Future use)
-checkov==3.1.0   # Security scanning (Future use)
+cfn-lint>=0.86.0                      # CloudFormation linting
+checkov>=2.0.1000,<3.0.0              # Security & policy scanning
+boto3>=1.34.0                         # AWS SDK
+semgrep>=1.50.0                       # SAST security scanning
+requests>=2.31.0                      # HTTP client library
 ```
 
 ## 3. `scripts/run_local_validation.sh`

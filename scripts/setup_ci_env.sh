@@ -12,14 +12,6 @@ echo "Python 3 is available."
 
 # 2. Install Python Dependencies
 echo "Installing Python dependencies from scripts/requirements.txt..."
-
-# Fix for PyYAML 5.4.1 build failure on Python 3.10+ (AttributeError: cython_sources)
-# This is caused by PyYAML 5.4.1 setup.py incompatibility with Cython 3.0.
-# We must ensure Cython < 3.0 is used during the build.
-# --no-build-isolation forces pip to use the installed packages (cython<3) instead of creating a fresh build env.
-pip install "cython<3.0.0" "wheel"
-pip install "pyyaml==5.4.1" --no-build-isolation
-
 pip install -r scripts/requirements.txt
 echo "Dependencies installed."
 
@@ -36,5 +28,13 @@ if ! command -v java &> /dev/null; then
     exit 1
 fi
 echo "Java is available."
+
+# 5. Verify AWS CLI (required for infrastructure audit)
+if ! command -v aws &> /dev/null; then
+    echo "Warning: AWS CLI is not installed. Infrastructure audit (Tier 4) will fail."
+    echo "Install from: https://aws.amazon.com/cli/"
+else
+    echo "AWS CLI is available: $(aws --version)"
+fi
 
 echo "CI Environment Setup Complete."

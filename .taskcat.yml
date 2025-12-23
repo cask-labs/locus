@@ -1,8 +1,0 @@
-project:
-  name: locus
-  regions:
-  - us-east-1
-  s3_bucket: locus-taskcat-ci
-tests:
-  default:
-    template: docs/technical_discovery/locus-stack.yaml
