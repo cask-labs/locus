@@ -145,7 +145,7 @@ jobs:
 We employ a "Best Practice" automated release pipeline to publish to Google Play and GitHub simultaneously.
 
 *   **Trigger:** Pushing a tag (e.g., `v1.0.0`).
-*   **Prerequisite:** Release notes must be present in `distribution/fastlane/metadata/android/en-US/changelogs/default.txt`.
+*   **Prerequisite:** Release notes must be present in `app/src/main/play/release-notes/en-US/default.txt`.
 
 ### 6.1. Build & Sign
 1.  **Build:** Generates both flavors:
