@@ -20,7 +20,7 @@ Occurs during `ProvisioningState.DeployingStack` or `WaitingForCompletion`.
 
 | Source | Error Code / Status | AppError | UI Message | Action |
 |--------|---------------------|----------|------------|--------|
-| CFN | `AlreadyExistsException` | `ProvisioningError.StackExists` | "A device with this name ('{name}') is already registered." | User must change the Device Name. |
+| CFN | `AlreadyExistsException` | `ProvisioningError.StackExists` | "A device with this name ({name}) is already registered." | User must change the Device Name. |
 | CFN | `InsufficientCapabilitiesException` | `ProvisioningError.Permissions` | "Your AWS keys lack permission to create IAM Users." | User needs to check their Policy. |
 | CFN | `LimitExceededException` | `ProvisioningError.Quota` | "AWS Account limit reached (Stacks or Users)." | User needs to clean up AWS account. |
 | CFN | `ROLLBACK_COMPLETE` (Status) | `ProvisioningError.DeploymentFailed` | "Deployment failed. The system rolled back changes." | Hard fail. Suggest manual cleanup or retry. |

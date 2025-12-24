@@ -62,9 +62,9 @@ sealed class ProvisioningState {
     /**
      * Terminal State: Failure.
      * Something went wrong. The user must take action.
-     * @param error The provisioning domain error detailing the cause.
+     * @param error The domain error detailing the cause.
      */
-    data class Failure(val error: ProvisioningError) : ProvisioningState()
+    data class Failure(val error: AppError) : ProvisioningState()
 }
 ```
 

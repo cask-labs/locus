@@ -169,7 +169,7 @@ sealed class AuthState {
     object Authenticated : AuthState() // Has Runtime
 }
 
-// See 'agents/ephemeral/phase1-deep-dive/provisioning-state-machine.md' for ProvisioningState definition
+// See 'provisioning-state-machine.md' for ProvisioningState definition
 ```
 
 ### 3.4. ConfigurationRepository
@@ -339,7 +339,19 @@ sealed class LocusResult<out T> {
 
 open class DomainException(message: String) : Exception(message)
 class NetworkException(message: String) : DomainException(message)
-class AuthException(message: String) : DomainException(message)
+
+sealed class AuthError(message: String) : DomainException(message) {
+    object InvalidCredentials : AuthError("Invalid Access Key or Secret Key")
+    object Expired : AuthError("Session Token Expired")
+    object AccessDenied : AuthError("Access Denied")
+    class Generic(message: String) : AuthError(message)
+}
+
+sealed class S3Error(message: String) : DomainException(message) {
+    object BucketNotFound : S3Error("Bucket Not Found")
+    class Generic(message: String) : S3Error(message)
+}
+
 class BatteryCriticalException : DomainException("Battery too low for operation")
 // Provisioning Errors
 sealed class ProvisioningError(message: String) : DomainException(message) {
