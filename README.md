@@ -10,7 +10,6 @@
 
 ## 📚 Documentation
 The project is heavily documented to ensure robustness and maintainability.
-*   **[PLANNING.md](PLANNING.md):** The central index for all documentation.
 *   **[Technical Discovery](docs/technical_discovery/):** Deep dives into Architecture, Infrastructure, and Security.
 *   **[Behavioral Specs](docs/behavioral_specs/):** Detailed functional specifications for each feature.
 
