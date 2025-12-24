@@ -33,7 +33,7 @@
 *   **R1.1800** **When** the transition to the Dashboard occurs, the system **shall** immediately begin the Tracking and Watchdog processes.
 *   **R1.1900** **If** the user relaunches the app before completing the flow, **then** the system **shall** restore the last known provisioning state or return to the relevant step ("Setup Trap").
 
-## Admin Upgrade (Optional)
+## Admin Upgrade
 *   **R1.2000** **When** an existing user wishes to upgrade to "Admin" status, they **shall** initiate the flow via the Settings screen.
 *   **R1.2100** **When** upgrading, the system **shall** request a new set of temporary "Bootstrap Keys" capable of creating admin resources.
 *   **R1.2200** **When** provisioning the Admin identity, the system **shall** use a specialized Admin Template (`locus-admin.yaml`).
