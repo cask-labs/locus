@@ -21,6 +21,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        // Fix for missing dimension strategy when dependencies (like :core:testing)
+        // do not have the 'distribution' flavor dimension.
+        missingDimensionStrategy("distribution", "standard")
     }
 
     flavorDimensions += "distribution"
@@ -30,6 +33,8 @@ android {
         }
         create("foss") {
             dimension = "distribution"
+            // Allow foss builds to consume standard libraries if needed
+            matchingFallbacks.add("standard")
         }
     }
 
