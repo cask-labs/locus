@@ -19,4 +19,8 @@ dependencies {
     implementation("com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:1.9.22-1.0.17")
     // KTLint Plugin
     implementation("org.jlleitschuh.gradle:ktlint-gradle:12.1.0")
+    // CycloneDX Plugin
+    implementation("org.cyclonedx:cyclonedx-gradle-plugin:1.8.1")
+    // Gradle Play Publisher
+    implementation("com.github.triplet.gradle:play-publisher:3.9.1")
 }
