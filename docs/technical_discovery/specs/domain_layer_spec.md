@@ -169,7 +169,7 @@ sealed class AuthState {
     object Authenticated : AuthState() // Has Runtime
 }
 
-// See 'provisioning-state-machine.md' for ProvisioningState definition
+// See 'agents/ephemeral/phase1-deep-dive/provisioning-state-machine.md' for ProvisioningState definition
 ```
 
 ### 3.4. ConfigurationRepository
