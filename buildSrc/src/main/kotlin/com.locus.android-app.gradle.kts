@@ -44,15 +44,18 @@ android {
                 // CI Environment: Decode Keystore
                 try {
                     val keystoreFile = File(System.getenv("RUNNER_TEMP") ?: "/tmp", "upload.jks")
-                    val bytes = Base64.getDecoder().decode(keystoreBase64)
+                    // Use MimeDecoder to be more robust against newlines in the env variable
+                    val bytes = Base64.getMimeDecoder().decode(keystoreBase64)
                     keystoreFile.writeBytes(bytes)
                     storeFile = keystoreFile
                     storePassword = System.getenv("LOCUS_STORE_PASSWORD")
                     keyAlias = System.getenv("LOCUS_KEY_ALIAS")
                     keyPassword = System.getenv("LOCUS_KEY_PASSWORD")
                 } catch (e: Exception) {
-                    println("WARNING: Failed to decode signing keystore: ${e.message}")
+                    println("WARNING: Failed to decode signing keystore. Ensure LOCUS_UPLOAD_KEYSTORE_BASE64 is a valid Base64 string. Error: ${e.message}")
                 }
+            } else {
+                println("INFO: LOCUS_UPLOAD_KEYSTORE_BASE64 is not set. Release APKs will be unsigned.")
             }
         }
     }
