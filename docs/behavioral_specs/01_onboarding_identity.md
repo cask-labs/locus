@@ -6,8 +6,14 @@
 
 ---
 
+## Pre-Setup Guidance
+*   **R1.050** **When** the application launches for the first time, the system **shall** display a disclaimer regarding potential cloud provider costs.
+*   **R1.060** **When** the user requires assistance with credentials, the system **shall** provide an in-app guide for generating keys to maintain user context.
+
 ## Credential Validation
 *   **R1.100** **When** the user provides cloud credentials (Access Key ID, Secret Access Key, Session Token), the system **shall** validate them by performing a "Dry Run" check against the identity and storage services.
+*   **R1.150** **When** the user provides credentials, the system **shall** support parsing a structured JSON object (e.g., from CLI output) to automatically populate the required fields.
+*   **R1.160** **If** JSON parsing fails (e.g., malformed JSON, missing fields), **then** the system **shall** surface a non-fatal validation error, **shall not** overwrite existing fields, and **shall not** attempt the "Dry Run" check.
 *   **R1.200** **If** the "Dry Run" check fails (e.g., Invalid Signature, Permission Denied), **then** the system **shall** display a specific error message describing the failure reason and **shall not** proceed to the Choice screen.
 *   **R1.300** **When** validating credentials, the system **shall** require the presence of a Session Token and treat the credentials as temporary.
 
@@ -26,8 +32,14 @@
 *   **R1.1160** **The** system **shall** prevent the selection of buckets marked as "Invalid".
 *   **R1.1200** **If** no matching stores are found, **then** the system **shall** display a "No Locus stores found" message.
 *   **R1.1300** **When** the user selects an existing store to link, the system **shall** create a **new** unique user identity (Runtime User) for this installation, distinct from any previous users associated with that store.
+*   **R1.1350** **When** deploying access infrastructure for recovery, the system **shall** execute the process as a visible background task to ensure resilience against termination.
 *   **R1.1400** **When** linking to an existing store, the system **shall** generate a new, unique `device_id` (UUID) for the current installation to prevent "Split Brain" data collisions with previous installations.
 *   **R1.1500** **When** recovery is complete, the system **shall** perform a "Lazy Sync" (inventory scan) to populate the local history index without downloading bulk data.
+
+## Permissions
+*   **R1.1550** **When** requesting location access, the system **shall** request permissions in two distinct stages (Foreground then Background) if required by the underlying platform constraints.
+*   **R1.1555** **If** the user denies the Foreground permission, **then** the system **shall not** request Background permission and **shall** inform the user that location functionality is unavailable until access is granted.
+*   **R1.1560** **If** the user exits the application during the permission phase, **then** the system **shall** force the user back to the permission request screen upon the next launch ("Permission Trap").
 
 ## Onboarding Completion
 *   **R1.1600** **When** the provisioning or recovery process completes successfully, the system **shall** display a Success Screen requiring manual confirmation (e.g., "Go to Dashboard").
