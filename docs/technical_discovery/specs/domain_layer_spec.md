@@ -160,6 +160,16 @@ interface AuthRepository {
     // Recovery Action
     // Note: Recovery now involves deploying a stack, similar to initial provisioning.
     // This allows the use case to manage the 'Satellite Stack' deployment logic.
+    // Error handling contract:
+    // - Must not throw; all failures are represented via LocusResult.
+    // - Implementations MUST validate that `bucketName` exists and is accessible with the
+    //   current bootstrap credentials.
+    // - Callers can distinguish at least the following failure categories via LocusResult:
+    //   * BucketNotFound (bucket does not exist or is not visible)
+    //   * AccessDenied (bootstrap credentials lack permissions for the bucket)
+    //   * Other infrastructure / network failures
+    // Implementations should encode these as distinct LocusResult failure variants so that
+    // use cases can react appropriately (e.g., prompt for a different bucket vs. credentials).
     suspend fun recoverAccount(bucketName: String, deviceName: String): LocusResult<RuntimeCredentials>
 }
 
