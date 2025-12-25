@@ -25,7 +25,7 @@
 *   **R8.1000** **When** the execution begins, the system **shall** enter a persistent "Cleanup Mode" (Trap) that prevents navigation away from the progress screen.
 *   **R8.1100** **If** the application is terminated or crashes during cleanup, **then** the system **shall** automatically resume the "Cleanup Mode" immediately upon the next launch.
 *   **R8.1200** **When** deleting a stack, the system **shall** first iterate through all associated S3 Buckets and **shall** delete all objects (including versions and delete markers) to ensure the bucket is empty.
-*   **R8.1300** **When** the buckets are empty, the system **shall** issuance the `DeleteStack` command to CloudFormation.
+*   **R8.1300** **When** the buckets are empty, the system **shall** issue the `DeleteStack` command to CloudFormation.
 *   **R8.1400** **If** a specific resource deletion fails (e.g., Network Timeout, API Throttling), **then** the system **shall** display the error, pause the process, and provide a "Retry" action.
 *   **R8.1500** **When** in the "Cleanup Mode", the system **shall** provide a "Force Reset" escape hatch (e.g., "Ignore Cloud Errors & Reset App") to allow the user to wipe the local device even if cloud cleanup is impossible.
 
