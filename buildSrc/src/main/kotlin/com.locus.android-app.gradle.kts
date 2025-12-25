@@ -8,7 +8,6 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("org.jlleitschuh.gradle.ktlint")
-    id("org.cyclonedx.bom")
     id("com.github.triplet.play")
 }
 
@@ -41,15 +40,19 @@ android {
     signingConfigs {
         create("release") {
             val keystoreBase64 = System.getenv("LOCUS_UPLOAD_KEYSTORE_BASE64")
-            if (keystoreBase64 != null) {
+            if (!keystoreBase64.isNullOrEmpty()) {
                 // CI Environment: Decode Keystore
-                val keystoreFile = File(System.getenv("RUNNER_TEMP") ?: "/tmp", "upload.jks")
-                val bytes = Base64.getDecoder().decode(keystoreBase64)
-                keystoreFile.writeBytes(bytes)
-                storeFile = keystoreFile
-                storePassword = System.getenv("LOCUS_STORE_PASSWORD")
-                keyAlias = System.getenv("LOCUS_KEY_ALIAS")
-                keyPassword = System.getenv("LOCUS_KEY_PASSWORD")
+                try {
+                    val keystoreFile = File(System.getenv("RUNNER_TEMP") ?: "/tmp", "upload.jks")
+                    val bytes = Base64.getDecoder().decode(keystoreBase64)
+                    keystoreFile.writeBytes(bytes)
+                    storeFile = keystoreFile
+                    storePassword = System.getenv("LOCUS_STORE_PASSWORD")
+                    keyAlias = System.getenv("LOCUS_KEY_ALIAS")
+                    keyPassword = System.getenv("LOCUS_KEY_PASSWORD")
+                } catch (e: Exception) {
+                    println("WARNING: Failed to decode signing keystore: ${e.message}")
+                }
             }
         }
     }
