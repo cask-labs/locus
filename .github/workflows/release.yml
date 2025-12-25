@@ -23,7 +23,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
 
-      # Switched to building an APK for Standard flavor for GitHub Release instead of AAB.
+      # Build signed APKs for GitHub Releases instead of AABs, since GitHub Releases distribute APK files directly.
       - name: Build Standard APK
         env:
           LOCUS_UPLOAD_KEYSTORE_BASE64: ${{ secrets.LOCUS_UPLOAD_KEYSTORE_BASE64 }}
