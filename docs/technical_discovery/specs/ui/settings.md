@@ -37,6 +37,8 @@
         *   *Feedback:* Upon successful completion, display a **Snackbar** ("Local track buffer cleared") and revert the button to its enabled state.
     *   "Reset App" (Red Text). *Warning:* Wipes all keys (Runtime Keys in `EncryptedSharedPreferences`), databases, and preferences. Returns app to "Fresh Install" state (Onboarding).
         *   *Feedback:* This action triggers a **Blocking Progress Dialog** ("Resetting Application...") that prevents interaction/exit until the cleanup is complete and the app restarts.
+    *   "Destroy Cloud Resources" (Red Text). *Warning:* Initiates the [Offboarding Workflow](offboarding.md) to permanently delete CloudFormation stacks and S3 buckets before resetting the application.
+        *   *Behavior:* Navigates to the Offboarding Credential Input screen.
 *   **About (Section):** Displayed as a grouped section at the bottom of the main settings list.
     *   *Structure:* Header ("About") followed by standard list items.
     *   *Items:* "Version" (e.g., 1.0.0 (12)), "Source Code" (Link).
@@ -58,6 +60,7 @@
 |  Danger Zone                                     |
 |  [ Clear Local Track Buffer (!) ]                | <--- Triggers Confirmation Dialog
 |  [ Reset Application (!)      ]                  | <--- Triggers Confirmation Dialog
+|  [ Destroy Cloud Resources (!) ]                 | <--- Starts Offboarding Flow
 |  ----------------------------------------------  |
 |  About                                           |
 |  Version 1.0.0 (12)                              |

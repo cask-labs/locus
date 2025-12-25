@@ -115,3 +115,15 @@ This document defines the step-by-step implementation plan for the Locus project
 *   **Worker:** Implement the `WatchdogWorker` (periodic health check).
 *   **Logic:** Implement the "Circuit Breaker" logic (restart service if dead, stop if crashing repeatedly).
 *   **Feedback:** Implement the "Service Instability" dashboard card.
+
+---
+
+## Phase 8: Offboarding & Resource Cleanup
+
+**Reference:** `docs/behavioral_specs/08_offboarding.md`
+**Goal:** The user can safely decommission their cloud resources and reset the application.
+
+*   **UI:** Implement the Offboarding Flow (Credential Entry, Stack Selection, Destruction Console).
+*   **Domain:** Implement `OffboardingRepository` (Stack Listing, Bucket Emptying, Stack Deletion).
+*   **Logic:** Implement the "Cleanup Trap" and Resume capabilities.
+*   **Integration:** Add the entry point to `SettingsScreen` (Danger Zone).
