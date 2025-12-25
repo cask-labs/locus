@@ -25,7 +25,7 @@ Instead of calling `iam:CreateUser` directly during recovery, the app should dep
 *   **Input:** `BucketName` (Existing), `DeviceName` (New).
 *   **Resources:** Defines only `AWS::IAM::User`, `AWS::IAM::AccessKey`, and `AWS::IAM::Policy`.
 *   **Outcome:** The "Recovery User" is now a fully managed CloudFormation resource.
-*   **Benefit:** Uniform code path (always "Deploy Stack"), no zombie users, and the bootstrap policy can be tightened to only allow `cloudformation:*`.
+   * **Benefit:** Uniform code path (always "Deploy Stack"), no zombie users, and eliminates the need for unmanaged imperative SDK calls.
 
 ---
 

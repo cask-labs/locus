@@ -7,7 +7,6 @@
             "Action": [
                 "s3:PutObject",
                 "s3:GetObject",
-                "tag:GetResources",
                 "s3:CreateBucket",
                 "s3:PutBucketVersioning",
                 "s3:PutBucketObjectLockConfiguration",
@@ -21,7 +20,8 @@
                 "iam:CreateUser",
                 "iam:GetUser",
                 "iam:CreateAccessKey",
-                "iam:PutUserPolicy"
+                "iam:PutUserPolicy",
+                "tag:GetResources"
             ],
             "Resource": "*"
         }

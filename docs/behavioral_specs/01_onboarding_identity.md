@@ -21,7 +21,7 @@
 *   **R1.1000** **If** the provisioning process fails, **then** the system **shall** redirect the user back to the input fields and **shall not** attempt to automatically delete the resources.
 
 ## System Recovery (Link Existing Store)
-*   **R1.1100** **When** the user selects "Link Existing Store", the system **shall** list all available storage buckets matching the project prefix.
+*   **R1.1100** **When** the user selects "Link Existing Store", the system **shall** list all available storage buckets matching the project tag.
 *   **R1.1200** **If** no matching stores are found, **then** the system **shall** display a "No Locus stores found" message.
 *   **R1.1300** **When** the user selects an existing store to link, the system **shall** create a **new** unique user identity (Runtime User) for this installation, distinct from any previous users associated with that store.
 *   **R1.1400** **When** linking to an existing store, the system **shall** generate a new, unique `device_id` (UUID) for the current installation to prevent "Split Brain" data collisions with previous installations.
