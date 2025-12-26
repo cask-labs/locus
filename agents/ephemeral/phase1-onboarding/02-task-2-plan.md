@@ -1,0 +1,74 @@
+# 02-task-2-plan.md
+
+## Prerequisites: Human Action Steps
+
+- None. The project structure is already scaffolded.
+
+## Implementation Steps
+
+### Step 1: Verify Package Structure
+- **Action:** List files in `core/domain/src/main/kotlin/com/locus/core/domain` to confirm package structure.
+- **Verification:** Confirm output shows `repository` and `usecase` directories.
+
+### Step 2: Create Domain Result Types
+- **Action:**
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/result/DomainException.kt` defining the sealed hierarchy:
+    - `NetworkError` (Offline, Timeout, Server, Generic)
+    - `AuthError` (InvalidCredentials, Expired, AccessDenied, Generic)
+    - `S3Error` (BucketNotFound, Generic)
+    - `BatteryCriticalException`
+    - `ProvisioningError` (StackExists, Permissions, Quota, DeploymentFailed, Wait)
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/result/LocusResult.kt` defining the `Success` and `Failure` sealed class.
+- **Verification:** Read the created files to confirm they match the spec.
+
+### Step 3: Create Domain Models
+- **Action:**
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/BootstrapCredentials.kt`:
+    - `accessKeyId: String`
+    - `secretAccessKey: String`
+    - `sessionToken: String`
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/RuntimeCredentials.kt`:
+    - `accessKeyId: String`
+    - `secretAccessKey: String`
+    - `sessionToken: String`
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/AuthState.kt`:
+    - `Uninitialized`
+    - `SetupPending`
+    - `Authenticated`
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/ProvisioningState.kt` using `provisioning-state-machine.md` definition:
+    - `Idle`
+    - `ValidatingInput`
+    - `VerifyingBootstrapKeys`
+    - `DeployingStack(stackName)`
+    - `WaitingForCompletion(stackName, status)`
+    - `FinalizingSetup`
+    - `Success`
+    - `Failure(error: DomainException)`
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/BucketValidationStatus.kt`:
+    - `Validating`
+    - `Available`
+    - `Invalid`
+- **Verification:** Read at least one created model file to verify correctness.
+
+### Step 4: Create Repository Interfaces
+- **Action:**
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/repository/AuthRepository.kt` with methods:
+    - `getAuthState(): Flow<AuthState>`
+    - `getProvisioningState(): Flow<ProvisioningState>`
+    - `updateProvisioningState(state: ProvisioningState)`
+    - `validateCredentials(creds: BootstrapCredentials): LocusResult<Unit>`
+    - `validateBucket(bucketName: String): LocusResult<BucketValidationStatus>`
+    - `saveBootstrapCredentials(creds: BootstrapCredentials): LocusResult<Unit>`
+    - `promoteToRuntimeCredentials(creds: RuntimeCredentials): LocusResult<Unit>`
+    - `replaceWithAdminCredentials(creds: RuntimeCredentials): LocusResult<Unit>`
+    - `clearBootstrapCredentials(): LocusResult<Unit>`
+    - `getRuntimeCredentials(): LocusResult<RuntimeCredentials>`
+    - `recoverAccount(bucketName: String, deviceName: String): LocusResult<RuntimeCredentials>`
+- **Verification:** Read the created `AuthRepository.kt` to verify the interface matches the requirements.
+
+### Step 5: Verification (Unit Tests)
+- **Action:**
+  - Create `core/domain/src/test/kotlin/com/locus/core/domain/result/LocusResultTest.kt`.
+  - Add tests to verify `LocusResult` instantiation and type safety.
+  - Run `./scripts/run_local_validation.sh` to ensure no linting errors and that tests pass.
+- **Completion Criteria:** All tests pass and lint checks succeed.
