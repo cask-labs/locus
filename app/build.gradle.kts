@@ -1,7 +1,9 @@
+import kotlinx.kover.gradle.plugin.dsl.MetricType
 import java.io.ByteArrayOutputStream
 
 plugins {
     id("com.locus.android-app")
+    alias(libs.plugins.kover)
 }
 
 fun getGitVersionName(): String {
@@ -87,4 +89,19 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
+}
+
+koverReport {
+    verify {
+        rule {
+            bound {
+                minValue = 70
+                metric = MetricType.INSTRUCTION
+            }
+            bound {
+                minValue = 70
+                metric = MetricType.BRANCH
+            }
+        }
+    }
 }
