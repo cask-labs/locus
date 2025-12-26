@@ -37,7 +37,7 @@
     - `Uninitialized`
     - `SetupPending`
     - `Authenticated`
-  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/ProvisioningState.kt` using `02-task-2-plan.md` definition as Source of Truth:
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/ProvisioningState.kt` using the following state definition as Source of Truth:
     - `Idle`
     - `ValidatingInput`
     - `VerifyingBootstrapKeys`
