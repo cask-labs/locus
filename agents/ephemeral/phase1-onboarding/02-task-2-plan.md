@@ -10,32 +10,34 @@
 - **Action:** List files in `core/domain/src/main/kotlin/com/locus/core/domain` to confirm package structure.
 - **Verification:** Confirm output shows `repository` and `usecase` directories.
 
-### Step 2: Create Domain Result Types
+### Step 2: Refactor Domain Result Types
 - **Action:**
-  - Create `core/domain/src/main/kotlin/com/locus/core/domain/result/DomainException.kt` defining the sealed hierarchy:
+  - Move `core/domain/src/main/kotlin/com/locus/core/domain/DomainException.kt` to `core/domain/src/main/kotlin/com/locus/core/domain/result/DomainException.kt`.
+  - Move `core/domain/src/main/kotlin/com/locus/core/domain/LocusResult.kt` to `core/domain/src/main/kotlin/com/locus/core/domain/result/LocusResult.kt`.
+  - Refactor `DomainException.kt` to be a sealed hierarchy (or abstract base with sealed subclasses) defining:
     - `NetworkError` (Offline, Timeout, Server, Generic)
     - `AuthError` (InvalidCredentials, Expired, AccessDenied, Generic)
     - `S3Error` (BucketNotFound, Generic)
     - `BatteryCriticalException`
     - `ProvisioningError` (StackExists, Permissions, Quota, DeploymentFailed, Wait)
-  - Create `core/domain/src/main/kotlin/com/locus/core/domain/result/LocusResult.kt` defining the `Success` and `Failure` sealed class.
-- **Verification:** Read the created files to confirm they match the spec.
+  - Refactor `LocusResult.kt` to match the package change.
+- **Verification:** Read the modified files to confirm they match the spec and package structure.
 
 ### Step 3: Create Domain Models
 - **Action:**
   - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/BootstrapCredentials.kt`:
     - `accessKeyId: String`
     - `secretAccessKey: String`
-    - `sessionToken: String`
+    - `sessionToken: String` (Non-nullable, strictly required for Bootstrap)
   - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/RuntimeCredentials.kt`:
     - `accessKeyId: String`
     - `secretAccessKey: String`
-    - `sessionToken: String`
+    - `sessionToken: String? = null` (Optional/Null for IAM User credentials)
   - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/AuthState.kt`:
     - `Uninitialized`
     - `SetupPending`
     - `Authenticated`
-  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/ProvisioningState.kt` using `provisioning-state-machine.md` definition:
+  - Create `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/ProvisioningState.kt` using the following state definition as Source of Truth:
     - `Idle`
     - `ValidatingInput`
     - `VerifyingBootstrapKeys`
