@@ -30,7 +30,7 @@ The system must adhere to a strict hierarchy for communicating errors to the use
 ## 5.5. Onboarding & Validation
 *   **Input Validation:** The system must validate the "Device Name" against existing CloudFormation Stacks to ensure uniqueness within the account. Duplicate names must trigger a blocking error message requiring a new name.
 *   **Dry Run Results:** The system must display the specific outcome of the initial credential check (e.g., "Success", "Invalid Signature", "Permission Denied") before allowing the user to proceed.
-*   **Provisioning Status:** Long-running infrastructure setup tasks must be executed as a high-priority background task with a visible notification (Android "Foreground Service") to reassure the user that the process is active even if the screen is turned off.
+*   **Provisioning Status:** Long-running infrastructure setup tasks must be executed as a "High Priority Background Task" with a visible notification to reassure the user that the process is active even if the screen is turned off.
 
 ## 5.6. Visualization
 *   **Data Availability:** The calendar view must visually highlight days that contain verified historical data (based on the local cache) to guide the user to available tracks.
