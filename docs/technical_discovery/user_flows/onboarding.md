@@ -15,7 +15,7 @@ Before entering any keys, the app educates the user on the security model.
 ## Step 1: Authentication & Validation
 The user provides the keys necessary to access their AWS account.
 
-1.  **Entry:** User enters `Access Key ID`, `Secret Access Key`, and optionally `Session Token`.
+1.  **Entry:** User enters `Access Key ID`, `Secret Access Key`, and `Session Token` (Mandatory).
     *   *UX:* Fields support clipboard paste and "Show/Hide" for secrets.
 2.  **Validation:** The app performs a "Dry Run" check.
     *   *Action:* Calls `sts:GetCallerIdentity` to verify credentials are active.
