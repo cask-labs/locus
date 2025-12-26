@@ -1,4 +1,4 @@
-package com.locus.core.domain
+package com.locus.core.domain.result
 
 sealed class LocusResult<out T> {
     data class Success<out T>(val data: T) : LocusResult<T>()
