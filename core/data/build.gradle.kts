@@ -1,3 +1,5 @@
+import kotlinx.kover.gradle.plugin.dsl.MetricType
+
 plugins {
     id("com.locus.android-library")
     id("com.google.devtools.ksp")
@@ -43,7 +45,16 @@ dependencies {
 koverReport {
     verify {
         rule {
-            minBound(80)
+            // Instruction Coverage (Existing)
+            bound {
+                minValue = 80
+                metric = MetricType.INSTRUCTION
+            }
+            // Branch Coverage (New)
+            bound {
+                minValue = 80
+                metric = MetricType.BRANCH
+            }
         }
     }
 }

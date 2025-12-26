@@ -1,6 +1,8 @@
 package com.locus.core.domain
 
 import com.google.common.truth.Truth.assertThat
+import com.locus.core.domain.repository.AppVersionRepository
+import com.locus.core.domain.usecase.GetAppVersionUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -19,7 +21,7 @@ class GetAppVersionUseCaseTest {
             val result = useCase()
 
             assertThat(result).isInstanceOf(LocusResult.Success::class.java)
-            assertThat((result as LocusResult.Success).data).isEqualTo(expectedVersion)
+            assertThat((result as LocusResult.Success<*>).data).isEqualTo(expectedVersion)
         }
 
     @Test
