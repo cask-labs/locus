@@ -1,26 +1,33 @@
-# Spec Alignment: Phase 1 - Onboarding & Identity
+# Specification Alignment: Phase 1
 
-| Requirement ID | Requirement Summary | Implementation Component |
-|----------------|---------------------|--------------------------|
-| **R1.100** | Validate credentials ("Dry Run") | `ValidateCredentialsUseCase.kt` |
-| **R1.200** | Fail on invalid dry run | `ValidateCredentialsUseCase.kt` |
-| **R1.300** | Require Session Token | `CredentialInput.kt` (Validation) |
-| **R1.400** | Pre-fill Device Name | `OnboardingViewModel.kt` |
-| **R1.500** | Check name uniqueness | `ProvisionResourcesUseCase.kt` (S3 HeadBucket check) |
-| **R1.600** | Visible background task | `ProvisioningWorker.kt` (WorkManager setForeground) |
-| **R1.700** | Use Bootstrap Keys for deployment | `CloudFormationClient.kt` |
-| **R1.800** | Generate Runtime User | `locus-stack.yaml` (IAM User Resource) |
-| **R1.900** | Swap Keys (Bootstrap -> Runtime) | `RealAuthRepository.kt` |
-| **R1.1000**| Fail-safe (No auto-delete) | `ProvisionResourcesUseCase.kt` (Error Handling) |
-| **R1.1100**| List buckets for recovery | `RecoverAccountUseCase.kt` (Resource Groups Tagging API) |
-| **R1.1200**| "No stores found" message | `OnboardingScreen.kt` |
-| **R1.1300**| Create new Runtime User (Recovery) | `RecoverAccountUseCase.kt` (Deploy `locus-access-stack`) |
-| **R1.1400**| Generate unique `device_id` | `EncryptedPrefsDataSource.kt` |
-| **R1.1500**| Lazy Sync (Inventory) | Deferred to Phase 3 (Skeleton stub only) |
-| **R1.1600**| Success Screen (Manual Confirm) | `OnboardingScreen.kt` |
-| **R1.1700**| Clear stack -> Dashboard | `MainActivity.kt` (NavGraph) |
-| **R1.1800**| Start Tracking/Watchdog | `DashboardViewModel.kt` (On Init) |
-| **R1.1900**| Setup Trap (Resume state) | `RealAuthRepository.kt` (Persistent State) |
-| **R1.2000**| Admin Template support | `locus-admin.yaml` (Asset) |
+This document traces the implementation plan back to the core behavioral specification `01_onboarding_identity.md`.
 
-**Coverage:** 95% (Lazy Sync is architectural stub only).
+| Spec ID | Requirement | Plan Artifact | Coverage Strategy |
+|---------|-------------|---------------|-------------------|
+| **R1.050** | Cost Disclaimer | `WelcomeScreen.kt` | UI Text |
+| **R1.060** | Key Gen Guide | `WelcomeScreen.kt` (Bottom Sheet) | UI Component |
+| **R1.100** | Dry Run Validation | `ValidateCredentialsUseCase.kt` | Unit Test (FakeClient) |
+| **R1.150** | JSON Parsing | `CredentialParser.kt` (Helper) | Unit Test |
+| **R1.200** | Dry Run Fail | `AuthRepository` (State: Error) | UI State Test |
+| **R1.300** | Session Token Mandatory | `ValidateCredentialsUseCase.kt` | Input Validation |
+| **R1.400** | Default Device Name | `SetupChoiceScreen.kt` | ViewModel Logic |
+| **R1.500** | Unique Name Check | `ProvisionIdentityUseCase.kt` | Integration Test (Fail Simulation) |
+| **R1.600** | Visible Background Task | `ProvisioningWorker.kt` | Manual Verification (Background App) |
+| **R1.700** | Bootstrap Keys Usage | `CloudFormationClient.kt` | Code Review |
+| **R1.800** | Runtime User Gen | `locus-stack.yaml` (CFN) | Infrastructure Test |
+| **R1.900** | Secure Storage & Discard | `AuthRepository.promoteToRuntime()` | Security Audit / Unit Test |
+| **R1.1000**| Prov Failure Handling | `AuthRepository` (State: Failure) | Test Case: Rollback |
+| **R1.1100**| List Locus Stores | `RecoverIdentityUseCase.kt` | Unit Test (Filtering) |
+| **R1.1150**| Validate Buckets (Tags) | `S3Client.validateBucket()` | Integration Test |
+| **R1.1300**| New Identity on Link | `locus-access-stack.yaml` | Infrastructure Test |
+| **R1.1350**| Recovery Background Task | `ProvisioningWorker.kt` | Reused Logic |
+| **R1.1400**| Unique Device ID | `DeviceIdGenerator.kt` | Unit Test |
+| **R1.1500**| Lazy Sync | `SyncRepository` (Later Phase) | **Deferred** (Note: Spec says "When recovery is complete", we will just initialize empty index) |
+| **R1.1550**| Permission 2-Step | `PermissionManager.kt` | UI Automator |
+| **R1.1900**| Setup Trap | `MainActivity` / `AuthRepository` | Manual Verification (Kill App) |
+| **R1.2200**| Admin Upgrade | `locus-admin.yaml` | Infrastructure Test |
+
+## Gaps & Deviations
+1.  **Lazy Sync (R1.1500):**
+    *   The "Lazy Sync" is a Phase 3 (Cloud Sync) feature. In Phase 1, we simply mark the state as "Authenticated" and perhaps fetch the *metadata* of the bucket, but we do not fully implement the Sync Engine yet.
+    *   *Alignment:* The Onboarding flow will just ensure the credentials work. The Dashboard will handle the empty state.

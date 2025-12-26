@@ -1,69 +1,68 @@
-# Materials & Inventory: Phase 1 - Onboarding & Identity
+# Bill of Materials: Phase 1
 
-## Design Pattern
-**Path C (Enhanced): WorkManager + EncryptedPrefs**
+This document lists the specific classes, files, and artifacts required to implement the Phase 1 Architecture.
 
-## Connection Points
+## 1. Domain Layer (`:core:domain`)
 
-**Incoming:**
-- **Trigger:** User clicks "Start Setup" or "Recover Account" on the Onboarding UI.
-- **Input:**
-    - `AccessKeyId` (String)
-    - `SecretAccessKey` (String)
-    - `SessionToken` (String)
-    - `DeviceName` (String) - *For New Setup*
-    - `BucketName` (String) - *For Recovery*
+### Models
+*   `model/AuthState.kt` (Sealed Class: Uninitialized, SetupPending, Provisioning, Authenticated, Failure)
+*   `model/BootstrapCredentials.kt` (Data Class: ak, sk, token)
+*   `model/RuntimeCredentials.kt` (Data Class: ak, sk, bucket, region, role)
+*   `model/ProvisioningLog.kt` (Data Class: timestamp, message, type)
 
-**Outgoing:**
-- **Destination:** AWS CloudFormation (CreateStack), AWS S3 (ListBuckets), AWS IAM (CreateUser).
-- **Interface:** AWS SDK for Kotlin (`CloudFormationClient`, `S3Client`, `IamClient`).
-- **Persistence:** Local Disk (`EncryptedSharedPreferences` for keys, `File` for provisioning logs).
+### Repositories
+*   `repository/AuthRepository.kt` (Interface)
 
-## Module Breakdown
+### Use Cases
+*   `usecase/ValidateCredentialsUseCase.kt`
+*   `usecase/ProvisionIdentityUseCase.kt`
+*   `usecase/RecoverIdentityUseCase.kt`
+*   `usecase/GetProvisioningLogsUseCase.kt` (For the "Console View")
 
-- `:core:domain` - **Business Logic**
-    - `AuthRepository` (Interface): State holder.
-    - `ProvisioningUseCase`: Orchestrates the step-by-step logic.
-    - `CredentialValidator`: Performs the "Dry Run".
-    - `OnboardingState`: Sealed class hierarchy (`Idle`, `Validating`, `Provisioning`, `Success`, `Error`).
+### Errors
+*   `error/AuthErrors.kt` (Sealed Class: InvalidCredentials, ProvisioningFailed, etc.)
 
-- `:core:data` - **Implementation**
-    - `RealAuthRepository`: Implements persistence and state management.
-    - `EncryptedSharedPreferencesDataSource`: Secure key storage.
-    - `CloudFormationDataSource`: Wraps AWS CloudFormation interactions.
-    - `ProvisioningWorker`: **WorkManager Worker** that hosts the Use Case execution scope (Long-Running).
+## 2. Data Layer (`:core:data`)
 
-- `:app` - **UI Layer**
-    - `OnboardingViewModel`: Observes `AuthRepository`, exposes state to UI.
-    - `OnboardingScreen`: Composable UI (Input, Progress Log, Success).
+### Repository Implementation
+*   `repository/AuthRepositoryImpl.kt`
+    *   Dependencies: `EncryptedSharedPreferences`, `CloudFormationClient`, `S3Client`.
 
-## Cross-Cutting Patterns
+### Data Sources
+*   `source/aws/CloudFormationClient.kt`
+*   `source/aws/S3Client.kt` (Specifically for `ListBuckets` and `HeadBucket`)
+*   `source/local/AuthPreferences.kt` (Wrapper for SharedPreferences)
 
-**Handling Duplicates:**
-- **Idempotency:** The "Setup Trap" checks `AuthRepository.isProvisioned()` at app launch. If `true`, redirects to Dashboard. If `Provisioning`, resumes the log view.
+### CloudFormation
+*   `assets/locus-stack.yaml` (The "Standard" Device Stack Template)
+*   `assets/locus-access-stack.yaml` (The "Recovery" Satellite Stack Template)
+*   `assets/locus-admin.yaml` (The "Admin" Template)
 
-**Handling Trouble:**
-- **Validation:** "Dry Run" (`sts:GetCallerIdentity`) prevents starting a heavy stack deployment with bad keys.
-- **Rollback:** If CloudFormation fails, we do *not* auto-delete (R1.1000). We leave the stack for debugging but reset the local app state to "Input" so the user can try again (potentially with a different name).
+## 3. UI Layer (`:app` / `:feature:onboarding`)
 
-**Protecting Information:**
-- **Bootstrap Keys:** Held in memory *only* during the provisioning session. overwritten/nulled after success.
-- **Runtime Keys:** Stored in `EncryptedSharedPreferences`.
-- **Secret Display:** Secret Access Key is masked in the UI.
+### ViewModels
+*   `OnboardingViewModel.kt`
+    *   Exposes `uiState` mapped from `AuthRepository`.
 
-**System Fit (Android):**
-- **WorkManager:** Uses `setForeground` ("Locus Setup: Provisioning resources...") to prevent OS killing and ensure execution.
-- **Back Stack:** Onboarding Activity is `finish()`ed upon transition to Dashboard to prevent "Back" navigation.
+### Screens (Compose)
+*   `OnboardingScreen.kt` (Scaffold)
+*   `screens/WelcomeScreen.kt`
+*   `screens/CredentialInputScreen.kt`
+*   `screens/SetupChoiceScreen.kt` (New vs Recover)
+*   `screens/ProvisioningScreen.kt` (The "Console View" with progress)
+*   `screens/RecoverySelectionScreen.kt` (List of buckets)
+*   `screens/SuccessScreen.kt`
 
-## Tuning Options
-- `locus-stack.yaml` - The CloudFormation template (Main Infrastructure).
-- `locus-access-stack.yaml` - The CloudFormation template (Recovery/Satellite Access).
-- `OnboardingState.LogEntry` - Granularity of user-facing logs.
+### Worker
+*   `worker/ProvisioningWorker.kt`
+    *   WorkManager Worker implementation.
+    *   Handles long-running deployment and notifications.
 
-## Dependencies
-- `aws.sdk.kotlin:cloudformation`
-- `aws.sdk.kotlin:iam`
-- `aws.sdk.kotlin:sts`
-- `aws.sdk.kotlin:s3`
-- `androidx.security:security-crypto` (EncryptedSharedPreferences)
-- `androidx.work:work-runtime-ktx`
+## 4. Testing Artifacts
+
+### Test Doubles
+*   `FakeAuthRepository.kt`
+*   `FakeCloudFormationClient.kt` (Simulates Stack events)
+
+### Integration Tests
+*   `ProvisioningFlowTest.kt` (Robolectric test of the Worker/Repo interaction)

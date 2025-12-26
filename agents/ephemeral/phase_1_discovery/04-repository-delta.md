@@ -6,17 +6,18 @@
 |------|------|---------|--------|
 | **Domain Layer** (`:core:domain`) | | | |
 | `src/main/kotlin/.../auth/AuthRepository.kt` | Interface | State holder & Auth actions | New |
-| `src/main/kotlin/.../auth/model/OnboardingState.kt` | Model | Sealed class for UI state | New |
+| `src/main/kotlin/.../auth/model/AuthState.kt` | Model | Sealed class for Domain state | New |
 | `src/main/kotlin/.../auth/usecase/ValidateCredentialsUseCase.kt` | UseCase | "Dry Run" validation | New |
-| `src/main/kotlin/.../auth/usecase/ProvisionResourcesUseCase.kt` | UseCase | Orchestrates CloudFormation | New |
-| `src/main/kotlin/.../auth/usecase/RecoverAccountUseCase.kt` | UseCase | Orchestrates Linking | New |
+| `src/main/kotlin/.../auth/usecase/ProvisionIdentityUseCase.kt` | UseCase | Orchestrates CloudFormation (New) | New |
+| `src/main/kotlin/.../auth/usecase/RecoverIdentityUseCase.kt` | UseCase | Orchestrates Linking (Recovery) | New |
 | **Data Layer** (`:core:data`) | | | |
 | `src/main/kotlin/.../auth/RealAuthRepository.kt` | Repository | Implementation with StateFlow | New |
 | `src/main/kotlin/.../auth/local/EncryptedPrefsDataSource.kt` | DataSource | Secure Key Storage | New |
 | `src/main/kotlin/.../auth/remote/CloudFormationClient.kt` | DataSource | AWS SDK Wrapper | New |
 | `src/main/kotlin/.../auth/worker/ProvisioningWorker.kt` | Worker | WorkManager Worker for long tasks | New |
-| `src/main/assets/locus-stack.yaml` | Asset | CloudFormation Template (Main) | New |
+| `src/main/assets/locus-stack.yaml` | Asset | CloudFormation Template (Standard) | New |
 | `src/main/assets/locus-access-stack.yaml` | Asset | CloudFormation Template (Recovery) | New |
+| `src/main/assets/locus-admin.yaml` | Asset | CloudFormation Template (Admin) | New |
 | **App Layer** (`:app`) | | | |
 | `src/main/kotlin/.../onboarding/OnboardingViewModel.kt` | ViewModel | Glue between UI and Repo | New |
 | `src/main/kotlin/.../onboarding/OnboardingScreen.kt` | UI | Main flow coordinator | New |
@@ -34,10 +35,11 @@
     AuthRepository.kt
     /model
       AuthCredentials.kt
-      OnboardingState.kt
+      AuthState.kt
     /usecase
       ValidateCredentialsUseCase.kt
-      ProvisionResourcesUseCase.kt
+      ProvisionIdentityUseCase.kt
+      RecoverIdentityUseCase.kt
 
 :core:data
   /auth
