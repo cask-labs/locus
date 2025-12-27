@@ -10,8 +10,9 @@ import java.io.OutputStream
 class EncryptedDataStoreSerializer<T>(
     private val aead: Aead,
     private val serializer: KSerializer<T>,
-    private val defaultValueProvider: () -> T,
+    private val defaultValueProvider: () -> T
 ) : Serializer<T> {
+
     override val defaultValue: T
         get() = defaultValueProvider()
 
@@ -32,18 +33,7 @@ class EncryptedDataStoreSerializer<T>(
         }
     }
 
-    override suspend fun writeTo(
-        t: T,
-        output: OutputStream,
-    ) {
-        if (t == null) {
-            // This is weird for a non-nullable T, but if we are serializing Nullable T, it might be relevant.
-            // However, Json.encodeToString handles null if the serializer is nullable.
-            // But we are encrypting.
-            // If T is nullable, t can be null.
-            // If t is null, we can't easily encrypt "null" bytes?
-            // Actually, we can serialize null to "null" string JSON.
-        }
+    override suspend fun writeTo(t: T, output: OutputStream) {
         val jsonString = Json.encodeToString(serializer, t)
         val encryptedBytes = aead.encrypt(jsonString.encodeToByteArray(), null)
         output.write(encryptedBytes)

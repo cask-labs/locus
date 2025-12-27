@@ -26,8 +26,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataModule {
+
     @Binds
-    abstract fun bindAppVersionRepository(appVersionRepositoryImpl: AppVersionRepositoryImpl): AppVersionRepository
+    abstract fun bindAppVersionRepository(
+        appVersionRepositoryImpl: AppVersionRepositoryImpl
+    ): AppVersionRepository
 
     companion object {
         private const val MASTER_KEY_URI = "android-keystore://master_key"
@@ -36,9 +39,7 @@ abstract class DataModule {
 
         @Provides
         @Singleton
-        fun provideAead(
-            @ApplicationContext context: Context,
-        ): Aead {
+        fun provideAead(@ApplicationContext context: Context): Aead {
             return AndroidKeysetManager.Builder()
                 .withSharedPref(context, KEYSET_NAME, PREF_FILE_NAME)
                 .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
@@ -53,16 +54,15 @@ abstract class DataModule {
         @Named("bootstrapDataStore")
         fun provideBootstrapDataStore(
             @ApplicationContext context: Context,
-            aead: Aead,
+            aead: Aead
         ): DataStore<BootstrapCredentialsDto?> {
             return DataStoreFactory.create(
-                serializer =
-                    EncryptedDataStoreSerializer(
-                        aead = aead,
-                        serializer = BootstrapCredentialsDto.serializer().nullable,
-                        defaultValueProvider = { null },
-                    ),
-                produceFile = { context.dataStoreFile("bootstrap_creds.pb") },
+                serializer = EncryptedDataStoreSerializer(
+                    aead = aead,
+                    serializer = BootstrapCredentialsDto.serializer().nullable,
+                    defaultValueProvider = { null }
+                ),
+                produceFile = { context.dataStoreFile("bootstrap_creds.pb") }
             )
         }
 
@@ -71,24 +71,21 @@ abstract class DataModule {
         @Named("runtimeDataStore")
         fun provideRuntimeDataStore(
             @ApplicationContext context: Context,
-            aead: Aead,
+            aead: Aead
         ): DataStore<RuntimeCredentialsDto?> {
             return DataStoreFactory.create(
-                serializer =
-                    EncryptedDataStoreSerializer(
-                        aead = aead,
-                        serializer = RuntimeCredentialsDto.serializer().nullable,
-                        defaultValueProvider = { null },
-                    ),
-                produceFile = { context.dataStoreFile("runtime_creds.pb") },
+                serializer = EncryptedDataStoreSerializer(
+                    aead = aead,
+                    serializer = RuntimeCredentialsDto.serializer().nullable,
+                    defaultValueProvider = { null }
+                ),
+                produceFile = { context.dataStoreFile("runtime_creds.pb") }
             )
         }
 
         @Provides
         @Singleton
-        fun provideSharedPreferences(
-            @ApplicationContext context: Context,
-        ): SharedPreferences {
+        fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
             return context.getSharedPreferences("locus_settings", Context.MODE_PRIVATE)
         }
     }
