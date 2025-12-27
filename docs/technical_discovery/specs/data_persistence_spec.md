@@ -3,7 +3,7 @@
 **Status:** Draft
 **Related Requirements:** [Data Storage](../../requirements/data_storage.md), [Data Strategy](../data_strategy.md)
 
-This document defines the technical implementation for the Local Data Persistence layer, utilizing the Android Room Persistence Library (SQLite).
+This document defines the technical implementation for the Local Data Persistence layer, utilizing the Android Room Persistence Library (SQLite) and Jetpack DataStore.
 
 ## 1. Database Configuration
 
@@ -13,28 +13,54 @@ This document defines the technical implementation for the Local Data Persistenc
 *   **Encryption:** None (Relies on Android OS-level filesystem encryption).
 *   **Concurrency:** Write-Ahead Logging (WAL) enabled for non-blocking reads/writes.
 
-## 2. Key-Value Storage (Preferences)
+## 2. Secure Key-Value Storage (DataStore)
 
-For non-relational, simple data types, the application utilizes `EncryptedSharedPreferences`.
+For sensitive configuration and authentication credentials, the application utilizes **Jetpack DataStore** combined with **Google Tink** for encryption. This replaces the legacy `EncryptedSharedPreferences` to ensure main-safety and stronger security guarantees.
 
-### 2.1. Traffic Guardrail
+### 2.1. Architecture
+*   **Technology:** Jetpack DataStore (Serializer-based) + Kotlin Serialization.
+*   **Encryption:** Google Tink (`Aead` primitive) wraps the `Serializer`.
+    *   **Write:** JSON Object -> `kotlinx.serialization` -> ByteArray -> `Aead.encrypt()` -> Disk.
+    *   **Read:** Disk -> `Aead.decrypt()` -> ByteArray -> `kotlinx.serialization` -> JSON Object.
+*   **Fail Hard Policy:** If decryption fails (e.g., key corruption), the storage throws a `CorruptionException` which is caught by the Repository to trigger a fatal error (for Auth).
+*   **Fallback Policy:** For non-critical secure parameters (e.g., Telemetry Salt), the system attempts to read from Secure DataStore but falls back to standard `SharedPreferences` if availability fails.
+
+### 2.2. Bootstrap Credentials
+*   **File:** `bootstrap_creds.pb`
+*   **Schema (JSON):**
+    *   `accessKeyId` (String)
+    *   `secretAccessKey` (String)
+    *   `sessionToken` (String)
+    *   `region` (String)
+
+### 2.3. Runtime Credentials
+*   **File:** `runtime_creds.pb`
+*   **Schema (JSON):**
+    *   `accessKeyId` (String)
+    *   `secretAccessKey` (String)
+    *   `bucketName` (String)
+    *   `region` (String)
+    *   `accountId` (String)
+    *   `telemetrySalt` (String)
+
+### 2.4. Legacy/Fallback Storage (SharedPreferences)
+Standard `SharedPreferences` (Context.MODE_PRIVATE) is used for non-sensitive data and as a fallback.
+
+*   **File:** `locus_settings`
+*   **Keys:**
+    *   `telemetry_salt` (String): Fallback storage if Secure DataStore is corrupted.
+
+#### 2.4.1. Traffic Guardrail
 *   **File:** `traffic_stats`
 *   **Keys:**
     *   `last_reset_date` (String, "YYYY-MM-DD"): Date of the last counter reset.
     *   `daily_usage_bytes` (Long): Cumulative bytes sent/received today.
 
-### 2.2. Service Health (Watchdog)
+#### 2.4.2. Service Health (Watchdog)
 *   **File:** `service_health`
 *   **Keys:**
     *   `last_heartbeat` (Long): Unix Epoch Timestamp of last service activity.
     *   `failure_count` (Int): Consecutive failure count.
-
-### 2.3. Authentication
-*   **File:** `auth_creds` (Encrypted)
-*   **Keys:**
-    *   `access_key_id` (String)
-    *   `secret_access_key` (String)
-    *   `session_token` (String, optional)
 
 ## 3. Entity Definitions
 

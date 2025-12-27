@@ -5,6 +5,7 @@ plugins {
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     alias(libs.plugins.kover)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 android {
@@ -28,6 +29,10 @@ dependencies {
 
     // AWS
     implementation(libs.aws.sdk.s3)
+
+    // DataStore & Security
+    implementation(libs.androidx.datastore)
+    implementation(libs.tink.android)
 
     // Hilt
     implementation(libs.hilt.android)

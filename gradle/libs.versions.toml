@@ -25,6 +25,8 @@ room = "2.6.1"
 retrofit = "2.9.0"
 okhttp = "4.12.0"
 kotlinx-serialization = "1.6.2"
+datastore = "1.0.0"
+tink = "1.8.0"
 aws-sdk-kotlin = "1.0.42" # Example stable version
 
 # Testing
@@ -82,6 +84,10 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
+# DataStore & Security
+androidx-datastore = { group = "androidx.datastore", name = "datastore", version.ref = "datastore" }
+tink-android = { group = "com.google.crypto.tink", name = "tink-android", version.ref = "tink" }
+
 # AWS
 aws-sdk-s3 = { group = "aws.sdk.kotlin", name = "s3", version.ref = "aws-sdk-kotlin" }
 aws-sdk-cloudformation = { group = "aws.sdk.kotlin", name = "cloudformation", version.ref = "aws-sdk-kotlin" }
@@ -109,3 +115,4 @@ kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 gpp = { id = "com.github.triplet.play", version.ref = "gpp" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

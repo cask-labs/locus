@@ -10,3 +10,4 @@
 *   **File Organization:** Define one class per file unless the types are small DTOs or sealed subclasses tightly coupled to the parent.
 *   **Ordering:** Organize class members in this order: Companion Objects, Properties, Initialization blocks, Public Functions, Private Functions, Inner Classes.
 *   **Formatting:** Enable trailing commas to reduce diff noise.
+*   **Linting:** When encountering `ktlint` or code style violations, **DO NOT** attempt to fix them manually. Instead, run `./gradlew ktlintFormat` to automatically correct indentation and formatting issues.

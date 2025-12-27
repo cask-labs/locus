@@ -6,10 +6,16 @@ package com.locus.core.domain.model.auth
  *
  * @property accessKeyId The AWS Access Key ID.
  * @property secretAccessKey The AWS Secret Access Key.
- * @property sessionToken Optional Session Token (Null for standard IAM Users, present for temporary assume role).
+ * @property bucketName The S3 bucket name.
+ * @property region The AWS region.
+ * @property accountId The AWS account ID.
+ * @property telemetrySalt A unique salt for anonymizing telemetry data.
  */
 data class RuntimeCredentials(
     val accessKeyId: String,
     val secretAccessKey: String,
-    val sessionToken: String? = null,
+    val bucketName: String,
+    val region: String,
+    val accountId: String,
+    val telemetrySalt: String? = null,
 )
