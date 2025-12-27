@@ -17,5 +17,5 @@ data class RuntimeCredentials(
     val bucketName: String,
     val region: String,
     val accountId: String,
-    val telemetrySalt: String? = null
+    val telemetrySalt: String? = null,
 )

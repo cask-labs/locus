@@ -10,25 +10,27 @@ data class RuntimeCredentialsDto(
     val bucketName: String,
     val region: String,
     val accountId: String,
-    val telemetrySalt: String? = null
+    val telemetrySalt: String? = null,
 ) {
     companion object
 }
 
-fun RuntimeCredentialsDto.toDomain() = RuntimeCredentials(
-    accessKeyId = accessKeyId,
-    secretAccessKey = secretAccessKey,
-    bucketName = bucketName,
-    region = region,
-    accountId = accountId,
-    telemetrySalt = telemetrySalt
-)
+fun RuntimeCredentialsDto.toDomain() =
+    RuntimeCredentials(
+        accessKeyId = accessKeyId,
+        secretAccessKey = secretAccessKey,
+        bucketName = bucketName,
+        region = region,
+        accountId = accountId,
+        telemetrySalt = telemetrySalt,
+    )
 
-fun RuntimeCredentials.toDto() = RuntimeCredentialsDto(
-    accessKeyId = accessKeyId,
-    secretAccessKey = secretAccessKey,
-    bucketName = bucketName,
-    region = region,
-    accountId = accountId,
-    telemetrySalt = telemetrySalt
-)
+fun RuntimeCredentials.toDto() =
+    RuntimeCredentialsDto(
+        accessKeyId = accessKeyId,
+        secretAccessKey = secretAccessKey,
+        bucketName = bucketName,
+        region = region,
+        accountId = accountId,
+        telemetrySalt = telemetrySalt,
+    )
