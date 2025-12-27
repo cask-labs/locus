@@ -38,7 +38,7 @@ Execute these refactoring operations using your IDE or terminal before implement
 *   **Logic:**
     *   Implements `aws.smithy.kotlin.runtime.auth.awscredentials.CredentialsProvider`.
     *   Injects `SecureStorageDataSource`.
-    *   `resolveAttributes()` reads `RuntimeCredentials` from storage.
+    *   `resolve()` reads `RuntimeCredentials` from storage.
     *   Maps to `Credentials(accessKeyId, secretAccessKey, sessionToken)`.
 
 ### Step 4: Implement Bootstrap Client (CloudFormation)
@@ -76,8 +76,8 @@ Execute these refactoring operations using your IDE or terminal before implement
 *   **File:** `core/data/src/test/kotlin/com/locus/core/data/source/remote/aws/CloudFormationClientTest.kt`
 *   **File:** `core/data/src/test/kotlin/com/locus/core/data/source/remote/aws/S3ClientTest.kt`
 *   **Logic:**
-    *   Mock the underlying AWS SDK clients (if possible) or abstract the logic enough to test the flow.
-    *   **Note:** Since mocking final AWS SDK classes can be hard, we will focus on testing the *logic* surrounding them or use `Mockk`'s dynamic mocking capabilities.
+    *   Mock the underlying AWS SDK clients directly with Mockk (they are interfaces), or abstract the logic enough to test the flow.
+    *   **Note:** AWS SDK for Kotlin v2 clients are interface-based, so they can be mocked directly with Mockk without special dynamic mocking; focus tests on the surrounding logic and interactions with these mocked clients.
 
 ## Validation Strategy
 *   **Compilation:** Ensure `:core:data` compiles with new dependencies.
