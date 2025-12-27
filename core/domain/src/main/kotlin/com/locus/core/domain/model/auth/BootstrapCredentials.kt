@@ -13,5 +13,5 @@ data class BootstrapCredentials(
     val accessKeyId: String,
     val secretAccessKey: String,
     val sessionToken: String,
-    val region: String
+    val region: String,
 )
