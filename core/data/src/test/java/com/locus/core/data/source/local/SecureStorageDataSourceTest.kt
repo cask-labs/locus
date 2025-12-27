@@ -41,6 +41,7 @@ class SecureStorageDataSourceTest {
                 aead = aead,
                 serializer = BootstrapCredentialsDto.serializer().nullable,
                 defaultValueProvider = { null },
+                associatedData = "test_bootstrap.pb",
             )
         val bootstrapStore =
             DataStoreFactory.create(
@@ -53,6 +54,7 @@ class SecureStorageDataSourceTest {
                 aead = aead,
                 serializer = RuntimeCredentialsDto.serializer().nullable,
                 defaultValueProvider = { null },
+                associatedData = "test_runtime.pb",
             )
         val runtimeStore =
             DataStoreFactory.create(

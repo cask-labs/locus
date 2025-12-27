@@ -1,6 +1,7 @@
 package com.locus.core.data.source.local
 
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.datastore.core.DataStore
 import com.locus.core.data.model.BootstrapCredentialsDto
 import com.locus.core.data.model.RuntimeCredentialsDto
@@ -9,7 +10,9 @@ import com.locus.core.data.model.toDto
 import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.LocusResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -26,6 +29,7 @@ class SecureStorageDataSource
     ) {
         companion object {
             const val KEY_SALT = "telemetry_salt"
+            private const val TAG = "SecureStorageDataSource"
         }
 
         // --- Bootstrap Credentials ---
@@ -65,7 +69,13 @@ class SecureStorageDataSource
                 runtimeDataStore.updateData { creds.toDto() }
                 // Also attempt to save salt to fallback plainPrefs just in case
                 creds.telemetrySalt?.let { salt ->
-                    plainPrefs.edit().putString(KEY_SALT, salt).apply()
+                    val success =
+                        withContext(Dispatchers.IO) {
+                            plainPrefs.edit().putString(KEY_SALT, salt).commit()
+                        }
+                    if (!success) {
+                        Log.w(TAG, "Failed to fallback-save telemetry salt")
+                    }
                 }
                 LocusResult.Success(Unit)
             } catch (e: Exception) {

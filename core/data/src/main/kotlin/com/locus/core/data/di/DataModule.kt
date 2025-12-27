@@ -61,6 +61,7 @@ abstract class DataModule {
                         aead = aead,
                         serializer = BootstrapCredentialsDto.serializer().nullable,
                         defaultValueProvider = { null },
+                        associatedData = "bootstrap_creds.pb",
                     ),
                 produceFile = { context.dataStoreFile("bootstrap_creds.pb") },
             )
@@ -79,6 +80,7 @@ abstract class DataModule {
                         aead = aead,
                         serializer = RuntimeCredentialsDto.serializer().nullable,
                         defaultValueProvider = { null },
+                        associatedData = "runtime_creds.pb",
                     ),
                 produceFile = { context.dataStoreFile("runtime_creds.pb") },
             )
