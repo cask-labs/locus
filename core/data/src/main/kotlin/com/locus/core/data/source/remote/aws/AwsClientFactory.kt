@@ -14,35 +14,36 @@ import javax.inject.Singleton
  * singleton Repository.
  */
 @Singleton
-class AwsClientFactory @Inject constructor() {
+class AwsClientFactory
+    @Inject
+    constructor() {
+        fun createBootstrapS3Client(creds: BootstrapCredentials): S3Client {
+            val staticProvider = StaticCredentialsProvider(creds)
+            return S3Client {
+                region = AWS_REGION
+                credentialsProvider = staticProvider
+            }
+        }
 
-    fun createBootstrapS3Client(creds: BootstrapCredentials): S3Client {
-        val staticProvider = StaticCredentialsProvider(creds)
-        return S3Client {
-            region = AWS_REGION
-            credentialsProvider = staticProvider
+        fun createBootstrapCloudFormationClient(creds: BootstrapCredentials): CloudFormationClient {
+            val staticProvider = StaticCredentialsProvider(creds)
+            return CloudFormationClient {
+                region = AWS_REGION
+                credentialsProvider = staticProvider
+            }
+        }
+
+        companion object {
+            const val AWS_REGION = "us-east-1"
+        }
+
+        private class StaticCredentialsProvider(private val creds: BootstrapCredentials) : CredentialsProvider {
+            override suspend fun resolve(attributes: aws.smithy.kotlin.runtime.collections.Attributes): Credentials {
+                return Credentials(
+                    accessKeyId = creds.accessKeyId,
+                    secretAccessKey = creds.secretAccessKey,
+                    sessionToken = creds.sessionToken,
+                )
+            }
         }
     }
-
-    fun createBootstrapCloudFormationClient(creds: BootstrapCredentials): CloudFormationClient {
-        val staticProvider = StaticCredentialsProvider(creds)
-        return CloudFormationClient {
-            region = AWS_REGION
-            credentialsProvider = staticProvider
-        }
-    }
-
-    companion object {
-        const val AWS_REGION = "us-east-1"
-    }
-
-    private class StaticCredentialsProvider(private val creds: BootstrapCredentials) : CredentialsProvider {
-        override suspend fun resolve(attributes: aws.smithy.kotlin.runtime.collections.Attributes): Credentials {
-            return Credentials(
-                accessKeyId = creds.accessKeyId,
-                secretAccessKey = creds.secretAccessKey,
-                sessionToken = creds.sessionToken
-            )
-        }
-    }
-}

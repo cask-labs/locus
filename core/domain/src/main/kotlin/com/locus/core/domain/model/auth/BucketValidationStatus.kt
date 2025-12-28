@@ -8,5 +8,5 @@ sealed class BucketValidationStatus {
 
     data object Available : BucketValidationStatus()
 
-    data object Invalid : BucketValidationStatus()
+    data class Invalid(val reason: String) : BucketValidationStatus()
 }
