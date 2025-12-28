@@ -39,7 +39,7 @@ configure<info.solidsoft.gradle.pitest.PitestPluginExtension> {
     junit5PluginVersion.set(libs.versions.pitest.junit5.get())
 
     // Target classes (Domain Layer)
-    targetClasses.set(setOf("com.locus.core.domain.*"))
+    targetClasses.set(setOf("com.locus.core.domain.**"))
 
     // Performance: Auto-detect threads
     threads.set(Runtime.getRuntime().availableProcessors())
@@ -60,20 +60,20 @@ configure<info.solidsoft.gradle.pitest.PitestPluginExtension> {
 // Checks if local history exists (build dir). If not, tries to copy from committed baseline.
 tasks.register("initializePitestHistory") {
     group = "verification"
-    description = "Initializes Pitest history from committed baseline if local history is missing."
+    description = "Initializes PITest history from committed baseline if local history is missing."
 
     doLast {
         val buildHistory = layout.buildDirectory.file("pitest/history.bin").get().asFile
         val committedHistory = project.file("pitest-history.bin")
 
         if (!buildHistory.exists() && committedHistory.exists()) {
-            println("Copying committed Pitest history to build directory...")
+            println("Copying committed PITest history to build directory...")
             buildHistory.parentFile.mkdirs()
             committedHistory.copyTo(buildHistory, overwrite = true)
         } else if (buildHistory.exists()) {
-            println("Local Pitest history found. Using existing incremental data.")
+            println("Local PITest history found. Using existing incremental data.")
         } else {
-            println("No Pitest history found. Starting fresh.")
+            println("No PITest history found. Starting fresh.")
         }
     }
 }
@@ -87,19 +87,19 @@ tasks.named("pitest") {
 // Copies the current local history (build dir) back to the source tree for committing.
 tasks.register("updatePitestBaseline") {
     group = "verification"
-    description = "Promotes the current local Pitest history to the committed baseline."
+    description = "Promotes the current local PITest history to the committed baseline."
 
     doLast {
         val buildHistory = layout.buildDirectory.file("pitest/history.bin").get().asFile
         val committedHistory = project.file("pitest-history.bin")
 
         if (buildHistory.exists()) {
-            println("Updating committed Pitest baseline from local history...")
+            println("Updating committed PITest baseline from local history...")
             buildHistory.copyTo(committedHistory, overwrite = true)
             println("Updated: ${committedHistory.absolutePath}")
             println("You can now commit this file to Git.")
         } else {
-            throw GradleException("No local Pitest history found at ${buildHistory.absolutePath}. Run 'pitest' first.")
+            throw GradleException("No local PITest history found at ${buildHistory.absolutePath}. Run 'pitest' first.")
         }
     }
 }
