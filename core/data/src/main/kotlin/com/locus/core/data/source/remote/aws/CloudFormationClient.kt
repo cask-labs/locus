@@ -1,6 +1,5 @@
 package com.locus.core.data.source.remote.aws
 
-import android.content.Context
 import aws.sdk.kotlin.services.cloudformation.model.Capability
 import aws.sdk.kotlin.services.cloudformation.model.CreateStackRequest
 import aws.sdk.kotlin.services.cloudformation.model.DescribeStacksRequest
@@ -12,18 +11,15 @@ import aws.smithy.kotlin.runtime.auth.awscredentials.CredentialsProvider
 import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.model.auth.StackOutputs
 import com.locus.core.domain.result.LocusResult
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import javax.inject.Inject
 import aws.sdk.kotlin.services.cloudformation.CloudFormationClient as AwsCloudFormationClient
-import aws.sdk.kotlin.services.s3.S3Client as AwsS3Client
 
 class CloudFormationClient
     @Inject
     constructor(
-        @ApplicationContext private val context: Context,
+        private val awsClientFactory: AwsClientFactory,
+        private val templateResourceProvider: TemplateResourceProvider,
     ) : InfrastructureProvisioner {
         override suspend fun createStack(
             name: String,
@@ -31,7 +27,7 @@ class CloudFormationClient
             credentials: BootstrapCredentials,
         ): LocusResult<StackOutputs> {
             return try {
-                val templateBody = loadTemplateFromAssets()
+                val templateBody = templateResourceProvider.loadTemplate()
 
                 val awsCredentialsProvider =
                     object : CredentialsProvider {
@@ -44,11 +40,7 @@ class CloudFormationClient
                         }
                     }
 
-                val client =
-                    AwsCloudFormationClient {
-                        region = "us-east-1"
-                        this.credentialsProvider = awsCredentialsProvider
-                    }
+                val client = awsClientFactory.createCloudFormationClient(awsCredentialsProvider)
 
                 client.use { cfClient ->
                     val cfParams =
@@ -88,11 +80,7 @@ class CloudFormationClient
                         }
                     }
 
-                val client =
-                    AwsS3Client {
-                        region = "us-east-1"
-                        this.credentialsProvider = awsCredentialsProvider
-                    }
+                val client = awsClientFactory.createS3Client(awsCredentialsProvider)
 
                 client.use { s3Client ->
                     val response = s3Client.listBuckets(ListBucketsRequest {})
@@ -101,14 +89,6 @@ class CloudFormationClient
                 }
             } catch (e: Exception) {
                 LocusResult.Failure(e)
-            }
-        }
-
-        private fun loadTemplateFromAssets(): String {
-            return context.assets.open("locus-stack.yaml").use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                    reader.readText()
-                }
             }
         }
 
@@ -132,7 +112,14 @@ class CloudFormationClient
 
                     when (stack.stackStatus) {
                         StackStatus.CreateComplete -> {
-                            val outputsMap = stack.outputs?.associate { it.outputKey to it.outputValue } ?: emptyMap()
+                            // Refactored to filter nulls safely as per PR comment
+                            val outputs = stack.outputs.orEmpty()
+                            val outputsMap =
+                                outputs.mapNotNull { output ->
+                                    val key = output.outputKey
+                                    val value = output.outputValue
+                                    if (key != null && value != null) key to value else null
+                                }.toMap()
 
                             // Parse outputs to StackOutputs
                             val bucketName = outputsMap["LocusBucketName"]

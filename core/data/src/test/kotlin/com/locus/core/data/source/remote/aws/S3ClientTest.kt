@@ -1,35 +1,54 @@
 package com.locus.core.data.source.remote.aws
 
+import aws.sdk.kotlin.services.s3.model.PutObjectRequest
+import aws.sdk.kotlin.services.s3.model.PutObjectResponse
 import com.google.common.truth.Truth.assertThat
 import com.locus.core.domain.result.LocusResult
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import aws.sdk.kotlin.services.s3.S3Client as AwsS3Client
 
 class S3ClientTest {
     private val credentialsProvider = mockk<LocusCredentialsProvider>()
-    private val client = S3Client(credentialsProvider)
+    private val awsClientFactory = mockk<AwsClientFactory>()
+    private val awsS3Client = mockk<AwsS3Client>(relaxed = true)
+
+    private val client = S3Client(credentialsProvider, awsClientFactory)
+
+    @Test
+    fun `uploadTrack returns success when S3 putObject succeeds`() =
+        runTest {
+            // Mock Factory
+            every { awsClientFactory.createS3Client(any()) } returns awsS3Client
+
+            // Mock S3 Client behavior
+            coEvery { awsS3Client.putObject(any()) } returns PutObjectResponse {}
+
+            val result = client.uploadTrack("test-bucket", "test-key", byteArrayOf(1, 2, 3))
+
+            assertThat(result).isInstanceOf(LocusResult.Success::class.java)
+
+            // Verify interaction
+            val slot = slot<PutObjectRequest>()
+            coVerify { awsS3Client.putObject(capture(slot)) }
+
+            assertThat(slot.captured.bucket).isEqualTo("test-bucket")
+            assertThat(slot.captured.key).isEqualTo("test-key")
+        }
 
     @Test
     fun `uploadTrack returns failure when S3 client throws`() =
         runTest {
-            // Since we can't easily mock the top-level S3Client builder in unit tests without static mocking,
-            // we expect this to fail or return a Failure result when it tries to build the client (or during use).
-            // In a real unit test with static mocking or a wrapper, we would mock the S3Client builder.
-            // For now, we just verify the call structure.
-            // AWS SDK client builder might throw or return a client that fails network.
+            every { awsClientFactory.createS3Client(any()) } returns awsS3Client
+            coEvery { awsS3Client.putObject(any()) } throws RuntimeException("Network Error")
 
-            // This test is limited by the difficulty of mocking the AWS SDK Kotlin DSL.
-            // We'll pass valid-looking arguments.
             val result = client.uploadTrack("test-bucket", "test-key", byteArrayOf())
 
-            // It should return Failure because we haven't mocked the AWS client,
-            // and the real one will likely fail credential resolution or network in unit test environment
-            // OR the builder will succeed but putObject will fail.
-            // Actually, without valid creds in SecureStorage (mocked?), LocusCredentialsProvider might fail.
-            // We mocked credentialsProvider, but we didn't stub resolve().
-
-            // Let's just assert it is a LocusResult (sanity check).
-            assertThat(result).isInstanceOf(LocusResult::class.java)
+            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
         }
 }
