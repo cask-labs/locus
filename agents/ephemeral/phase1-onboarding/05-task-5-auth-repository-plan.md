@@ -68,7 +68,7 @@ Implement the `AuthRepository` in the Data Layer to serve as the central broker 
   - `scanForRecoveryBuckets()`:
     1. Get Bootstrap Creds.
     2. `clientFactory.createBootstrapS3Client(creds).use { client -> ... }`
-    3. `client.listBuckets()` -> Filter list client-side for bucket names that start with the `locus-` prefix using a **case-sensitive comparison**.
+    3. `client.listBuckets()` -> Filter list client-side for bucket names where `bucket.name.startsWith("locus-")` using a **case-sensitive** comparison.
     4. Return `LocusResult<List<String>>` containing candidate bucket names as plain strings.
     5. **Note:** Perform no additional validation (e.g., tags or stack metadata) at this stage to avoid N+1 network calls. Deeper validation is delegated to `validateBucket` or `recoverAccount`.
   - `recoverAccount(bucketName, deviceName)`:
@@ -76,7 +76,7 @@ Implement the `AuthRepository` in the Data Layer to serve as the central broker 
     2. `clientFactory.createBootstrapS3Client(creds).use { client -> ... }`
     3. **Stack Name Extraction:** Call `client.getBucketTagging(bucketName)`.
        - Extract `aws:cloudformation:stack-name`.
-       - If tag is missing/empty or call fails (e.g., `NoSuchTagSet`), return `LocusResult.Failure` (e.g., `RecoveryError.MissingCloudFormationStackTag`).
+       - If tag is missing/empty or call fails (e.g., `NoSuchTagSet`), return `LocusResult.Failure` (e.g., `RecoveryError.MissingStackTag`).
     4. `clientFactory.createBootstrapCloudFormationClient(creds).use { cfClient -> ... }`
     5. **Stack Output Parsing:** Call `cfClient.describeStacks(stackName)`.
        - Parse Outputs for `AccessKeyId` and `SecretAccessKey`.
