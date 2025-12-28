@@ -62,7 +62,8 @@ Implement the `AuthRepository` in the Data Layer to serve as the central broker 
     1. Get Bootstrap Creds.
     2. `clientFactory.createBootstrapS3Client(creds).use { client -> ... }`
     3. `client.listBuckets()` -> Filter list client-side for `locus-` prefix.
-    4. Return list of bucket names.
+    4. Return `LocusResult<List<String>>` containing candidate bucket names as plain strings.
+    5. **Note:** Perform no additional validation (e.g., tags or stack metadata) at this stage to avoid N+1 network calls. Deeper validation is delegated to `validateBucket` or `recoverAccount`.
   - `recoverAccount(bucketName, deviceName)`:
     1. Get Bootstrap Creds.
     2. `clientFactory.createBootstrapS3Client(creds).use { client -> ... }`
