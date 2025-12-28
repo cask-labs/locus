@@ -99,7 +99,10 @@ tasks.register("updatePitestBaseline") {
             println("Updated: ${committedHistory.absolutePath}")
             println("You can now commit this file to Git.")
         } else {
-            throw GradleException("No local PITest history found at ${buildHistory.absolutePath}. Run './gradlew :core:domain:pitest' first.")
+            throw GradleException(
+                "No local PITest history found at ${buildHistory.absolutePath}. " +
+                    "Run './gradlew :core:domain:pitest' first.",
+            )
         }
     }
 }
