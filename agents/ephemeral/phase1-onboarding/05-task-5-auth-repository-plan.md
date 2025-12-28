@@ -11,10 +11,20 @@ Implement the `AuthRepository` in the Data Layer to serve as the central broker 
 
 ## Implementation Steps
 
-### Step 1: Update Domain Interface
+### Step 1: Update Domain Layer
 **File:** `core/domain/src/main/kotlin/com/locus/core/domain/repository/AuthRepository.kt`
 - Add `suspend fun scanForRecoveryBuckets(): LocusResult<List<String>>` to the interface.
 - Ensure `replaceRuntimeCredentials` is present and documented for Admin Upgrade/Rotation.
+
+**File:** `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/ProvisioningState.kt`
+- Add `data object ValidatingBucket : ProvisioningState()` to the sealed class.
+- **Purpose:** Represents the specific state where the system is checking bucket existence and tags via the network, distinct from local input validation (`ValidatingInput`).
+
+**File:** `core/domain/src/main/kotlin/com/locus/core/domain/result/DomainException.kt`
+- Add `sealed class RecoveryError(message: String) : DomainException(message)` to the file.
+- Add subclasses:
+  - `data object MissingStackTag : RecoveryError("Bucket missing stack name tag")`
+  - `data object InvalidStackOutputs : RecoveryError("Stack outputs missing required credentials")`
 
 ### Step 2: Create AwsClientFactory
 **File:** `core/data/src/main/kotlin/com/locus/core/data/source/remote/aws/AwsClientFactory.kt`
@@ -54,7 +64,7 @@ Implement the `AuthRepository` in the Data Layer to serve as the central broker 
 - **Validation Logic (Ephemeral):**
   - `validateBucket(bucketName)`:
     1. Get Bootstrap Creds from Storage. If missing, return `Invalid` immediately.
-    2. Emit `Validating` state to indicate network check is in progress.
+    2. Emit `ProvisioningState.ValidatingBucket` state to `_provisioningState` to indicate network check is in progress.
     3. `clientFactory.createBootstrapS3Client(creds).use { client -> ... }`
     4. **Bucket Existence:** Call `client.listBuckets()`.
        - If bucket is not found or access is denied, return `Invalid`.
@@ -76,11 +86,11 @@ Implement the `AuthRepository` in the Data Layer to serve as the central broker 
     2. `clientFactory.createBootstrapS3Client(creds).use { client -> ... }`
     3. **Stack Name Extraction:** Call `client.getBucketTagging(bucketName)`.
        - Extract `aws:cloudformation:stack-name`.
-       - If tag is missing/empty or call fails (e.g., `NoSuchTagSet`), return `LocusResult.Failure` (e.g., `RecoveryError.MissingStackTag`).
+       - If tag is missing/empty or call fails (e.g., `NoSuchTagSet`), return `LocusResult.Failure(RecoveryError.MissingStackTag)`.
     4. `clientFactory.createBootstrapCloudFormationClient(creds).use { cfClient -> ... }`
     5. **Stack Output Parsing:** Call `cfClient.describeStacks(stackName)`.
        - Parse Outputs for `AccessKeyId` and `SecretAccessKey`.
-       - If `describeStacks` fails or outputs are missing required keys, return `LocusResult.Failure` (e.g., `RecoveryError.InvalidStackOutputs`).
+       - If `describeStacks` fails or outputs are missing required keys, return `LocusResult.Failure(RecoveryError.InvalidStackOutputs)`.
     6. Return `RuntimeCredentials`.
 
 ### Step 4: Configure Dependency Injection
@@ -101,8 +111,32 @@ Implement the `AuthRepository` in the Data Layer to serve as the central broker 
 
 ## Validation Checklist
 - [ ] `AuthRepository` interface matches the updated Spec.
+- [ ] `ProvisioningState` and `DomainException` updated with new types.
 - [ ] `AwsClientFactory` implemented with correct timeouts and user-agent.
 - [ ] `AuthRepositoryImpl` compiles and binds via Hilt.
 - [ ] Unit tests pass covering all major flows (Provisioning, Recovery, State Init).
 - [ ] `scanForRecoveryBuckets` successfully returns a list of candidate buckets (mocked).
 - [ ] **Run `scripts/run_local_validation.sh` and ensure all checks pass.**
+
+## Reference: Domain Model Updates
+
+### ProvisioningState
+Added `ValidatingBucket` to support detailed UI feedback during `validateBucket` operations.
+```kotlin
+sealed class ProvisioningState {
+    // ... existing states
+    data object ValidatingBucket : ProvisioningState() // Added
+}
+```
+
+### RecoveryError
+Added strict error types for recovery failures to enable precise error handling.
+```kotlin
+sealed class RecoveryError(message: String) : DomainException(message) {
+    // The bucket exists but lacks the link to the CloudFormation stack
+    data object MissingStackTag : RecoveryError("Bucket missing stack name tag")
+
+    // The CloudFormation stack exists but doesn't have the required Output keys
+    data object InvalidStackOutputs : RecoveryError("Stack outputs missing required credentials")
+}
+```
