@@ -5,7 +5,7 @@ echo "Starting Infrastructure Audit (Tier 4)..."
 
 # 1. Configuration
 REGION="${AWS_REGION:-us-east-1}"
-TEMPLATE_PATH="docs/technical_discovery/locus-stack.yaml"
+TEMPLATE_PATH="core/data/src/main/assets/locus-stack.yaml"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 STACK_NAME="locus-audit-${TIMESTAMP}-${RANDOM}"
 
