@@ -11,7 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.locus.core.domain.LocusResult
+import com.locus.core.domain.result.LocusResult
 
 @Composable
 @Suppress("ktlint:standard:function-naming")

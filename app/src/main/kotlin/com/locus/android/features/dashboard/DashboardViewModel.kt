@@ -3,7 +3,7 @@ package com.locus.android.features.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.locus.core.domain.AppVersion
-import com.locus.core.domain.LocusResult
+import com.locus.core.domain.result.LocusResult
 import com.locus.core.domain.usecase.GetAppVersionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
