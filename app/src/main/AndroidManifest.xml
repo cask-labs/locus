@@ -11,7 +11,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Locus">
-        <!-- nosemgrep: java.android.security.exported_activity.exported_activity -->
+        <!-- nosemgrep: java.android.security.exported_activity.exported_activity; MainActivity must be exported because it is the app's launcher (MAIN/LAUNCHER) activity. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

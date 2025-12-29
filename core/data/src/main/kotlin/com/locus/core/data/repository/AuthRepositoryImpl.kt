@@ -132,6 +132,9 @@ class AuthRepositoryImpl
             if (saveResult is LocusResult.Failure) return saveResult
 
             val clearResult = secureStorage.clearBootstrapCredentials()
+            if (clearResult is LocusResult.Failure) {
+                return clearResult
+            }
 
             mutableAuthState.value = AuthState.Authenticated
             mutableProvisioningState.value = ProvisioningState.Success
@@ -153,10 +156,8 @@ class AuthRepositoryImpl
         override suspend fun getRuntimeCredentials(): LocusResult<RuntimeCredentials> {
             val result = secureStorage.getRuntimeCredentials()
             if (result is LocusResult.Success) {
-                if (result.data == null) {
-                    return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
-                }
-                return LocusResult.Success(result.data!!)
+                val data = result.data ?: return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                return LocusResult.Success(data)
             }
             return result as LocusResult.Failure
         }
@@ -220,7 +221,7 @@ class AuthRepositoryImpl
                     val accessKeyId = outputs.find { it.outputKey == "RuntimeAccessKeyId" }?.outputValue
                     val secretAccessKey = outputs.find { it.outputKey == "RuntimeSecretAccessKey" }?.outputValue
                     val bucket = outputs.find { it.outputKey == "BucketName" }?.outputValue ?: bucketName
-                    val region = "us-east-1"
+                    val region = AwsClientFactory.AWS_REGION
 
                     if (accessKeyId == null || secretAccessKey == null) {
                         return LocusResult.Failure(DomainException.RecoveryError.InvalidStackOutputs)

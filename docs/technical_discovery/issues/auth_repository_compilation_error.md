@@ -18,7 +18,7 @@ public operator fun <T, R> DeepRecursiveFunction<TypeVariable(T), TypeVariable(R
 
 ### 1. Dependency Updates
 - **Initial Version:** `aws.sdk.kotlin:s3:1.0.42`
-- **Action:** Updated `libs.versions.toml` to use version `1.0.73` for all AWS SDK modules (`s3`, `cloudformation`, `sts`).
+- **Action:** Updated `libs.versions.toml` to use version `1.3.30` for all AWS SDK modules (`s3`, `cloudformation`, `sts`).
 - **Result:** Error persists.
 
 ### 2. Syntax Variations

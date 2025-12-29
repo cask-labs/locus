@@ -36,14 +36,14 @@ class AwsClientFactory
         companion object {
             const val AWS_REGION = "us-east-1"
         }
-
-        private class StaticCredentialsProvider(private val creds: BootstrapCredentials) : CredentialsProvider {
-            override suspend fun resolve(attributes: aws.smithy.kotlin.runtime.collections.Attributes): Credentials {
-                return Credentials(
-                    accessKeyId = creds.accessKeyId,
-                    secretAccessKey = creds.secretAccessKey,
-                    sessionToken = creds.sessionToken,
-                )
-            }
-        }
     }
+
+private class StaticCredentialsProvider(private val creds: BootstrapCredentials) : CredentialsProvider {
+    override suspend fun resolve(attributes: aws.smithy.kotlin.runtime.collections.Attributes): Credentials {
+        return Credentials(
+            accessKeyId = creds.accessKeyId,
+            secretAccessKey = creds.secretAccessKey,
+            sessionToken = creds.sessionToken,
+        )
+    }
+}
