@@ -34,8 +34,8 @@ jobs:
         # We need to install trufflehog.
         # Fixed: Replaced insecure curl|sh with pinned version and SHA verification.
         wget -q -O trufflehog.tar.gz https://github.com/trufflesecurity/trufflehog/releases/download/v3.82.0/trufflehog_3.82.0_linux_amd64.tar.gz
-        echo "2332b24d85154dee2d1f6ccad4561a622a6086d36214af274336c927b74daf33  trufflehog.tar.gz" | sha256sum -c -
-        tar -xzf trufflehog.tar.gz
+        echo "2332b24d85154dee2d1f6ccad4561a622a6086d36214af274336c927b74daf33  trufflehog.tar.gz" | sha256sum -c - || { echo "ERROR: Checksum verification failed for trufflehog.tar.gz"; exit 1; }
+        tar -xzf trufflehog.tar.gz trufflehog
         sudo mv trufflehog /usr/local/bin/
         rm trufflehog.tar.gz
         ./scripts/setup_ci_env.sh
