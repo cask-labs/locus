@@ -383,6 +383,13 @@ sealed class S3Error(message: String) : DomainException(message) {
 }
 
 class BatteryCriticalException : DomainException("Battery too low for operation")
+
+// Recovery Errors
+sealed class RecoveryError(message: String) : DomainException(message) {
+    object MissingStackTag : RecoveryError("Bucket missing stack name tag")
+    object InvalidStackOutputs : RecoveryError("Stack outputs missing required credentials")
+}
+
 // Provisioning Errors
 sealed class ProvisioningError(message: String) : DomainException(message) {
     object StackExists : ProvisioningError("Device name taken")

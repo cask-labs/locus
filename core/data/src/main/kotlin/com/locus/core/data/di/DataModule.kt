@@ -11,8 +11,10 @@ import com.google.crypto.tink.integration.android.AndroidKeysetManager
 import com.locus.core.data.model.BootstrapCredentialsDto
 import com.locus.core.data.model.RuntimeCredentialsDto
 import com.locus.core.data.repository.AppVersionRepositoryImpl
+import com.locus.core.data.repository.AuthRepositoryImpl
 import com.locus.core.data.source.local.EncryptedDataStoreSerializer
 import com.locus.core.domain.repository.AppVersionRepository
+import com.locus.core.domain.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -28,6 +30,10 @@ import javax.inject.Singleton
 abstract class DataModule {
     @Binds
     abstract fun bindAppVersionRepository(appVersionRepositoryImpl: AppVersionRepositoryImpl): AppVersionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(authRepositoryImpl: AuthRepositoryImpl): AuthRepository
 
     companion object {
         private const val MASTER_KEY_URI = "android-keystore://master_key"
