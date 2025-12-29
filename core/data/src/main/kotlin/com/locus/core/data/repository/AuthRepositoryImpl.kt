@@ -1,12 +1,10 @@
 package com.locus.core.data.repository
 
 import aws.sdk.kotlin.services.cloudformation.describeStacks
-import aws.sdk.kotlin.services.cloudformation.model.DescribeStacksRequest
 import aws.sdk.kotlin.services.s3.getBucketTagging
 import aws.sdk.kotlin.services.s3.headBucket
 import aws.sdk.kotlin.services.s3.listBuckets
-import aws.sdk.kotlin.services.s3.model.GetBucketTaggingRequest
-import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
+import aws.sdk.kotlin.services.s3.model.NotFound
 import com.locus.core.data.source.local.SecureStorageDataSource
 import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.domain.model.auth.AuthState
@@ -91,21 +89,12 @@ class AuthRepositoryImpl
                 val client = awsClientFactory.createBootstrapS3Client(creds)
                 client.use { s3 ->
                     // Check Existence
-                    try {
-                        s3.headBucket { bucket = bucketName }
-                    } catch (e: Exception) {
-                        return LocusResult.Success(BucketValidationStatus.Invalid("Bucket not found or access denied"))
-                    }
+                    s3.headBucket { bucket = bucketName }
 
                     // Check Tags
-                    val tagging =
-                        try {
-                            s3.getBucketTagging { bucket = bucketName }
-                        } catch (e: Exception) {
-                            return LocusResult.Success(BucketValidationStatus.Invalid("Failed to retrieve bucket tags"))
-                        }
+                    val tagging = s3.getBucketTagging { bucket = bucketName }
 
-                    val hasLocusTag = tagging.tagSet?.any { it.key == "LocusRole" && it.value == "DeviceBucket" } == true
+                    val hasLocusTag = tagging.tagSet?.any { it.key == TAG_LOCUS_ROLE && it.value == TAG_DEVICE_BUCKET } == true
                     if (!hasLocusTag) {
                         return LocusResult.Success(BucketValidationStatus.Invalid("Bucket missing required LocusRole tag"))
                     }
@@ -113,7 +102,10 @@ class AuthRepositoryImpl
                     LocusResult.Success(BucketValidationStatus.Available)
                 }
             } catch (e: Exception) {
-                LocusResult.Success(BucketValidationStatus.Invalid(e.message ?: "Unknown validation error"))
+                if (e is NotFound) {
+                    return LocusResult.Success(BucketValidationStatus.Invalid("Bucket not found or access denied"))
+                }
+                LocusResult.Failure(DomainException.NetworkError.Generic(e))
             }
         }
 
@@ -170,7 +162,7 @@ class AuthRepositoryImpl
                 val client = awsClientFactory.createBootstrapS3Client(creds)
                 client.use { s3 ->
                     val response = s3.listBuckets()
-                    val buckets = response.buckets?.mapNotNull { it.name }?.filter { name -> name.startsWith("locus-") } ?: emptyList()
+                    val buckets = response.buckets?.mapNotNull { it.name }?.filter { name -> name.startsWith(BUCKET_PREFIX) } ?: emptyList()
                     LocusResult.Success(buckets)
                 }
             } catch (e: Exception) {
@@ -198,7 +190,7 @@ class AuthRepositoryImpl
                                 return LocusResult.Failure(DomainException.RecoveryError.MissingStackTag)
                             }
 
-                        tagging.tagSet?.find { it.key == "aws:cloudformation:stack-name" }?.value
+                        tagging.tagSet?.find { it.key == TAG_STACK_NAME }?.value
                     }
 
                 if (stackName.isNullOrEmpty()) {
@@ -220,9 +212,12 @@ class AuthRepositoryImpl
                     val stackId = stack.stackId
                     val accountId = stackId?.split(":")?.getOrNull(4)
 
-                    val accessKeyId = outputs.find { it.outputKey == "RuntimeAccessKeyId" }?.outputValue
-                    val secretAccessKey = outputs.find { it.outputKey == "RuntimeSecretAccessKey" }?.outputValue
-                    val bucket = outputs.find { it.outputKey == "BucketName" }?.outputValue ?: bucketName
+                    // WARNING: This depends on specific Output keys from the CloudFormation stack.
+                    // Verify these match the actual stack template outputs (e.g. locus-stack.yaml or similar).
+                    // Current expectation: RuntimeAccessKeyId, RuntimeSecretAccessKey, BucketName.
+                    val accessKeyId = outputs.find { it.outputKey == OUT_RUNTIME_ACCESS_KEY }?.outputValue
+                    val secretAccessKey = outputs.find { it.outputKey == OUT_RUNTIME_SECRET_KEY }?.outputValue
+                    val bucket = outputs.find { it.outputKey == OUT_BUCKET_NAME }?.outputValue ?: bucketName
                     val region = AwsClientFactory.AWS_REGION
 
                     if (accessKeyId == null || secretAccessKey == null || accountId == null) {
@@ -243,5 +238,16 @@ class AuthRepositoryImpl
             } catch (e: Exception) {
                 return LocusResult.Failure(DomainException.NetworkError.Generic(e))
             }
+        }
+
+        companion object {
+            private const val TAG_LOCUS_ROLE = "LocusRole"
+            private const val TAG_DEVICE_BUCKET = "DeviceBucket"
+            private const val TAG_STACK_NAME = "aws:cloudformation:stack-name"
+            private const val BUCKET_PREFIX = "locus-"
+
+            private const val OUT_RUNTIME_ACCESS_KEY = "RuntimeAccessKeyId"
+            private const val OUT_RUNTIME_SECRET_KEY = "RuntimeSecretAccessKey"
+            private const val OUT_BUCKET_NAME = "BucketName"
         }
     }

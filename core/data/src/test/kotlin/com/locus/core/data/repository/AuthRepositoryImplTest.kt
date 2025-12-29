@@ -1,5 +1,6 @@
 package com.locus.core.data.repository
 
+import app.cash.turbine.test
 import aws.sdk.kotlin.services.cloudformation.CloudFormationClient
 import aws.sdk.kotlin.services.cloudformation.model.DescribeStacksRequest
 import aws.sdk.kotlin.services.cloudformation.model.DescribeStacksResponse
@@ -10,6 +11,7 @@ import aws.sdk.kotlin.services.s3.model.GetBucketTaggingRequest
 import aws.sdk.kotlin.services.s3.model.GetBucketTaggingResponse
 import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
 import aws.sdk.kotlin.services.s3.model.ListBucketsResponse
+import aws.sdk.kotlin.services.s3.model.NotFound
 import aws.sdk.kotlin.services.s3.model.Tag
 import com.google.common.truth.Truth.assertThat
 import com.locus.core.data.source.local.SecureStorageDataSource
@@ -19,15 +21,14 @@ import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.model.auth.BucketValidationStatus
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
+import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -36,9 +37,8 @@ import org.junit.Test
 class AuthRepositoryImplTest {
     private val awsClientFactory: AwsClientFactory = mockk()
     private val secureStorage: SecureStorageDataSource = mockk(relaxed = true)
-    private val testDispatcher = UnconfinedTestDispatcher()
-    private val testScope = CoroutineScope(testDispatcher)
 
+    // We will initialize this in each test using runTest's scope or mock logic
     private lateinit var repository: AuthRepositoryImpl
 
     private val bootstrapCreds =
@@ -63,8 +63,6 @@ class AuthRepositoryImplTest {
         // Default storage behavior: empty
         coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(null)
         coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(null)
-
-        repository = AuthRepositoryImpl(awsClientFactory, secureStorage, testScope)
     }
 
     @Test
@@ -72,10 +70,15 @@ class AuthRepositoryImplTest {
         runTest {
             coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(runtimeCreds)
 
-            // Re-init repository to trigger init block
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, testScope)
+            // Pass 'this' (TestScope) so advanceUntilIdle() works reliably on the launch block
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
 
-            assertThat(repository.getAuthState().first()).isEqualTo(AuthState.Authenticated)
+            // Wait for init block to complete
+            advanceUntilIdle()
+
+            repository.getAuthState().test {
+                assertThat(awaitItem()).isEqualTo(AuthState.Authenticated)
+            }
         }
 
     @Test
@@ -84,10 +87,13 @@ class AuthRepositoryImplTest {
             coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(null)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
 
-            // Re-init repository
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, testScope)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
 
-            assertThat(repository.getAuthState().first()).isEqualTo(AuthState.SetupPending)
+            advanceUntilIdle()
+
+            repository.getAuthState().test {
+                assertThat(awaitItem()).isEqualTo(AuthState.SetupPending)
+            }
         }
 
     @Test
@@ -96,22 +102,36 @@ class AuthRepositoryImplTest {
             coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(null)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(null)
 
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, testScope)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
 
-            assertThat(repository.getAuthState().first()).isEqualTo(AuthState.Uninitialized)
+            advanceUntilIdle()
+
+            repository.getAuthState().test {
+                assertThat(awaitItem()).isEqualTo(AuthState.Uninitialized)
+            }
         }
 
     @Test
     fun `promoteToRuntimeCredentials saves runtime, deletes bootstrap, and updates state`() =
         runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+
             coEvery { secureStorage.saveRuntimeCredentials(any()) } returns LocusResult.Success(Unit)
             coEvery { secureStorage.clearBootstrapCredentials() } returns LocusResult.Success(Unit)
 
-            val result = repository.promoteToRuntimeCredentials(runtimeCreds)
+            repository.getAuthState().test {
+                // Initial state
+                assertThat(awaitItem()).isEqualTo(AuthState.Uninitialized)
 
-            assertThat(result).isInstanceOf(LocusResult.Success::class.java)
-            assertThat(repository.getAuthState().first()).isEqualTo(AuthState.Authenticated)
-            assertThat(repository.getProvisioningState().first()).isEqualTo(ProvisioningState.Success)
+                val result = repository.promoteToRuntimeCredentials(runtimeCreds)
+
+                assertThat(result).isInstanceOf(LocusResult.Success::class.java)
+                assertThat(awaitItem()).isEqualTo(AuthState.Authenticated)
+            }
+
+            repository.getProvisioningState().test {
+                assertThat(awaitItem()).isEqualTo(ProvisioningState.Success)
+            }
 
             coVerify { secureStorage.saveRuntimeCredentials(runtimeCreds) }
             coVerify { secureStorage.clearBootstrapCredentials() }
@@ -120,6 +140,7 @@ class AuthRepositoryImplTest {
     @Test
     fun `validateBucket returns Available when bucket exists and has correct tag`() =
         runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
 
             val s3Client = mockk<S3Client>(relaxed = true)
@@ -149,6 +170,7 @@ class AuthRepositoryImplTest {
     @Test
     fun `validateBucket returns Invalid when tag is missing`() =
         runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
 
             val s3Client = mockk<S3Client>(relaxed = true)
@@ -175,8 +197,47 @@ class AuthRepositoryImplTest {
         }
 
     @Test
+    fun `validateBucket returns Failure when network error occurs`() =
+        runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
+
+            val s3Client = mockk<S3Client>(relaxed = true)
+            every { awsClientFactory.createBootstrapS3Client(any()) } returns s3Client
+
+            coEvery { s3Client.headBucket(any<HeadBucketRequest>()) } throws RuntimeException("Network Error")
+
+            val result = repository.validateBucket("locus-bucket")
+
+            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
+            val error = (result as LocusResult.Failure).error
+            assertThat(error).isInstanceOf(DomainException.NetworkError.Generic::class.java)
+        }
+
+    @Test
+    fun `validateBucket returns Invalid when bucket does not exist`() =
+        runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
+
+            val s3Client = mockk<S3Client>(relaxed = true)
+            every { awsClientFactory.createBootstrapS3Client(any()) } returns s3Client
+
+            // Mocking NotFound exception for headBucket
+            coEvery { s3Client.headBucket(any<HeadBucketRequest>()) } throws mockk<NotFound>(relaxed = true)
+
+            val result = repository.validateBucket("locus-bucket")
+
+            assertThat(result).isInstanceOf(LocusResult.Success::class.java)
+            val status = (result as LocusResult.Success).data
+            assertThat(status).isInstanceOf(BucketValidationStatus.Invalid::class.java)
+            assertThat((status as BucketValidationStatus.Invalid).reason).contains("not found")
+        }
+
+    @Test
     fun `scanForRecoveryBuckets filters correctly`() =
         runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
 
             val s3Client = mockk<S3Client>(relaxed = true)
@@ -202,6 +263,7 @@ class AuthRepositoryImplTest {
     @Test
     fun `recoverAccount parses stack outputs correctly`() =
         runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
 
             val s3Client = mockk<S3Client>(relaxed = true)
