@@ -12,6 +12,10 @@ echo "Running Kover Verification..."
 # This ensures that branch coverage thresholds are met
 ./gradlew koverVerify || { echo "Coverage verification failed"; exit 1; }
 
+echo "Running Mutation Testing (PIT)..."
+# Ensures that tests are killing mutations (75% threshold)
+./gradlew :core:domain:pitest || { echo "Mutation testing failed"; exit 1; }
+
 # 2. Security Checks
 echo "Running Security Verification..."
 ./scripts/verify_security.sh || { echo "Security verification failed"; exit 1; }

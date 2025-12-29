@@ -46,6 +46,9 @@ This strategy directly maps to the Validation Pipeline Tiers defined in `automat
 ### 4.1. Domain Layer (Pure Kotlin)
 *   **Scope:** Use Cases, Models, Repository Interfaces (Fakes).
 *   **Coverage Target:** **90%** (Strict).
+*   **Mutation Targets (PIT):**
+    *   **Mutation Coverage:** **80%** (Percentage of code covered by mutation tests).
+    *   **Mutation Threshold:** **75%** (Percentage of mutations killed).
 *   **Rules:**
     *   **No Mocks for Data Classes:** Instantiate real Models (`LocationPoint`, `LogEntry`).
     *   **Mock Repositories:** Use `mockk<LocationRepository>()` only if a Fake is too complex; prefer Fakes from `:core:testing`.

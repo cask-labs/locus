@@ -54,6 +54,11 @@ configure<info.solidsoft.gradle.pitest.PitestPluginExtension> {
 
     // Avoid cluttering with timestamps
     timestampedReports.set(false)
+
+    // Mutation Testing Thresholds
+    // Domain Layer target is 90% unit coverage, so we aim high for mutation quality.
+    mutationThreshold.set(75)
+    coverageThreshold.set(80)
 }
 
 // Custom Task: Initialize Pitest History
@@ -99,7 +104,10 @@ tasks.register("updatePitestBaseline") {
             println("Updated: ${committedHistory.absolutePath}")
             println("You can now commit this file to Git.")
         } else {
-            throw GradleException("No local PITest history found at ${buildHistory.absolutePath}. Run './gradlew :core:domain:pitest' first.")
+            throw GradleException(
+                "No local PITest history found at ${buildHistory.absolutePath}. " +
+                    "Run './gradlew :core:domain:pitest' first.",
+            )
         }
     }
 }
