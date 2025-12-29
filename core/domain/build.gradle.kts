@@ -57,7 +57,7 @@ configure<info.solidsoft.gradle.pitest.PitestPluginExtension> {
 
     // Mutation Testing Thresholds
     // Domain Layer target is 90% unit coverage, so we aim high for mutation quality.
-    mutationThreshold.set(75)
+    mutationThreshold.set(85)
     coverageThreshold.set(80)
 }
 
