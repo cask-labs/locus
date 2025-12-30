@@ -26,8 +26,8 @@ echo "trufflehog is available."
 # 4. Install ShellCheck
 if ! command -v shellcheck &> /dev/null; then
     echo "Installing ShellCheck..."
-    # Pinning version 0.9.0
-    scversion="v0.9.0"
+    # Defaulting to ShellCheck v0.10.0 (override with SCVERSION env var if needed)
+    scversion="${SCVERSION:-v0.10.0}"
     wget -qO- "https://github.com/koalaman/shellcheck/releases/download/${scversion}/shellcheck-${scversion}.linux.x86_64.tar.xz" | tar -xJv
     sudo cp "shellcheck-${scversion}/shellcheck" /usr/local/bin/
     rm -rf "shellcheck-${scversion}"
