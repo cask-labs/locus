@@ -1,19 +1,35 @@
-Begin with an architecture discovery directory provided by the user. If one hasn't been supplied, **STOP** and request it before continuing.
+# Workflow: Tasking Breakdown
 
-Decompose the work outlined in the provided architecture discovery into the smallest practical set of sequential tasks. Save this breakdown to ./agents/ephemeral/{feature}-tasking/tasking.md
+## Purpose
 
-Requirements:
-- Arrange tasks sequentially based on dependencies (each task should build on preceding work)
-- Make each task independently committable, testable, and verifiable
-- Keep the total number of tasks minimal while respecting their interdependencies
-- Consolidate related changes that logically belong in a single commit
+Decompose the work outlined in the provided architecture discovery into the smallest practical set of sequential tasks.
+
+**Output:**
+A single document: `./agents/ephemeral/{feature}-tasking/tasking.md`
+
+## Workflow Steps
+
+### Step 0 — Analyze and Recommend Breakdown
+
+**Analyze first, recommend second.**
+
+1.  **Analyze** the architecture discovery directory.
+2.  **Formulate** a recommended task breakdown.
+    - Arrange tasks sequentially based on dependencies.
+    - Make each task independently committable, testable, and verifiable.
+    - Keep the total number of tasks minimal.
+    - Consolidate related changes that logically belong in a single commit.
+3.  **Present** the breakdown to the user for confirmation.
+
+### Step 1 — Create Tasking Document
+
+Once the breakdown is confirmed, write the `tasking.md` file.
 
 For each task, document:
-1. Task title and purpose
-2. Which behaviors or requirements it fulfills
-3. Steps to validate successful completion
+1.  Task title and purpose
+2.  Which behaviors or requirements it fulfills
+3.  Steps to validate successful completion
 
-Do not include:
-- Granular code-level implementation details
-- Unit tests for individual configuration settings
-- Content beyond the task breakdown itself
+**Constraint:**
+- The end goal is the **document**, not the execution of the tasks.
+- Do not include granular code-level implementation details.

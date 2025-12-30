@@ -5,8 +5,8 @@
 Explore specific technical domains in detail to resolve gaps before moving into implementation work. This is a **focused, collaborative** workflow designed for situations where the architecture discovery phase revealed unresolved questions or where the feasibility of implementation hinges on technical clarity.
 
 **Core Principles:**
-- **Focused, not exhaustive** - Dive only where ambiguity blocks progress
-- **Collaborative** - Establish with stakeholders what requires depth and what can remain high-level
+- **Analysis-driven** - Analyze requirements deeply to form solid recommendations
+- **Proactive, not reactive** - Recommend the best path forward rather than asking open-ended questions
 - **Outcome-driven** - Center on unblocking implementation rather than building documentation as an end goal
 - **Flexible** - Easily extend depth or adjust course based on team input
 
@@ -47,24 +47,22 @@ Organize by technical topic (e.g., `schema-contract.md`, `error-strategy.md`, `s
 
 ## Workflow Steps
 
-### Step 0 — Define Scope Collaboratively
+### Step 0 — Analyze and Recommend Scope
 
-**Pause and engage stakeholders** before starting detailed work.
+**Analyze first, recommend second.**
 
-Share the discovery artifacts and seek alignment on:
-- "Which specific areas need higher resolution before implementation begins?"
-- "What technical uncertainties are preventing progress?"
-- "Are there questions from discovery that we should resolve now?"
-- "Which areas can we defer until development without blocking progress?"
+Review the discovery artifacts and identify technical gaps:
 
-**Then** establish clear boundaries:
-- Identify 2-5 specific topics for deeper investigation
+- "I've analyzed the discovery artifacts and the codebase. I recommend deep dives into the following areas to reduce risk..."
+
+**Establish clear boundaries:**
+- Recommend 2-5 specific topics for deeper investigation
 - For each topic, clarify the outcome needed (what understanding or decision)
 - Mark what remains out of scope (what we're addressing later)
 
-**Deliverable:** Scoping conversation or document confirming focus areas
+**Deliverable:** Scoping recommendation for user confirmation
 
-**Gate:** [ ] Team has named specific areas needing deeper investigation
+**Gate:** [ ] User has confirmed the list of deep-dive topics
 
 ---
 
@@ -87,22 +85,20 @@ For each focus area, collect relevant background:
 
 ---
 
-### Step 2 — Develop Technical Approach
+### Step 2 — Recommend Technical Approach
 
 For each focus area, outline a concrete approach:
-- Present 1-2 alternative approaches if significant tradeoffs exist
-- Illustrate with real examples: JSON schemas, flow diagrams, classification tables, and data models
-- Make visible which decisions are fixed versus which have flexibility
-- Name implications and downstream effects
+- Analyze the options
+- Recommend a specific technical solution (schema, flow, etc.)
+- Explain *why* this recommendation was made (tradeoffs, constraints)
 
-**Engage stakeholders** before locking in:
-- "Does this direction address the concern?"
-- "What edge cases or scenarios might I be overlooking?"
-- "Would you prefer a different approach?"
+**Present to stakeholders:**
+- "For {Topic}, I recommend {Approach} because..."
+- "This handles edge case {X} by..."
 
 **Deliverable:** Focused, standalone document per topic
 
-**Gate:** [ ] Approach articulated; [ ] Stakeholder feedback incorporated
+**Gate:** [ ] Approach recommended; [ ] User confirmed or adjusted recommendation
 
 ---
 
@@ -122,7 +118,7 @@ For each focus area, produce documentation of decisions:
 - Omit ceremonial or decorative elements
 - Use schemas, tables, and diagrams to show relationships and constraints
 
-**Deliverable:** Polished technical documents (one per topic)
+**Deliverable:** Polished technical documents (one per topic). **Note:** This is a documentation artifact, not implemented code.
 
 **Gate:** [ ] Decisions captured; [ ] Team ready to implement
 
@@ -488,10 +484,10 @@ Conclude detailed investigation when:
 
 ### Engagement Points
 
-- During scoping: "Are we investigating the right areas?"
-- During research: "Am I examining the relevant aspects?"
-- During proposal: "Is this approach sound?"
-- During finalization: "Does this provide sufficient clarity?"
+- During scoping: "I have identified the following key areas for investigation. Do you agree with this scope?"
+- During research: "I have found {X}. I recommend we proceed by..."
+- During proposal: "I recommend this approach because it aligns with {Goal}. Do you approve?"
+- During finalization: "The documents are ready for review."
 
 ---
 
@@ -499,19 +495,13 @@ Conclude detailed investigation when:
 
 ### Sample Exchange:
 
-**Agent:** "Discovery surfaced some unresolved questions about the API response schema and offline-first behavior. Which of these areas need deeper investigation before implementation?"
+**Agent:** "I have analyzed the architecture and identified that the API response schema and offline-first behavior are critical risk areas. I recommend we focus the deep dive on these two topics."
 
-**User:** "I need clarity on the exact API response structure for the user profile endpoint, and how we handle offline sync when cached data becomes stale."
+**User:** "Agreed."
 
-**Agent:** "Understood. For the API contract, should we build against the current v1 API or target the upcoming v2? On offline sync, are the key concerns around data freshness thresholds, or conflict resolution when data diverges?"
+**Agent:** "Great. For the API contract, I recommend targeting the upcoming v2 API to future-proof the work. For offline sync, I recommend a 'last-write-wins' strategy with a 24-hour freshness boundary to simplify conflict resolution. Does this align with your goals?"
 
-**User:** {provides additional context}
+**User:** "That sounds correct."
 
-**Agent:** {researches codebase patterns, reviews requirements}
-
-**Agent:** "I'm proposing an API schema with versioning and cache timestamping... For offline sync, I'm suggesting a last-write-wins approach with a 24-hour data freshness boundary. Does that address your needs?"
-
-**User:** {shares feedback or refinements}
-
-**Agent:** {refines proposal or transitions to next investigation area}
-
+**Agent:** "I will now proceed to formalize these decisions into the deep dive documentation."
+```

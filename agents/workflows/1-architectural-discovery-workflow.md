@@ -2,13 +2,13 @@
 
 ## Intent
 
-Work through architectural concepts conversationally using concise documentation, ensuring alignment on strategy and shared buy-in before code development begins.
+Work through architectural concepts using concise documentation, ensuring alignment on strategy and shared buy-in before code development begins.
 
 **Core Values:**
 
-- **Partnership, not directives** - Show possibilities, seek input, respond to guidance
+- **Analysis-driven** - Analyze requirements deeply to form solid recommendations
+- **Proactive, not reactive** - Recommend the best path forward rather than asking open-ended questions
 - **Minimal yet meaningful docs** - Sufficient detail to explore and decide, nothing more
-- **Cyclical and adaptive** - Designed to shift direction as needed based on input
 - **Inquiry-driven** - Expose open questions, competing interests, and design choices; treat implementation specifics as premature
 
 ## Scope and Context
@@ -23,6 +23,7 @@ Suitable for teams of any size and composition—whether creating backend infras
 - Repository footprint (modules, files, and changes required)
 - Requirements tracking (link spec items to implementation pieces)
 - Team alignment and readiness to move forward
+- **Important:** The end goal is a set of documentation artifacts, not implemented code.
 
 ## Starting Materials
 
@@ -50,25 +51,24 @@ Transition to `docs/` only after team sign-off.
 
 ## Workflow Steps
 
-### Step 0 — Initial Conversation and Framing
+### Step 0 — Initial Analysis and Recommendation
 
-**Listen first, propose second.**
+**Analyze first, recommend second.**
 
-Recap the specification to the user and pose:
+Recap the specification and your analysis of the problem space:
 
-- "I've reviewed the spec. What are your early instincts on how to structure this?"
-- "What limits or must-haves should guide my thinking?"
-- "Are certain design approaches worth exploring, or should I avoid specific patterns?"
+- "I've reviewed the spec and the codebase. Here is my analysis of the problem..."
+- "Based on the constraints (e.g., latency, privacy, dependencies), I recommend focusing on..."
 
 **Then** articulate the problem space:
 
 - Reframe goal and boundaries in 5-10 lines
-- Call out constraints (latency targets, data privacy rules, external systems, service dependencies)
+- Call out constraints
 - Name things we don't yet know
 
-**Work product:** Goal + Scope + Open Items (either spoken or sketched lightly)
+**Work product:** Goal + Scope + Open Items + Initial Recommendation
 
-**Checkpoint:** [ ] User has offered direction or given clearance to proceed
+**Checkpoint:** [ ] User has confirmed the problem space and initial recommendation
 
 ---
 
@@ -97,9 +97,9 @@ For each path:
 
 ---
 
-### Step 2 — Collaborative Path Selection
+### Step 2 — Recommendation and Selection
 
-**Check in before committing.**
+**Recommend before committing.**
 
 Show a side-by-side view considering:
 
@@ -110,17 +110,16 @@ Show a side-by-side view considering:
 - Room to grow and modify
 - Realistic timeline to completion
 
-**Pose to the user:**
+**Make a recommendation:**
 
-- "Which path feels right to your instincts?"
-- "Do any tradeoffs merit deeper exploration?"
-- "Should I sharpen or expand any path before we lock it in?"
+- "Based on the analysis, I recommend Path {X} because..."
+- "Path {Y} is a viable alternative if {Condition}, but Path {X} is superior for {Reason}."
 
-**Then** write down what was chosen and the reasoning.
+**Then** ask for confirmation to proceed with the recommended path.
 
 **Work product:** `02-selection.md` with side-by-side table + chosen path + explanation
 
-**Checkpoint:** [ ] User endorses selection or recommends iteration
+**Checkpoint:** [ ] User approves the recommended path or directs a different choice
 
 ---
 
@@ -326,7 +325,7 @@ Lightweight doc that covers:
 
 ## Selected Path
 
-**Picked:** Path {X}
+**Recommendation:** Path {X}
 
 **Why:**
 - {reason}
@@ -484,23 +483,21 @@ These are suggestions—customize to fit your patterns and situation.
 
 ### At Each Pause Point:
 
-1. **Share** what's been created or learned
-2. **Listen** to concerns, choices, preferences
-3. **Pause** for response
-4. **Adapt** based on input and refinement requests
-5. **Move forward** once there's consensus
+1. **Analyze** the current state and requirements.
+2. **Formulate** a recommendation or plan.
+3. **Present** the recommendation to the user.
+4. **Pause** for confirmation or feedback.
+5. **Adapt** based on input if needed, or proceed if confirmed.
 
 ### Conversation Example:
 
-**You:** "I've studied the spec and can see three distinct directions forward. Before I flesh them out, what's your gut reaction on which way makes sense?"
+**You:** "I've studied the spec and identified three distinct directions forward. I recommend Path A because {Reason}. Here are the details..."
 
-**Them:** {share thoughts or say "show me the options"}
+**You:** {present the analysis and recommendation}
 
-**You:** {present the three paths}
+**You:** "Do you want to proceed with this recommendation?"
 
-**You:** "Which path appeals to you? Are there tradeoffs you want to dig deeper into?"
+**Them:** {confirms or provides feedback}
 
-**Them:** {give feedback}
-
-**You:** {adjust, deepen, or move ahead based on their reply}
+**You:** {proceed or adjust based on feedback}
 ```
