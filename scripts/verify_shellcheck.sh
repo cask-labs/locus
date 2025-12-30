@@ -3,7 +3,7 @@ set -e
 
 # Function to check for ShellCheck
 check_shellcheck() {
-    if ! command -v shellcheck &> /dev/null; then
+    if ! command -v shellcheck > /dev/null 2>&1; then
         echo "Error: shellcheck is not installed."
         echo "Please install it manually or use setup_ci_env.sh for CI."
         echo "Instructions: https://github.com/koalaman/shellcheck#installing"

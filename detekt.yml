@@ -581,7 +581,7 @@ style:
         value: 'STOPSHIP:'
       - reason: 'Forbidden TODO todo marker in comment, please do the changes.'
         value: 'TODO:'
-    allowedPatterns: ''
+    allowedPatterns: 'TODO\(\w+\):'
   ForbiddenImport:
     active: false
     imports: []
@@ -610,7 +610,7 @@ style:
     maxJumpCount: 1
   MagicNumber:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.kts', '**/ui/theme/Color.kt']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.kts', '**/theme/**/Color.kt']
     ignoreNumbers:
       - '-1'
       - '0'
