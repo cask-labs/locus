@@ -155,13 +155,6 @@ class ProvisioningUseCase
             return LocusResult.Success(Unit)
         }
 
-        private fun generateSalt(): String {
-            val random = SecureRandom()
-            val bytes = ByteArray(32)
-            random.nextBytes(bytes)
-            return HexFormat.of().formatHex(bytes)
-        }
-
         companion object {
             private const val POLL_INTERVAL = 5_000L
             private const val POLL_TIMEOUT = 600_000L // 10 minutes

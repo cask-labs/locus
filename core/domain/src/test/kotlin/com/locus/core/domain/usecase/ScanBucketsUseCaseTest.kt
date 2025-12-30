@@ -41,4 +41,53 @@ class ScanBucketsUseCaseTest {
             assertThat(data[1].first).isEqualTo("locus-bucket-2")
             assertThat(data[1].second).isInstanceOf(BucketValidationStatus.Invalid::class.java)
         }
+
+    @Test
+    fun `returns failure when list buckets fails`() =
+        runBlocking {
+            // Given
+            val creds = BootstrapCredentials("access", "secret", "token", "us-east-1")
+            val failure = LocusResult.Failure(Exception("Network error"))
+            coEvery { s3Client.listBuckets(creds) } returns failure
+
+            // When
+            val result = useCase(creds)
+
+            // Then
+            assertThat(result).isEqualTo(failure)
+        }
+
+    @Test
+    fun `returns empty list when no buckets found`() =
+        runBlocking {
+            // Given
+            val creds = BootstrapCredentials("access", "secret", "token", "us-east-1")
+            coEvery { s3Client.listBuckets(creds) } returns LocusResult.Success(emptyList())
+
+            // When
+            val result = useCase(creds)
+
+            // Then
+            assertThat(result).isInstanceOf(LocusResult.Success::class.java)
+            assertThat((result as LocusResult.Success).data).isEmpty()
+        }
+
+    @Test
+    fun `handles bucket with no tags as invalid`() =
+        runBlocking {
+            // Given
+            val creds = BootstrapCredentials("access", "secret", "token", "us-east-1")
+            coEvery { s3Client.listBuckets(creds) } returns LocusResult.Success(listOf("locus-bucket-no-tags"))
+            coEvery { s3Client.getBucketTags(creds, "locus-bucket-no-tags") } returns LocusResult.Failure(Exception("Access Denied"))
+
+            // When
+            val result = useCase(creds)
+
+            // Then
+            assertThat(result).isInstanceOf(LocusResult.Success::class.java)
+            val data = (result as LocusResult.Success).data
+            assertThat(data).hasSize(1)
+            assertThat(data[0].first).isEqualTo("locus-bucket-no-tags")
+            assertThat(data[0].second).isInstanceOf(BucketValidationStatus.Invalid::class.java)
+        }
 }
