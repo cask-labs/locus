@@ -17,15 +17,16 @@ class ScanBucketsUseCaseTest {
     private val creds = BootstrapCredentials("access", "secret", "token", "us-east-1")
 
     @Test
-    fun `returns failure when listing buckets fails`() = runBlocking {
-        val expectedError = DomainException.NetworkError.Generic(Exception("Network Error"))
-        coEvery { s3Client.listBuckets(creds) } returns LocusResult.Failure(expectedError)
+    fun `returns failure when listing buckets fails`() =
+        runBlocking {
+            val expectedError = DomainException.NetworkError.Generic(Exception("Network Error"))
+            coEvery { s3Client.listBuckets(creds) } returns LocusResult.Failure(expectedError)
 
-        val result = useCase(creds)
+            val result = useCase(creds)
 
-        assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
-        assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
-    }
+            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
+            assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
+        }
 
     @Test
     fun `returns valid buckets correctly`() =
