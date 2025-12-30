@@ -12,6 +12,7 @@ import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
 import kotlinx.coroutines.delay
 import java.security.SecureRandom
+import java.util.HexFormat
 import java.util.UUID
 import javax.inject.Inject
 
@@ -330,7 +331,7 @@ class RecoverAccountUseCase
             val random = SecureRandom()
             val bytes = ByteArray(32)
             random.nextBytes(bytes)
-            return bytes.joinToString("") { "%02x".format(it) }
+            return HexFormat.of().formatHex(bytes)
         }
 
         companion object {
