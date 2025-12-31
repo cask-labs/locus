@@ -12,6 +12,7 @@ import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.repository.ConfigurationRepository
 import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
+import com.locus.core.domain.util.ArnUtils
 import com.locus.core.domain.util.AuthUtils
 import java.util.UUID
 import javax.inject.Inject
@@ -65,7 +66,7 @@ class ProvisioningUseCase
             val accessKeyId = outputs[OUT_RUNTIME_ACCESS_KEY]
             val secretAccessKey = outputs[OUT_RUNTIME_SECRET_KEY]
             val bucket = outputs[OUT_BUCKET_NAME]
-            val accountId = stackId.split(":").getOrNull(4)
+            val accountId = ArnUtils.extractAccountId(stackId)
 
             if (accessKeyId == null || secretAccessKey == null || bucket == null || accountId == null) {
                 val error = DomainException.ProvisioningError.DeploymentFailed("Invalid stack outputs")

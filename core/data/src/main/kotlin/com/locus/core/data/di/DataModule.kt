@@ -69,9 +69,6 @@ abstract class DataModule {
         fun provideAead(
             @ApplicationContext context: Context,
         ): Aead {
-            // Register all Tink configs to ensure templates are available
-            com.google.crypto.tink.config.TinkConfig.register()
-
             // Check if running in Robolectric (Unit Test) environment
             // Robolectric does not fully support AndroidKeyStore used by Tink's AndroidKeysetManager
             // Fallback to a cleartext keyset for testing purposes only
