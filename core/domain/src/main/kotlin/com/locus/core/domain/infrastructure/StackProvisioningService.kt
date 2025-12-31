@@ -58,7 +58,7 @@ class StackProvisioningService
                             createResult.error.message ?: "Unknown error",
                         )
                 authRepository.updateProvisioningState(ProvisioningState.Failure(error))
-                return createResult as LocusResult.Failure
+                return LocusResult.Failure(error)
             }
 
             // 2. Poll for Completion
