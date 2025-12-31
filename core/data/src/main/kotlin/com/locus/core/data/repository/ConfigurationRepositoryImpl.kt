@@ -20,12 +20,13 @@ class ConfigurationRepositoryImpl
         ): LocusResult<Unit> {
             try {
                 // Store Device ID in plain prefs
-                prefs.edit().putString(KEY_DEVICE_ID, deviceId).apply()
-
                 // Persist the telemetry salt. While runtime credentials also manage the salt,
                 // we store it here as a fallback/redundancy for scenarios where we might
                 // need it independent of the full credential set or for early initialization.
-                prefs.edit().putString(SecureStorageDataSource.KEY_SALT, salt).apply()
+                prefs.edit()
+                    .putString(KEY_DEVICE_ID, deviceId)
+                    .putString(SecureStorageDataSource.KEY_SALT, salt)
+                    .apply()
 
                 return LocusResult.Success(Unit)
             } catch (e: Exception) {
