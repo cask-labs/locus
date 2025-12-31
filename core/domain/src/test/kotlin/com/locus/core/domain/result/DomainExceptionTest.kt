@@ -111,9 +111,9 @@ class DomainExceptionTest {
         assertThat(ex1.hashCode()).isEqualTo(ex2.hashCode())
         assertThat(ex1).isNotEqualTo(ex3)
 
-        val s3_1 = DomainException.S3Error.BucketNotFound("b")
-        val s3_2 = DomainException.S3Error.BucketNotFound("b")
-        assertThat(s3_1).isEqualTo(s3_2)
+        val s3Error1 = DomainException.S3Error.BucketNotFound("b")
+        val s3Error2 = DomainException.S3Error.BucketNotFound("b")
+        assertThat(s3Error1).isEqualTo(s3Error2)
     }
 
     @Test

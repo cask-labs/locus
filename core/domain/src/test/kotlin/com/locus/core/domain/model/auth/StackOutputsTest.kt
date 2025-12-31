@@ -4,14 +4,14 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class StackOutputsTest {
-
     @Test
     fun `has correct properties`() {
-        val outputs = StackOutputs(
-            bucketName = "bucket",
-            runtimeAccessKeyId = "key",
-            runtimeSecretAccessKey = "secret"
-        )
+        val outputs =
+            StackOutputs(
+                bucketName = "bucket",
+                runtimeAccessKeyId = "key",
+                runtimeSecretAccessKey = "secret",
+            )
         assertThat(outputs.bucketName).isEqualTo("bucket")
         assertThat(outputs.runtimeAccessKeyId).isEqualTo("key")
         assertThat(outputs.runtimeSecretAccessKey).isEqualTo("secret")
