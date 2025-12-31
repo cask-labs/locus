@@ -65,7 +65,10 @@ class CloudFormationClientImpl
                         StackDetails(
                             stackId = stack.stackId,
                             status = stack.stackStatus.toString(),
-                            outputs = stack.outputs?.associate { it.outputKey!! to it.outputValue!! },
+                            outputs =
+                                stack.outputs
+                                    ?.filter { it.outputKey != null && it.outputValue != null }
+                                    ?.associate { it.outputKey!! to it.outputValue!! },
                         )
                     LocusResult.Success(details)
                 }
