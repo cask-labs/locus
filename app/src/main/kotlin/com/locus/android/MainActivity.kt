@@ -6,9 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.locus.android.features.dashboard.DashboardScreen
+import com.locus.android.ui.theme.LocusTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -25,13 +25,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-}
-
-@Composable
-@Suppress("ktlint:standard:function-naming")
-fun LocusTheme(content: @Composable () -> Unit) {
-    MaterialTheme {
-        content()
     }
 }

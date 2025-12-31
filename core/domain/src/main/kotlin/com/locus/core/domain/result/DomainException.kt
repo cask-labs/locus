@@ -66,5 +66,7 @@ sealed class DomainException(
         data class DeploymentFailed(override val message: String) : ProvisioningError(message)
 
         data class Wait(override val message: String) : ProvisioningError(message)
+
+        data object InvalidConfiguration : ProvisioningError("Invalid configuration")
     }
 }

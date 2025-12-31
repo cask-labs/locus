@@ -16,8 +16,8 @@ class BucketValidationStatusTest {
 
     @Test
     fun `Invalid state exists`() {
-        val status = BucketValidationStatus.Invalid("test reason")
+        val status = BucketValidationStatus.Invalid(BucketValidationError.MissingLocusTag)
         assertThat(status).isInstanceOf(BucketValidationStatus::class.java)
-        assertThat(status.reason).isEqualTo("test reason")
+        assertThat(status.reason).isEqualTo(BucketValidationError.MissingLocusTag)
     }
 }

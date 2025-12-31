@@ -3,6 +3,7 @@ package com.locus.core.domain.usecase
 import com.google.common.truth.Truth.assertThat
 import com.locus.core.domain.infrastructure.S3Client
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.BucketValidationError
 import com.locus.core.domain.model.auth.BucketValidationStatus
 import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
@@ -76,6 +77,7 @@ class ScanBucketsUseCaseTest {
             assertThat(data).hasSize(1)
             assertThat(data[0].first).isEqualTo("locus-bucket-1")
             assertThat(data[0].second).isInstanceOf(BucketValidationStatus.Invalid::class.java)
-            assertThat((data[0].second as BucketValidationStatus.Invalid).reason).contains("Access denied")
+            val invalidStatus = data[0].second as BucketValidationStatus.Invalid
+            assertThat(invalidStatus.reason).isEqualTo(BucketValidationError.AccessDenied)
         }
 }

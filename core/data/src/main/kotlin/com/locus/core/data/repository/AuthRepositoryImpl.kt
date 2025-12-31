@@ -14,7 +14,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,10 +28,8 @@ class AuthRepositoryImpl
         private val mutableAuthState = MutableStateFlow<AuthState>(AuthState.Uninitialized)
         private val mutableProvisioningState = MutableStateFlow<ProvisioningState>(ProvisioningState.Idle)
 
-        init {
-            applicationScope.launch {
-                loadInitialState()
-            }
+        override suspend fun initialize() {
+            loadInitialState()
         }
 
         private suspend fun loadInitialState() {
@@ -108,10 +105,12 @@ class AuthRepositoryImpl
 
         override suspend fun getRuntimeCredentials(): LocusResult<RuntimeCredentials> {
             val result = secureStorage.getRuntimeCredentials()
-            if (result is LocusResult.Success) {
-                val data = result.data ?: return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
-                return LocusResult.Success(data)
+            return when (result) {
+                is LocusResult.Success -> {
+                    val data = result.data ?: return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                    LocusResult.Success(data)
+                }
+                is LocusResult.Failure -> result
             }
-            return result as LocusResult.Failure
         }
     }

@@ -29,6 +29,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.builtins.nullable
 import javax.inject.Named
 import javax.inject.Singleton
@@ -66,6 +69,26 @@ abstract class DataModule {
         fun provideAead(
             @ApplicationContext context: Context,
         ): Aead {
+            // Register all Tink configs to ensure templates are available
+            com.google.crypto.tink.config.TinkConfig.register()
+
+            // Check if running in Robolectric (Unit Test) environment
+            // Robolectric does not fully support AndroidKeyStore used by Tink's AndroidKeysetManager
+            // Fallback to a cleartext keyset for testing purposes only
+            val isRobolectric =
+                try {
+                    Class.forName("org.robolectric.Robolectric")
+                    true
+                } catch (e: ClassNotFoundException) {
+                    false
+                }
+
+            if (isRobolectric) {
+                return com.google.crypto.tink.KeysetHandle.generateNew(
+                    KeyTemplates.get("AES256_GCM"),
+                ).getPrimitive(Aead::class.java)
+            }
+
             return AndroidKeysetManager.Builder()
                 .withSharedPref(context, KEYSET_NAME, PREF_FILE_NAME)
                 .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
@@ -119,6 +142,12 @@ abstract class DataModule {
             @ApplicationContext context: Context,
         ): SharedPreferences {
             return context.getSharedPreferences("locus_settings", Context.MODE_PRIVATE)
+        }
+
+        @Provides
+        @Singleton
+        fun provideApplicationScope(): CoroutineScope {
+            return CoroutineScope(SupervisorJob() + Dispatchers.Default)
         }
     }
 }

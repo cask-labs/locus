@@ -57,8 +57,8 @@ class AuthRepositoryImplTest {
         runTest {
             coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(runtimeCreds)
 
-            // Pass 'this' (TestScope) so advanceUntilIdle() works reliably on the launch block
             repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository.initialize()
 
             // Wait for init block to complete
             advanceUntilIdle()
@@ -75,6 +75,7 @@ class AuthRepositoryImplTest {
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
 
             repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository.initialize()
 
             advanceUntilIdle()
 
@@ -90,6 +91,7 @@ class AuthRepositoryImplTest {
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(null)
 
             repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository.initialize()
 
             advanceUntilIdle()
 
@@ -102,6 +104,7 @@ class AuthRepositoryImplTest {
     fun `promoteToRuntimeCredentials saves runtime, deletes bootstrap, and updates state`() =
         runTest {
             repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository.initialize()
 
             coEvery { secureStorage.saveRuntimeCredentials(any()) } returns LocusResult.Success(Unit)
             coEvery { secureStorage.clearBootstrapCredentials() } returns LocusResult.Success(Unit)

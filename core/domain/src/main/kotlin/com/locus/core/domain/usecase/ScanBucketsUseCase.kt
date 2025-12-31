@@ -2,6 +2,7 @@ package com.locus.core.domain.usecase
 
 import com.locus.core.domain.infrastructure.S3Client
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.BucketValidationError
 import com.locus.core.domain.model.auth.BucketValidationStatus
 import com.locus.core.domain.result.LocusResult
 import javax.inject.Inject
@@ -32,11 +33,11 @@ class ScanBucketsUseCase
                             if (hasLocusTag) {
                                 BucketValidationStatus.Available
                             } else {
-                                BucketValidationStatus.Invalid("Missing required LocusRole tag")
+                                BucketValidationStatus.Invalid(BucketValidationError.MissingLocusTag)
                             }
                         }
                         is LocusResult.Failure -> {
-                            BucketValidationStatus.Invalid("Access denied or unavailable")
+                            BucketValidationStatus.Invalid(BucketValidationError.AccessDenied)
                         }
                     }
                 results.add(bucket to status)

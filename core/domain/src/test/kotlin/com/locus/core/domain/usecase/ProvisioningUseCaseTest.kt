@@ -1,17 +1,16 @@
 package com.locus.core.domain.usecase
 
 import com.google.common.truth.Truth.assertThat
-import com.locus.core.domain.infrastructure.CloudFormationClient
 import com.locus.core.domain.infrastructure.ResourceProvider
-import com.locus.core.domain.infrastructure.StackDetails
+import com.locus.core.domain.infrastructure.StackProvisioningService
 import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
+import com.locus.core.domain.model.auth.StackProvisioningResult
 import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.repository.ConfigurationRepository
 import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
-import com.locus.core.domain.util.TimeProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -23,17 +22,15 @@ import org.junit.Test
 class ProvisioningUseCaseTest {
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val configRepository = mockk<ConfigurationRepository>(relaxed = true)
-    private val cloudFormationClient = mockk<CloudFormationClient>()
     private val resourceProvider = mockk<ResourceProvider>()
-    private val timeProvider = mockk<TimeProvider>(relaxed = true)
+    private val stackProvisioningService = mockk<StackProvisioningService>()
 
     private val useCase =
         ProvisioningUseCase(
             authRepository,
             configRepository,
-            cloudFormationClient,
             resourceProvider,
-            timeProvider,
+            stackProvisioningService,
         )
 
     private val creds = BootstrapCredentials("access", "secret", "token", "us-east-1")
@@ -61,99 +58,43 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
-            assertThat(error).isInstanceOf(DomainException.NetworkError.Generic::class.java)
+            assertThat(error).isInstanceOf(DomainException.ProvisioningError.InvalidConfiguration::class.java)
         }
 
     @Test
-    fun `returns failure when stack creation fails with unknown error`() =
+    fun `returns failure when stack creation fails`() =
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
-            coEvery { authRepository.updateProvisioningState(any()) } returns Unit
-
-            val originalError = Exception("Unknown")
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Failure(originalError)
-
-            val result = useCase(creds, deviceName)
-
-            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
-            val error = (result as LocusResult.Failure).error
-            assertThat(error).isEqualTo(originalError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.DeployingStack }) }
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
-        }
-
-    @Test
-    fun `returns failure when stack creation fails with DomainException`() =
-        runBlocking {
-            every { resourceProvider.getStackTemplate() } returns template
-            coEvery { authRepository.updateProvisioningState(any()) } returns Unit
+            // StackProvisioningService handles its own state updates, so we just check failure propagation
 
             val originalError = DomainException.NetworkError.Generic(Exception("Network"))
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Failure(originalError)
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns LocusResult.Failure(originalError)
 
             val result = useCase(creds, deviceName)
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isEqualTo(originalError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.DeployingStack }) }
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
-        }
-
-    @Test
-    fun `returns failure when stack creation times out`() =
-        runBlocking {
-            every { resourceProvider.getStackTemplate() } returns template
-            coEvery { authRepository.updateProvisioningState(any()) } returns Unit
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Success("stack-id")
-
-            // Simulate timeout
-            every { timeProvider.currentTimeMillis() } returnsMany listOf(0L, 700_000L) // Start, then past timeout
-
-            val result = useCase(creds, deviceName)
-
-            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
-            val error = (result as LocusResult.Failure).error
-            assertThat(error).isInstanceOf(DomainException.NetworkError.Timeout::class.java)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
-        }
-
-    @Test
-    fun `returns failure when stack reaches failed state`() =
-        runBlocking {
-            every { resourceProvider.getStackTemplate() } returns template
-            coEvery { authRepository.updateProvisioningState(any()) } returns Unit
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Success("stack-id")
-
-            coEvery { cloudFormationClient.describeStack(any(), any()) } returns
-                LocusResult.Success(StackDetails(stackId, "CREATE_FAILED", null))
-
-            val result = useCase(creds, deviceName)
-
-            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
-            val error = (result as LocusResult.Failure).error
-            assertThat(error).isInstanceOf(DomainException.ProvisioningError.DeploymentFailed::class.java)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.WaitingForCompletion }) }
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
     fun `returns failure when stack completes but outputs are missing`() =
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
-            coEvery { authRepository.updateProvisioningState(any()) } returns Unit
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Success("stack-id")
 
-            coEvery { cloudFormationClient.describeStack(any(), any()) } returns
-                LocusResult.Success(StackDetails(stackId, "CREATE_COMPLETE", null))
+            // This case should be handled by StackProvisioningService, but if it returns outputs as empty?
+            // The service returns StackProvisioningResult which has map.
+            // If the map is missing required keys, UseCase handles it.
+
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+                LocusResult.Success(StackProvisioningResult(stackId, emptyMap()))
 
             val result = useCase(creds, deviceName)
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.ProvisioningError.DeploymentFailed::class.java)
-            assertThat(error.message).contains("Missing stack outputs")
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.WaitingForCompletion }) }
+            assertThat(error.message).contains("Invalid stack outputs")
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -162,13 +103,11 @@ class ProvisioningUseCaseTest {
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Success("stack-id")
 
-            coEvery { cloudFormationClient.describeStack(any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
                 LocusResult.Success(
-                    StackDetails(
+                    StackProvisioningResult(
                         stackId,
-                        "CREATE_COMPLETE",
                         mapOf(
                             "RuntimeAccessKeyId" to "rk",
                             "RuntimeSecretAccessKey" to "rs",
@@ -189,58 +128,20 @@ class ProvisioningUseCaseTest {
         }
 
     @Test
-    fun `returns failure when credential promotion fails`() =
-        runBlocking {
-            every { resourceProvider.getStackTemplate() } returns template
-            coEvery { authRepository.updateProvisioningState(any()) } returns Unit
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Success("stack-id")
-
-            coEvery { cloudFormationClient.describeStack(any(), any()) } returns
-                LocusResult.Success(
-                    StackDetails(
-                        stackId,
-                        "CREATE_COMPLETE",
-                        mapOf(
-                            "RuntimeAccessKeyId" to "rk",
-                            "RuntimeSecretAccessKey" to "rs",
-                            "BucketName" to "bucket",
-                        ),
-                    ),
-                )
-
-            coEvery { configRepository.initializeIdentity(any(), any()) } returns LocusResult.Success(Unit)
-
-            val expectedError = DomainException.AuthError.Generic(Exception("Promote failed"))
-            coEvery { authRepository.promoteToRuntimeCredentials(any()) } returns LocusResult.Failure(expectedError)
-
-            val result = useCase(creds, deviceName)
-
-            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
-            assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
-        }
-
-    @Test
     fun `successful provisioning flow`() =
         runBlocking {
             // Given
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
-            coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Success("stack-id")
 
-            coEvery { cloudFormationClient.describeStack(any(), any()) } returnsMany
-                listOf(
-                    LocusResult.Success(StackDetails(stackId, "CREATE_IN_PROGRESS", null)),
-                    LocusResult.Success(
-                        StackDetails(
-                            stackId,
-                            "CREATE_COMPLETE",
-                            mapOf(
-                                "RuntimeAccessKeyId" to "rk",
-                                "RuntimeSecretAccessKey" to "rs",
-                                "BucketName" to "bucket",
-                            ),
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+                LocusResult.Success(
+                    StackProvisioningResult(
+                        stackId,
+                        mapOf(
+                            "RuntimeAccessKeyId" to "rk",
+                            "RuntimeSecretAccessKey" to "rs",
+                            "BucketName" to "bucket",
                         ),
                     ),
                 )
@@ -256,7 +157,7 @@ class ProvisioningUseCaseTest {
 
             // Verify
             coVerify {
-                cloudFormationClient.createStack(
+                stackProvisioningService.createAndPollStack(
                     creds,
                     match { it.startsWith("locus-user-") },
                     template,

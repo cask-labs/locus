@@ -12,6 +12,11 @@ import kotlinx.coroutines.flow.Flow
  */
 interface AuthRepository {
     /**
+     * Initializes the repository, loading the initial state.
+     */
+    suspend fun initialize()
+
+    /**
      * Observes the current high-level authentication state.
      */
     fun getAuthState(): Flow<AuthState>

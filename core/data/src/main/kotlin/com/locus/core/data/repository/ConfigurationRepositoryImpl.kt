@@ -38,7 +38,7 @@ class ConfigurationRepositoryImpl
         }
 
         override suspend fun getTelemetrySalt(): String? {
-            return secureStorage.getTelemetrySalt()
+            return secureStorage.getTelemetrySalt() ?: prefs.getString(SecureStorageDataSource.KEY_SALT, null)
         }
 
         companion object {
