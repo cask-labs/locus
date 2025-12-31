@@ -7,6 +7,8 @@ object InfrastructureConstants {
     const val POLL_INTERVAL = 5_000L
     const val POLL_TIMEOUT = 600_000L // 10 minutes
 
+    const val STACK_NAME_PREFIX = "locus-user-"
+
     const val TAG_STACK_NAME = "aws:cloudformation:stack-name"
     const val TAG_LOCUS_ROLE = "LocusRole"
     const val TAG_DEVICE_BUCKET = "DeviceBucket"

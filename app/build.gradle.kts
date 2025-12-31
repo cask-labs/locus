@@ -92,6 +92,10 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // Explicitly add Hilt Testing for local unit tests
+    testImplementation("com.google.dagger:hilt-android-testing:2.51")
+    kspTest("com.google.dagger:hilt-android-compiler:2.51")
 }
 
 koverReport {
