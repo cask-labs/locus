@@ -1,8 +1,8 @@
 package com.locus.android
 
 import android.app.Application
-import com.locus.core.domain.repository.AuthRepository
 import android.util.Log
+import com.locus.core.domain.repository.AuthRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -21,7 +21,7 @@ class LocusApp : Application() {
         applicationScope.launch {
             try {
                 authRepository.initialize()
-            } catch (e: Exception) {
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 Log.e("LocusApp", "Failed to initialize AuthRepository", e)
             }
         }
