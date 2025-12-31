@@ -23,14 +23,26 @@ if ! command -v trufflehog &> /dev/null; then
 fi
 echo "trufflehog is available."
 
-# 4. Verify Java
+# 4. Install ShellCheck
+if ! command -v shellcheck &> /dev/null; then
+    echo "Installing ShellCheck..."
+    # Defaulting to ShellCheck v0.10.0 (override with SCVERSION env var if needed)
+    scversion="${SCVERSION:-v0.10.0}"
+    wget -qO- "https://github.com/koalaman/shellcheck/releases/download/${scversion}/shellcheck-${scversion}.linux.x86_64.tar.xz" | tar -xJv
+    sudo cp "shellcheck-${scversion}/shellcheck" /usr/local/bin/
+    rm -rf "shellcheck-${scversion}"
+else
+    echo "ShellCheck is already installed."
+fi
+
+# 5. Verify Java
 if ! command -v java &> /dev/null; then
     echo "Error: java is not installed."
     exit 1
 fi
 echo "Java is available."
 
-# 5. Verify Android SDK
+# 6. Verify Android SDK
 if [ -z "$ANDROID_HOME" ]; then
     echo "Error: ANDROID_HOME is not set."
     echo "Please install the Android SDK and Command Line Tools."
@@ -39,7 +51,7 @@ if [ -z "$ANDROID_HOME" ]; then
 fi
 echo "ANDROID_HOME is set: $ANDROID_HOME"
 
-# 5. Verify AWS CLI (required for infrastructure audit)
+# 7. Verify AWS CLI (required for infrastructure audit)
 if ! command -v aws &> /dev/null; then
     echo "Warning: AWS CLI is not installed. Infrastructure audit (Tier 4) will fail."
     echo "Install from: https://aws.amazon.com/cli/"

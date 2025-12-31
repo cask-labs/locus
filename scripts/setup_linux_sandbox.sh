@@ -57,7 +57,19 @@ fi
 echo "Installing Python dependencies..."
 python3 -m pip install -r /app/scripts/requirements.txt
 
-# --- 4. Gradle Warm-up ---
+# --- 4. ShellCheck Setup ---
+if [ ! -f "$BIN_DIR/shellcheck" ]; then
+    echo "Installing ShellCheck..."
+    scversion="${SCVERSION:-v0.10.0}"
+    wget -qO- "https://github.com/koalaman/shellcheck/releases/download/${scversion}/shellcheck-${scversion}.linux.x86_64.tar.xz" | tar -xJv
+    mv "shellcheck-${scversion}/shellcheck" "$BIN_DIR/"
+    rm -rf "shellcheck-${scversion}"
+    echo "ShellCheck installed."
+else
+    echo "ShellCheck already installed."
+fi
+
+# --- 5. Gradle Warm-up ---
 echo "Warming up Gradle dependencies..."
 cd /app
 ./gradlew --refresh-dependencies --no-daemon

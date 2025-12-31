@@ -14,12 +14,12 @@ echo "It will then output the values you need to set in GitHub Actions Secrets."
 echo ""
 
 # Input prompts
-read -p "Enter Key Alias (default: locus-upload): " KEY_ALIAS
+read -r -p "Enter Key Alias (default: locus-upload): " KEY_ALIAS
 KEY_ALIAS=${KEY_ALIAS:-locus-upload}
 
-read -s -p "Enter Key Store Password (min 6 chars): " STORE_PASSWORD
+read -r -s -p "Enter Key Store Password (min 6 chars): " STORE_PASSWORD
 echo ""
-read -s -p "Enter Key Password (min 6 chars, press enter to use same as store): " KEY_PASSWORD
+read -r -s -p "Enter Key Password (min 6 chars, press enter to use same as store): " KEY_PASSWORD
 echo ""
 KEY_PASSWORD=${KEY_PASSWORD:-$STORE_PASSWORD}
 

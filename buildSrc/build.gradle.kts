@@ -21,6 +21,8 @@ dependencies {
     implementation("com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:2.0.0-1.0.21")
     // KTLint Plugin
     implementation("org.jlleitschuh.gradle:ktlint-gradle:12.1.0")
+    // Detekt Plugin
+    implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.5")
     // Gradle Play Publisher
     implementation("com.github.triplet.gradle:play-publisher:3.9.1")
 }

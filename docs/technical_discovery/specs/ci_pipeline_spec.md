@@ -76,11 +76,6 @@ The pipeline executes checks in order of speed and cost.
     *   **Tool:** JUnit 5, MockK, Robolectric.
     *   **Command:** `./gradlew testDebugUnitTest`
     *   **Simulated Scenarios:** Robolectric tests for Non-Functional requirements (Battery Safety, Network Backoff).
-*   **Mutation Testing:**
-    *   **Scope:** Domain Layer (`:core:domain`).
-    *   **Tool:** Pitest.
-    *   **Command:** `./gradlew :core:domain:pitest`
-    *   **Objective:** Verify that tests are actually killing code mutations (ensuring test quality, not just line coverage).
 *   **Architecture Governance:**
     *   **Tool:** `ArchUnit`
     *   **Scope:** Enforces rules defined in `agents/rules/android_architecture.md` and detailed in the [Testing Specification](testing_spec.md#9-architecture-validation-archunit).
