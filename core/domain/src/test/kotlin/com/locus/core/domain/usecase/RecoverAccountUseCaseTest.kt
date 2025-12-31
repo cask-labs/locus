@@ -51,6 +51,7 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.RecoveryError.MissingStackTag)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.ValidatingBucket }) }
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -63,6 +64,8 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.RecoveryError.MissingStackTag)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.ValidatingBucket }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -77,6 +80,9 @@ class RecoverAccountUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.NetworkError.Generic::class.java)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.ValidatingBucket }) }
+            // No specific failure state update for template load? Code check needed.
+            // Code: catch (e) { return Failure } - No updateState(Failure).
         }
 
     @Test
@@ -94,6 +100,8 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.DeployingStack }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -112,6 +120,8 @@ class RecoverAccountUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isEqualTo(originalError)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.DeployingStack }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -131,6 +141,8 @@ class RecoverAccountUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.ProvisioningError.DeploymentFailed::class.java)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.WaitingForCompletion }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -151,6 +163,8 @@ class RecoverAccountUseCaseTest {
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.ProvisioningError.DeploymentFailed::class.java)
             assertThat(error.message).contains("Missing stack outputs")
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.WaitingForCompletion }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -171,6 +185,8 @@ class RecoverAccountUseCaseTest {
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.ProvisioningError.DeploymentFailed::class.java)
             assertThat(error.message).contains("Invalid stack outputs")
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.WaitingForCompletion }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -196,6 +212,7 @@ class RecoverAccountUseCaseTest {
             val result = useCase(creds, bucketName)
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error.message).contains("Invalid stack outputs")
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -223,6 +240,7 @@ class RecoverAccountUseCaseTest {
             val result = useCase(creds, bucketName)
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error.message).contains("Invalid stack outputs")
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -253,6 +271,8 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -285,6 +305,8 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
     @Test
@@ -321,6 +343,7 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Success::class.java)
             coVerify(exactly = 3) { cloudFormationClient.describeStack(creds, any()) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
         }
 
     @Test
@@ -373,5 +396,6 @@ class RecoverAccountUseCaseTest {
             assertThat(slot.captured.accessKeyId).isEqualTo("rk")
             assertThat(slot.captured.bucketName).isEqualTo(bucketName)
             assertThat(slot.captured.accountId).isEqualTo("123456789012")
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
         }
 }
