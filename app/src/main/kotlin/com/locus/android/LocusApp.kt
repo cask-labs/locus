@@ -16,7 +16,7 @@ class LocusApp : Application() {
     @Inject
     lateinit var authRepository: AuthRepository
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
         // Register Tink configs globally early, before Hilt injection
