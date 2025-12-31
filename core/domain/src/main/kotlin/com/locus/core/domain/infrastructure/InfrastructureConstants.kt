@@ -20,6 +20,8 @@ object InfrastructureConstants {
     const val STATUS_ROLLBACK_IN_PROGRESS = "ROLLBACK_IN_PROGRESS"
     const val STATUS_ROLLBACK_COMPLETE = "ROLLBACK_COMPLETE"
 
+    const val STACK_NAME_PREFIX = "locus-user-"
+
     // Add other permanent error statuses if needed
     val PERMANENT_ERROR_STATUSES =
         setOf(

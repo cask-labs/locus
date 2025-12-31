@@ -2,6 +2,7 @@ package com.locus.core.domain.usecase
 
 import com.locus.core.domain.infrastructure.InfrastructureConstants.OUT_RUNTIME_ACCESS_KEY
 import com.locus.core.domain.infrastructure.InfrastructureConstants.OUT_RUNTIME_SECRET_KEY
+import com.locus.core.domain.infrastructure.InfrastructureConstants.STACK_NAME_PREFIX
 import com.locus.core.domain.infrastructure.InfrastructureConstants.TAG_STACK_NAME
 import com.locus.core.domain.infrastructure.ResourceProvider
 import com.locus.core.domain.infrastructure.S3Client
@@ -57,7 +58,7 @@ class RecoverAccountUseCase
                 }
 
             val newDeviceId = UUID.randomUUID().toString()
-            val stackNameForRecovery = "locus-user-$newDeviceId"
+            val stackNameForRecovery = "$STACK_NAME_PREFIX$newDeviceId"
 
             // 3. Create Stack and Poll
             val stackResult =

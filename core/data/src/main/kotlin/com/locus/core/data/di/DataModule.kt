@@ -6,8 +6,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
 import com.google.crypto.tink.Aead
-import com.google.crypto.tink.KeyTemplates
-import com.google.crypto.tink.integration.android.AndroidKeysetManager
 import com.locus.core.data.infrastructure.CloudFormationClientImpl
 import com.locus.core.data.infrastructure.ResourceProviderImpl
 import com.locus.core.data.infrastructure.S3ClientImpl
@@ -60,41 +58,6 @@ abstract class DataModule {
     abstract fun bindResourceProvider(resourceProviderImpl: ResourceProviderImpl): ResourceProvider
 
     companion object {
-        private const val MASTER_KEY_URI = "android-keystore://master_key"
-        private const val KEYSET_NAME = "locus_keyset"
-        private const val PREF_FILE_NAME = "locus_master_key_preference"
-
-        @Provides
-        @Singleton
-        fun provideAead(
-            @ApplicationContext context: Context,
-        ): Aead {
-            // Check if running in Robolectric (Unit Test) environment
-            // Robolectric does not fully support AndroidKeyStore used by Tink's AndroidKeysetManager
-            // Fallback to a cleartext keyset for testing purposes only
-            val isRobolectric =
-                try {
-                    Class.forName("org.robolectric.Robolectric")
-                    true
-                } catch (e: ClassNotFoundException) {
-                    false
-                }
-
-            if (isRobolectric) {
-                return com.google.crypto.tink.KeysetHandle.generateNew(
-                    KeyTemplates.get("AES256_GCM"),
-                ).getPrimitive(Aead::class.java)
-            }
-
-            return AndroidKeysetManager.Builder()
-                .withSharedPref(context, KEYSET_NAME, PREF_FILE_NAME)
-                .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
-                .withMasterKeyUri(MASTER_KEY_URI)
-                .build()
-                .keysetHandle
-                .getPrimitive(Aead::class.java)
-        }
-
         @Provides
         @Singleton
         @Named("bootstrapDataStore")

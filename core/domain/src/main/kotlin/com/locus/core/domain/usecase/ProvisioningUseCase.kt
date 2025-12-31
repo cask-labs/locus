@@ -3,6 +3,7 @@ package com.locus.core.domain.usecase
 import com.locus.core.domain.infrastructure.InfrastructureConstants.OUT_BUCKET_NAME
 import com.locus.core.domain.infrastructure.InfrastructureConstants.OUT_RUNTIME_ACCESS_KEY
 import com.locus.core.domain.infrastructure.InfrastructureConstants.OUT_RUNTIME_SECRET_KEY
+import com.locus.core.domain.infrastructure.InfrastructureConstants.STACK_NAME_PREFIX
 import com.locus.core.domain.infrastructure.ResourceProvider
 import com.locus.core.domain.infrastructure.StackProvisioningService
 import com.locus.core.domain.model.auth.BootstrapCredentials
@@ -30,7 +31,8 @@ class ProvisioningUseCase
             deviceName: String,
         ): LocusResult<Unit> {
             // 1. Validate Input
-            if (deviceName.isBlank()) {
+            // Stack name limit is 128 chars. Prefix "locus-user-" is 11 chars. Max deviceName is 117 chars.
+            if (deviceName.isBlank() || deviceName.length > 117 || !deviceName.matches(Regex("^[a-zA-Z0-9-]*$"))) {
                 return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
             }
 
@@ -43,7 +45,7 @@ class ProvisioningUseCase
                 }
 
             // 3. Create Stack and Poll
-            val stackName = "locus-user-$deviceName"
+            val stackName = "$STACK_NAME_PREFIX$deviceName"
 
             val stackResult =
                 stackProvisioningService.createAndPollStack(

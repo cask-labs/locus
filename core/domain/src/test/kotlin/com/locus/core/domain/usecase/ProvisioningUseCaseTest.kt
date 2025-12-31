@@ -50,6 +50,28 @@ class ProvisioningUseCaseTest {
         }
 
     @Test
+    fun `returns failure when device name contains invalid characters`() =
+        runBlocking {
+            val result = useCase(creds, "invalid_name!")
+
+            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
+            assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
+            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
+        }
+
+    @Test
+    fun `returns failure when device name is too long`() =
+        runBlocking {
+            // 118 chars
+            val longName = "a".repeat(118)
+            val result = useCase(creds, longName)
+
+            assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
+            assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
+            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
+        }
+
+    @Test
     fun `returns failure when template loading fails`() =
         runBlocking {
             every { resourceProvider.getStackTemplate() } throws RuntimeException("File not found")
