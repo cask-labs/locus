@@ -18,23 +18,27 @@
     *   Implement `Configuration.Provider` interface.
     *   Inject `HiltWorkerFactory` via `@Inject lateinit var workerFactory: HiltWorkerFactory`.
     *   Implement `getWorkManagerConfiguration()` to return `Configuration.Builder().setWorkerFactory(workerFactory).build()`.
-    *   **Disable Default Initializer:** Ensure `tools:node="remove"` is used for `androidx.work.impl.WorkManagerInitializer` in `AndroidManifest.xml` (or verify if Hilt handles this, standard practice is manual config for Hilt).
+    *   **Disable Default Initializer:** Ensure `tools:node="remove"` is used for `androidx.work.impl.WorkManagerInitializer` in `AndroidManifest.xml`.
 *   **Create Notification Channel:** `app/src/main/kotlin/com/locus/android/LocusApp.kt`
-    *   In `onCreate()`, create the `channel_tracking` notification channel (Low Importance) using `NotificationManager`. This ensures the Worker can post its foreground notification immediately.
+    *   In `onCreate()`, create the `channel_tracking` notification channel (Low Importance) using `NotificationManager`.
+    *   **Note:** We reuse `channel_tracking` (Low Importance) for setup because it is a long-running foreground operation similar to "Recording". While setup is critical, it should not trigger "Alert" level noise (Sound/Vibration).
 
-### Step 2: Update AuthRepository Contract
-**Goal:** Enable secure retrieval of Bootstrap Credentials within the background worker.
+### Step 2: Update Specifications & AuthRepository Contract
+**Goal:** Enable secure retrieval of Bootstrap Credentials within the background worker and ensure documentation integrity.
 
+*   **Update Domain Spec:** `docs/technical_discovery/specs/domain_layer_spec.md`
+    *   Add `suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials>` to the `AuthRepository` interface definition.
+    *   This ensures the contract formally allows the worker to access these credentials.
 *   **Modify Interface:** `core/domain/src/main/kotlin/com/locus/core/domain/repository/AuthRepository.kt`
-    *   Add `suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials>`
+    *   Add `suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials>`.
 *   **Update Implementation:** `core/data/src/main/kotlin/com/locus/core/data/repository/AuthRepositoryImpl.kt`
-    *   Implement using `secureStorage.getBootstrapCredentials()`
+    *   Implement using `secureStorage.getBootstrapCredentials()`.
+    *   **Safeguard:** Ensure this returns `Failure` if the state is not `SetupPending` (or similar valid state) to prevent misuse.
 *   **Create Test Double:** `core/testing/src/main/kotlin/com/locus/core/testing/repository/FakeAuthRepository.kt`
-    *   **Create File:** If it does not exist.
-    *   Implement the full `AuthRepository` interface (stubs for methods not used in this task, functional mock for `getBootstrapCredentials`).
+    *   Implement the full `AuthRepository` interface including the new method.
 
 ### Step 3: Implement ProvisioningWorker
-**Goal:** Create the WorkManager worker.
+**Goal:** Create the WorkManager worker with robust error handling and retry logic.
 
 *   **Create File:** `app/src/main/kotlin/com/locus/android/features/onboarding/work/ProvisioningWorker.kt`
 *   **Dependencies:** `AuthRepository`, `ProvisioningUseCase`, `RecoverAccountUseCase`
@@ -48,36 +52,44 @@
         *   Channel: `channel_tracking`
         *   Title: `Locus • Setup`
         *   Body: `Provisioning resources...`
-        *   Icon: `@drawable/ic_stat_tracking` (fallback: `@mipmap/ic_launcher` if unavailable).
+        *   Icon: `@drawable/ic_stat_sync` (Represents Upload/Cloud Action).
     2.  **Credentials:** Call `authRepository.getBootstrapCredentials()`. Fail if missing.
-    3.  **Dispatch:**
-        *   If `PROVISION`: Call `provisioningUseCase(creds, input.deviceName)`
-        *   If `RECOVER`: Call `recoverAccountUseCase(creds, input.bucketName)`
-    4.  **Result:** Return `Result.success()` or `Result.failure()`.
+    3.  **Dispatch & Execution:**
+        *   Try:
+            *   If `PROVISION`: Call `provisioningUseCase(creds, input.deviceName)`
+            *   If `RECOVER`: Call `recoverAccountUseCase(creds, input.bucketName)`
+            *   Return `Result.success()`
+        *   Catch (DomainException):
+            *   **Transient (Network/Timeout):** Return `Result.retry()` (WorkManager handles backoff).
+            *   **Fatal (Auth/Validation):**
+                *   **CRITICAL:** Call `authRepository.updateProvisioningState(ProvisioningState.Error(msg))` to notify the UI.
+                *   Return `Result.failure()`.
+        *   Catch (Unknown):
+            *   Update State -> Error.
+            *   Return `Result.failure()`.
 
 ## Alignment Mapping
 
-*   **R1.600 (Provisioning Background Task):** Implemented by `ProvisioningWorker` running as a Foreground Service.
-*   **R1.1350 (Recovery Background Task):** Implemented by `ProvisioningWorker` handling the `RECOVER` mode.
-*   **R1.700 (Use Bootstrap Keys):** `AuthRepository.getBootstrapCredentials()` allows the worker to access keys.
-*   **UI/Notifications Spec:** Adheres to the "Locus • [State]" title format and reuses `channel_tracking`.
+*   **R1.600 (Provisioning Background Task):** Implemented by `ProvisioningWorker`.
+*   **R1.1350 (Recovery Background Task):** Implemented by `ProvisioningWorker`.
+*   **R1.700 (Use Bootstrap Keys):** `AuthRepository.getBootstrapCredentials()` provides access.
+*   **UI/Notifications Spec:** Uses `channel_tracking` (Low Importance) with `ic_stat_sync` as recommended.
 
 ## Testing Strategy
 
 ### Unit Tests
 *   **File:** `app/src/test/kotlin/com/locus/android/features/onboarding/work/ProvisioningWorkerTest.kt`
-*   **Tools:** `Robolectric`, `WorkManagerTestInitHelper` (requires `work-testing` dependency), `Mockk`.
+*   **Tools:** `Robolectric`, `WorkManagerTestInitHelper`, `Mockk`.
 *   **Cases:**
-    *   **Provisioning Success:** Verify `ProvisioningUseCase` is called and `Result.success()` returned.
-    *   **Recovery Success:** Verify `RecoverAccountUseCase` is called and `Result.success()` returned.
-    *   **Missing Credentials:** Verify failure if Repo returns error.
-    *   **UseCase Failure:** Verify `Result.failure()` if UseCase returns error.
-    *   **Notification:** Verify `setForeground` is called.
+    *   **Success:** Verify UseCase called -> `Result.success()`.
+    *   **Transient Error:** Mock UseCase throwing `NetworkError` -> verify `Result.retry()`.
+    *   **Fatal Error:** Mock UseCase throwing `AuthError` -> verify `updateProvisioningState(Error)` called -> `Result.failure()`.
+    *   **Notification:** Verify `setForeground` called with correct Icon/Channel.
 
 ## Completion Criteria
 
 *   `app/build.gradle.kts` includes `work-testing`.
-*   `LocusApp` implements `Configuration.Provider`.
-*   `FakeAuthRepository` is created and usable.
-*   `ProvisioningWorker` exists, compiles, and passes tests (> 70% coverage).
+*   `domain_layer_spec.md` is updated.
+*   `ProvisioningWorker` correctly handles Retries and State Updates.
+*   Tests cover Retry and Failure scenarios (> 80% coverage).
 *   `./scripts/run_local_validation.sh` passes.
