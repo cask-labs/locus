@@ -33,7 +33,7 @@
         *   Channel: `channel_tracking`
         *   Title: `Locus • Setup`
         *   Body: `Provisioning resources...`
-        *   Icon: `@drawable/ic_stat_tracking` (or generic app icon if unavailable, adhering to notification spec).
+        *   Icon: `@drawable/ic_stat_tracking` (fallback: `@mipmap/ic_launcher` if unavailable, adhering to notification spec).
     2.  **Credentials:** Call `authRepository.getBootstrapCredentials()`. Fail if missing.
     3.  **Dispatch:**
         *   If `PROVISION`: Call `provisioningUseCase(creds, input.deviceName)`
@@ -68,5 +68,5 @@
 
 *   `AuthRepository` interface supports credential retrieval.
 *   `ProvisioningWorker` exists and compiles.
-*   Unit tests pass with > 70% coverage (UI Tier).
+*   Unit tests for worker-related code in the app module pass with > 70% coverage.
 *   `./scripts/run_local_validation.sh` passes.
