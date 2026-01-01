@@ -155,9 +155,6 @@ interface AuthRepository {
     fun getProvisioningState(): Flow<ProvisioningState>
     suspend fun updateProvisioningState(state: ProvisioningState)
 
-    // Validation
-    suspend fun validateBucket(bucketName: String): LocusResult<BucketValidationStatus>
-
     // Actions
     suspend fun saveBootstrapCredentials(creds: BootstrapCredentials): LocusResult<Unit>
     suspend fun promoteToRuntimeCredentials(creds: RuntimeCredentials): LocusResult<Unit>
@@ -354,6 +351,67 @@ sealed class ServiceHealthStatus {
     object Healthy : ServiceHealthStatus()
     object RestartRequired : ServiceHealthStatus()
     object FatalError : ServiceHealthStatus() // Circuit Breaker tripped
+}
+```
+
+### 4.5. ScanBucketsUseCase
+**Role:** Discovers available Locus buckets for account recovery.
+**Logic:**
+1. List all S3 buckets.
+2. Filter by `locus-` prefix.
+3. Check tags for `LocusRole: DeviceBucket`.
+4. Return list of buckets with status (Available/Invalid).
+
+```kotlin
+class ScanBucketsUseCase(
+    private val s3Client: S3Client
+) {
+    suspend operator fun invoke(creds: BootstrapCredentials): LocusResult<List<Pair<String, BucketValidationStatus>>>
+}
+```
+
+### 4.6. ProvisioningUseCase
+**Role:** Orchestrates the setup of a new device identity and infrastructure.
+**Logic:**
+1. Validate device name.
+2. Load CloudFormation template.
+3. Create Stack (`locus-user-{deviceName}`).
+4. Poll until completion (10 min timeout).
+5. Generate new `device_id` and `salt`.
+6. Initialize Identity.
+7. Promote to Runtime Credentials.
+
+```kotlin
+class ProvisioningUseCase(
+    private val authRepository: AuthRepository,
+    private val configRepository: ConfigurationRepository,
+    private val resourceProvider: ResourceProvider,
+    private val stackProvisioningService: StackProvisioningService
+) {
+    suspend operator fun invoke(creds: BootstrapCredentials, deviceName: String): LocusResult<Unit>
+}
+```
+
+### 4.7. RecoverAccountUseCase
+**Role:** Orchestrates the recovery of an existing account to a new installation.
+**Logic:**
+1. Validate target bucket has `LocusRole` tag.
+2. Load CloudFormation template.
+3. Create Stack (`locus-user-{newUuid}`) with existing bucket parameter.
+4. Poll until completion (10 min timeout).
+5. Generate new `device_id` and `salt` (Split Brain Prevention).
+6. Initialize Identity.
+7. Promote to Runtime Credentials.
+
+```kotlin
+class RecoverAccountUseCase(
+    private val authRepository: AuthRepository,
+    private val configRepository: ConfigurationRepository,
+    private val s3Client: S3Client,
+    private val resourceProvider: ResourceProvider,
+    private val stackProvisioningService: StackProvisioningService
+) {
+    suspend operator fun invoke(creds: BootstrapCredentials, bucketName: String): LocusResult<Unit>
 }
 ```
 
