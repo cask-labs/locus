@@ -15,11 +15,15 @@ interface ConfigurationRepository {
 
     /**
      * Retrieves the device ID.
+     *
+     * @return The device ID if initialized, or null if the device has not been provisioned.
      */
     suspend fun getDeviceId(): String?
 
     /**
      * Retrieves the telemetry salt.
+     *
+     * @return The telemetry salt if initialized, or null if the device has not been provisioned.
      */
     suspend fun getTelemetrySalt(): String?
 }

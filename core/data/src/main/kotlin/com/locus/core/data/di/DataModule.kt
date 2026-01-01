@@ -104,10 +104,10 @@ abstract class DataModule {
             return context.getSharedPreferences("locus_settings", Context.MODE_PRIVATE)
         }
 
+        private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
         @Provides
         @Singleton
-        fun provideApplicationScope(): CoroutineScope {
-            return CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        }
+        fun provideApplicationScope(): CoroutineScope = applicationScope
     }
 }
