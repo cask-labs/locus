@@ -2,7 +2,6 @@ package com.locus.core.domain.repository
 
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
-import com.locus.core.domain.model.auth.BucketValidationStatus
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.LocusResult
@@ -12,6 +11,11 @@ import kotlinx.coroutines.flow.Flow
  * Repository for managing Authentication and Provisioning state.
  */
 interface AuthRepository {
+    /**
+     * Initializes the repository, loading the initial state.
+     */
+    suspend fun initialize()
+
     /**
      * Observes the current high-level authentication state.
      */
@@ -31,11 +35,6 @@ interface AuthRepository {
      * Validates that the provided Bootstrap Credentials are valid AWS Temporary Credentials.
      */
     suspend fun validateCredentials(creds: BootstrapCredentials): LocusResult<Unit>
-
-    /**
-     * Checks if a bucket exists and is accessible.
-     */
-    suspend fun validateBucket(bucketName: String): LocusResult<BucketValidationStatus>
 
     /**
      * Persists the Bootstrap Credentials securely (RAM/EncryptedSharedPrefs).
@@ -62,18 +61,4 @@ interface AuthRepository {
      * Retrieves the currently active Runtime Credentials.
      */
     suspend fun getRuntimeCredentials(): LocusResult<RuntimeCredentials>
-
-    /**
-     * Scans for available recovery buckets using the Bootstrap credentials.
-     * Returns a list of bucket names that start with "locus-".
-     */
-    suspend fun scanForRecoveryBuckets(): LocusResult<List<String>>
-
-    /**
-     * Recovers an account by locating the IAM User credentials in an existing S3 bucket.
-     */
-    suspend fun recoverAccount(
-        bucketName: String,
-        deviceName: String,
-    ): LocusResult<RuntimeCredentials>
 }

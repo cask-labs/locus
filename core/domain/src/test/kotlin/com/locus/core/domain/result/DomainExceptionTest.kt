@@ -100,4 +100,25 @@ class DomainExceptionTest {
         val error = DomainException.ProvisioningError.Wait("Waiting")
         assertThat(error.message).isEqualTo("Waiting")
     }
+
+    @Test
+    fun `verify equality and hashcode for data classes`() {
+        val ex1 = DomainException.NetworkError.Timeout("t")
+        val ex2 = DomainException.NetworkError.Timeout("t")
+        val ex3 = DomainException.NetworkError.Timeout("other")
+
+        assertThat(ex1).isEqualTo(ex2)
+        assertThat(ex1.hashCode()).isEqualTo(ex2.hashCode())
+        assertThat(ex1).isNotEqualTo(ex3)
+
+        val s3Error1 = DomainException.S3Error.BucketNotFound("b")
+        val s3Error2 = DomainException.S3Error.BucketNotFound("b")
+        assertThat(s3Error1).isEqualTo(s3Error2)
+    }
+
+    @Test
+    fun `verify toString for data classes`() {
+        val ex = DomainException.NetworkError.Timeout("t")
+        assertThat(ex.toString()).contains("t")
+    }
 }
