@@ -58,6 +58,8 @@ abstract class DataModule {
     abstract fun bindResourceProvider(resourceProviderImpl: ResourceProviderImpl): ResourceProvider
 
     companion object {
+        private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
         @Provides
         @Singleton
         @Named("bootstrapDataStore")
@@ -107,7 +109,7 @@ abstract class DataModule {
         @Provides
         @Singleton
         fun provideApplicationScope(): CoroutineScope {
-            return CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            return applicationScope
         }
     }
 }

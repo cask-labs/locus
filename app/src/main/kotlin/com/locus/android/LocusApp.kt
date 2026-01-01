@@ -5,8 +5,6 @@ import com.google.crypto.tink.config.TinkConfig
 import com.locus.core.domain.repository.AuthRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.security.GeneralSecurityException
 import javax.inject.Inject
@@ -16,7 +14,8 @@ class LocusApp : Application() {
     @Inject
     lateinit var authRepository: AuthRepository
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    @Inject
+    lateinit var applicationScope: CoroutineScope
 
     init {
         // Register Tink configs globally early, before Hilt injection
