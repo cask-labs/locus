@@ -6,6 +6,10 @@ plugins {
     alias(libs.plugins.kover)
 }
 
+detekt {
+    baseline = file("detekt-baseline.xml")
+}
+
 fun getGitVersionName(): String {
     return try {
         val stdout = ByteArrayOutputStream()

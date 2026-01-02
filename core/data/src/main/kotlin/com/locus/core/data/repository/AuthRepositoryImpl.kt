@@ -12,7 +12,8 @@ import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
-import com.locus.core.domain.result.DomainException
+import com.locus.core.domain.result.DomainException.AuthError
+import com.locus.core.domain.result.DomainException.ProvisioningError
 import com.locus.core.domain.result.LocusResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -51,7 +52,7 @@ class AuthRepositoryImpl
                             val errorMessage = info.outputData.getString("error_message") ?: "Setup failed in background"
                             mutableProvisioningState.value =
                                 ProvisioningState.Failure(
-                                    DomainException.ProvisioningError.DeploymentFailed(errorMessage),
+                                    ProvisioningError.DeploymentFailed(errorMessage),
                                 )
                         }
                         else -> {
@@ -99,13 +100,13 @@ class AuthRepositoryImpl
                         if (creds != null) {
                             LocusResult.Success(creds)
                         } else {
-                            LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                            LocusResult.Failure(AuthError.InvalidCredentials)
                         }
                     }
                     is LocusResult.Failure -> LocusResult.Failure(result.error)
                 }
             } catch (e: Exception) {
-                LocusResult.Failure(DomainException.AuthError.Generic(e))
+                LocusResult.Failure(AuthError.Generic(e))
             }
         }
 
@@ -118,7 +119,7 @@ class AuthRepositoryImpl
                 }
                 LocusResult.Success(Unit)
             } catch (e: Exception) {
-                LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                LocusResult.Failure(AuthError.InvalidCredentials)
             }
         }
 
@@ -162,7 +163,7 @@ class AuthRepositoryImpl
                 is LocusResult.Success -> {
                     val data =
                         result.data ?: return LocusResult.Failure(
-                            DomainException.AuthError.InvalidCredentials,
+                            AuthError.InvalidCredentials,
                         )
                     LocusResult.Success(data)
                 }

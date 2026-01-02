@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>LongMethod:CredentialEntryScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CredentialEntryScreen( uiState: OnboardingUiState, onAccessKeyIdChanged: (String) -&gt; Unit, onSecretAccessKeyChanged: (String) -&gt; Unit, onSessionTokenChanged: (String) -&gt; Unit, onPasteJson: (String) -&gt; Unit, onValidate: () -&gt; Unit, )</ID>
+    <ID>LongMethod:NewDeviceSetupScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun NewDeviceSetupScreen( uiState: NewDeviceUiState, onDeviceNameChanged: (String) -&gt; Unit, onCheckAvailability: () -&gt; Unit, onDeploy: () -&gt; Unit, )</ID>
+    <ID>LongMethod:RecoveryScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun RecoveryScreen( uiState: RecoveryUiState, onLoadBuckets: () -&gt; Unit, onBucketSelected: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:WelcomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WelcomeScreen(onGetStarted: () -&gt; Unit)</ID>
+    <ID>LongParameterList:CredentialEntryScreen.kt$( uiState: OnboardingUiState, onAccessKeyIdChanged: (String) -&gt; Unit, onSecretAccessKeyChanged: (String) -&gt; Unit, onSessionTokenChanged: (String) -&gt; Unit, onPasteJson: (String) -&gt; Unit, onValidate: () -&gt; Unit, )</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$5000</ID>
+    <ID>SwallowedException:LocusApp.kt$LocusApp$e: ClassNotFoundException</ID>
+  </CurrentIssues>
+</SmellBaseline>
