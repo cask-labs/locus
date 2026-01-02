@@ -160,7 +160,9 @@ class ProvisioningWorkerTest {
             val result = worker.doWork()
 
             // Assert
-            assertThat(result).isEqualTo(Result.failure())
+            val outputData = (result as? Result.Failure)?.outputData
+            assertThat(outputData).isNotNull()
+            assertThat(outputData?.getString("error_message")).isEqualTo("Permission Denied")
             coVerify {
                 authRepository.updateProvisioningState(match { it is ProvisioningState.Failure })
             }
@@ -179,7 +181,9 @@ class ProvisioningWorkerTest {
             val result = worker.doWork()
 
             // Assert
-            assertThat(result).isEqualTo(Result.failure())
+            val outputData = (result as? Result.Failure)?.outputData
+            assertThat(outputData).isNotNull()
+            assertThat(outputData?.getString("error_message")).isEqualTo("Bootstrap credentials missing")
             coVerify {
                 authRepository.updateProvisioningState(match { it is ProvisioningState.Failure })
             }

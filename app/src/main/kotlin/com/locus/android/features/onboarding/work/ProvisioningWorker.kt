@@ -62,8 +62,9 @@ class ProvisioningWorker
             // 2. Credentials
             val credsResult = authRepository.getBootstrapCredentials()
             if (credsResult is LocusResult.Failure) {
-                handleFatalError("Bootstrap credentials missing")
-                return Result.failure()
+                val message = "Bootstrap credentials missing"
+                handleFatalError(message)
+                return Result.failure(androidx.work.workDataOf("error_message" to message))
             }
             val creds = (credsResult as LocusResult.Success).data
 
@@ -92,8 +93,9 @@ class ProvisioningWorker
                 }
             } catch (e: Exception) {
                 // Handle unchecked exceptions as Fatal for now, or retry if network related
-                handleFatalError(e.message ?: "Unknown error")
-                Result.failure()
+                val message = e.message ?: "Unknown error"
+                handleFatalError(message)
+                Result.failure(androidx.work.workDataOf("error_message" to message))
             }
         }
 
@@ -108,16 +110,17 @@ class ProvisioningWorker
                     }
                     // Fatal Errors - Fail
                     else -> {
-                        handleFatalError(
+                        val message =
                             error.message
-                                ?: applicationContext.getString(R.string.notification_setup_fallback_message),
-                        )
-                        Result.failure()
+                                ?: applicationContext.getString(R.string.notification_setup_fallback_message)
+                        handleFatalError(message)
+                        Result.failure(androidx.work.workDataOf("error_message" to message))
                     }
                 }
             } else {
-                handleFatalError(applicationContext.getString(R.string.notification_setup_unknown_error))
-                Result.failure()
+                val message = applicationContext.getString(R.string.notification_setup_unknown_error)
+                handleFatalError(message)
+                Result.failure(androidx.work.workDataOf("error_message" to message))
             }
         }
 
