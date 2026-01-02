@@ -77,6 +77,9 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
+    // JSON Serialization
+    implementation(libs.kotlinx.serialization.json)
+
     // Security
     implementation(libs.tink.android)
 
