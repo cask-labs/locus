@@ -1,10 +1,12 @@
 package com.locus.android.features.onboarding.work
 
 import android.content.Context
+import android.content.pm.ServiceInfo
+import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker.Result
 import androidx.work.testing.TestListenableWorkerBuilder
-import androidx.work.workDataOf
 import com.google.common.truth.Truth.assertThat
+import com.locus.android.R
 import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.repository.AuthRepository
@@ -40,8 +42,53 @@ class ProvisioningWorkerTest {
 
     @Before
     fun setUp() {
-        context = androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        context = ApplicationProvider.getApplicationContext()
     }
+
+    private fun buildWorker(
+        mode: String,
+        deviceName: String? = null,
+        bucketName: String? = null,
+    ): ProvisioningWorker {
+        val inputDataBuilder = androidx.work.Data.Builder().putString(ProvisioningWorker.KEY_MODE, mode)
+
+        deviceName?.let { inputDataBuilder.putString(ProvisioningWorker.KEY_DEVICE_NAME, it) }
+        bucketName?.let { inputDataBuilder.putString(ProvisioningWorker.KEY_BUCKET_NAME, it) }
+
+        return TestListenableWorkerBuilder<ProvisioningWorker>(context)
+            .setInputData(inputDataBuilder.build())
+            .setWorkerFactory(
+                object : androidx.work.WorkerFactory() {
+                    override fun createWorker(
+                        appContext: Context,
+                        workerClassName: String,
+                        workerParameters: androidx.work.WorkerParameters,
+                    ): androidx.work.ListenableWorker {
+                        return ProvisioningWorker(
+                            appContext,
+                            workerParameters,
+                            authRepository,
+                            provisioningUseCase,
+                            recoverAccountUseCase,
+                        )
+                    }
+                },
+            )
+            .build()
+    }
+
+    @Test
+    fun `getForegroundInfo returns correct attributes`() =
+        runTest {
+            val worker = buildWorker(ProvisioningWorker.MODE_PROVISION, "device-1")
+
+            val foregroundInfo = worker.getForegroundInfo()
+
+            assertThat(foregroundInfo.notificationId).isEqualTo(ProvisioningWorker.NOTIFICATION_ID)
+            assertThat(foregroundInfo.foregroundServiceType).isEqualTo(ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            assertThat(foregroundInfo.notification.channelId).isEqualTo("setup_status")
+            assertThat(foregroundInfo.notification.smallIcon.resId).isEqualTo(R.mipmap.ic_launcher)
+        }
 
     @Test
     fun `doWork returns success when provisioning succeeds`() =
@@ -51,32 +98,7 @@ class ProvisioningWorkerTest {
             coEvery { authRepository.getBootstrapCredentials() } returns LocusResult.Success(creds)
             coEvery { provisioningUseCase(any(), any()) } returns LocusResult.Success(Unit)
 
-            val worker =
-                TestListenableWorkerBuilder<ProvisioningWorker>(context)
-                    .setInputData(
-                        workDataOf(
-                            ProvisioningWorker.KEY_MODE to ProvisioningWorker.MODE_PROVISION,
-                            ProvisioningWorker.KEY_DEVICE_NAME to "device-1",
-                        ),
-                    )
-                    .setWorkerFactory(
-                        object : androidx.work.WorkerFactory() {
-                            override fun createWorker(
-                                appContext: Context,
-                                workerClassName: String,
-                                workerParameters: androidx.work.WorkerParameters,
-                            ): androidx.work.ListenableWorker {
-                                return ProvisioningWorker(
-                                    appContext,
-                                    workerParameters,
-                                    authRepository,
-                                    provisioningUseCase,
-                                    recoverAccountUseCase,
-                                )
-                            }
-                        },
-                    )
-                    .build()
+            val worker = buildWorker(ProvisioningWorker.MODE_PROVISION, deviceName = "device-1")
 
             // Act
             val result = worker.doWork()
@@ -84,6 +106,24 @@ class ProvisioningWorkerTest {
             // Assert
             assertThat(result).isEqualTo(Result.success())
             coVerify { provisioningUseCase(creds, "device-1") }
+        }
+
+    @Test
+    fun `doWork returns success when recovery succeeds`() =
+        runTest {
+            // Arrange
+            val creds = BootstrapCredentials("ak", "sk", "st", "us-east-1")
+            coEvery { authRepository.getBootstrapCredentials() } returns LocusResult.Success(creds)
+            coEvery { recoverAccountUseCase(any(), any()) } returns LocusResult.Success(Unit)
+
+            val worker = buildWorker(ProvisioningWorker.MODE_RECOVER, bucketName = "locus-bucket")
+
+            // Act
+            val result = worker.doWork()
+
+            // Assert
+            assertThat(result).isEqualTo(Result.success())
+            coVerify { recoverAccountUseCase(creds, "locus-bucket") }
         }
 
     @Test
@@ -95,32 +135,7 @@ class ProvisioningWorkerTest {
             coEvery { provisioningUseCase(any(), any()) } returns
                 LocusResult.Failure(DomainException.NetworkError.Offline)
 
-            val worker =
-                TestListenableWorkerBuilder<ProvisioningWorker>(context)
-                    .setInputData(
-                        workDataOf(
-                            ProvisioningWorker.KEY_MODE to ProvisioningWorker.MODE_PROVISION,
-                            ProvisioningWorker.KEY_DEVICE_NAME to "device-1",
-                        ),
-                    )
-                    .setWorkerFactory(
-                        object : androidx.work.WorkerFactory() {
-                            override fun createWorker(
-                                appContext: Context,
-                                workerClassName: String,
-                                workerParameters: androidx.work.WorkerParameters,
-                            ): androidx.work.ListenableWorker {
-                                return ProvisioningWorker(
-                                    appContext,
-                                    workerParameters,
-                                    authRepository,
-                                    provisioningUseCase,
-                                    recoverAccountUseCase,
-                                )
-                            }
-                        },
-                    )
-                    .build()
+            val worker = buildWorker(ProvisioningWorker.MODE_PROVISION, deviceName = "device-1")
 
             // Act
             val result = worker.doWork()
@@ -139,32 +154,7 @@ class ProvisioningWorkerTest {
                 provisioningUseCase(any(), any())
             } returns LocusResult.Failure(DomainException.ProvisioningError.Permissions("Permission Denied"))
 
-            val worker =
-                TestListenableWorkerBuilder<ProvisioningWorker>(context)
-                    .setInputData(
-                        workDataOf(
-                            ProvisioningWorker.KEY_MODE to ProvisioningWorker.MODE_PROVISION,
-                            ProvisioningWorker.KEY_DEVICE_NAME to "device-1",
-                        ),
-                    )
-                    .setWorkerFactory(
-                        object : androidx.work.WorkerFactory() {
-                            override fun createWorker(
-                                appContext: Context,
-                                workerClassName: String,
-                                workerParameters: androidx.work.WorkerParameters,
-                            ): androidx.work.ListenableWorker {
-                                return ProvisioningWorker(
-                                    appContext,
-                                    workerParameters,
-                                    authRepository,
-                                    provisioningUseCase,
-                                    recoverAccountUseCase,
-                                )
-                            }
-                        },
-                    )
-                    .build()
+            val worker = buildWorker(ProvisioningWorker.MODE_PROVISION, deviceName = "device-1")
 
             // Act
             val result = worker.doWork()
@@ -183,32 +173,7 @@ class ProvisioningWorkerTest {
             coEvery { authRepository.getBootstrapCredentials() } returns
                 LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
 
-            val worker =
-                TestListenableWorkerBuilder<ProvisioningWorker>(context)
-                    .setInputData(
-                        workDataOf(
-                            ProvisioningWorker.KEY_MODE to ProvisioningWorker.MODE_PROVISION,
-                            ProvisioningWorker.KEY_DEVICE_NAME to "device-1",
-                        ),
-                    )
-                    .setWorkerFactory(
-                        object : androidx.work.WorkerFactory() {
-                            override fun createWorker(
-                                appContext: Context,
-                                workerClassName: String,
-                                workerParameters: androidx.work.WorkerParameters,
-                            ): androidx.work.ListenableWorker {
-                                return ProvisioningWorker(
-                                    appContext,
-                                    workerParameters,
-                                    authRepository,
-                                    provisioningUseCase,
-                                    recoverAccountUseCase,
-                                )
-                            }
-                        },
-                    )
-                    .build()
+            val worker = buildWorker(ProvisioningWorker.MODE_PROVISION, deviceName = "device-1")
 
             // Act
             val result = worker.doWork()
