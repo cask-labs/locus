@@ -10,9 +10,6 @@ plugins {
 
 android {
     namespace = "com.locus.core.data"
-    buildFeatures {
-        buildConfig = true
-    }
 }
 
 dependencies {

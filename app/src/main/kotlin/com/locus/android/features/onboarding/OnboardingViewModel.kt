@@ -37,6 +37,10 @@ class OnboardingViewModel
     constructor(
         private val authRepository: AuthRepository,
     ) : ViewModel() {
+        private companion object {
+            const val BOOTSTRAP_REGION = "us-east-1"
+        }
+
         private val _uiState = MutableStateFlow(OnboardingUiState())
         val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
@@ -100,7 +104,7 @@ class OnboardingViewModel
             } catch (
                 @Suppress("TooGenericExceptionCaught", "SwallowedException") e: Exception,
             ) {
-                _uiState.update { it.copy(error = "Failed to parse JSON") }
+                _uiState.update { it.copy(error = "Failed to parse JSON: ${e.message}") }
             }
         }
 
@@ -122,7 +126,7 @@ class OnboardingViewModel
                         accessKeyId = currentState.accessKeyId,
                         secretAccessKey = currentState.secretAccessKey,
                         sessionToken = currentState.sessionToken,
-                        region = "us-east-1",
+                        region = BOOTSTRAP_REGION,
                     )
 
                 // Validate against AWS

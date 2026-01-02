@@ -59,6 +59,8 @@ class LocusApp : Application(), Configuration.Provider {
         super.onCreate()
         createNotificationChannels()
         // If authRepository is not initialized (e.g. in some test scenarios where Hilt doesn't inject), skip usage.
+        // This primarily guards against crashes in Robolectric unit tests where LocusApp is loaded as the
+        // context but Hilt injection is not configured (non-Hilt tests).
         if (::authRepository.isInitialized) {
             applicationScope.launch {
                 authRepository.initialize()

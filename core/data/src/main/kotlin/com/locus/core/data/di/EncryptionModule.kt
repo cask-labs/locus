@@ -39,6 +39,9 @@ object EncryptionModule {
                 // run unit tests against Release builds (e.g. testReleaseUnitTest).
                 // The isRobolectric() check is sufficient safety because org.robolectric.Robolectric
                 // class will not be present in the production APK runtime.
+                //
+                // IMPORTANT: This creates an INSECURE AEAD implementation that performs no real
+                // encryption or authentication and must NEVER be used in production code.
                 return object : Aead {
                     override fun encrypt(
                         plaintext: ByteArray,
