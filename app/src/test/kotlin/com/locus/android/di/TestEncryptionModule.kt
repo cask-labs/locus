@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Module
 @TestInstallIn(
     components = [SingletonComponent::class],
-    replaces = [EncryptionModule::class]
+    replaces = [EncryptionModule::class],
 )
 object TestEncryptionModule {
     @Provides

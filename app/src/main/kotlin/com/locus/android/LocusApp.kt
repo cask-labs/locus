@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.crypto.tink.config.TinkConfig
 import com.locus.core.domain.repository.AuthRepository
@@ -14,7 +15,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.security.GeneralSecurityException
 import javax.inject.Inject
-import androidx.hilt.work.HiltWorkerFactory
 
 @HiltAndroidApp
 class LocusApp : Application(), Configuration.Provider {
@@ -46,27 +46,30 @@ class LocusApp : Application(), Configuration.Provider {
     }
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+        get() =
+            Configuration.Builder()
+                .setWorkerFactory(workerFactory)
+                .build()
 
     private fun createNotificationChannels() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         // Setup Channel
-        val setupChannel = NotificationChannel(
-            "setup_status",
-            "Setup Status",
-            NotificationManager.IMPORTANCE_LOW
-        )
+        val setupChannel =
+            NotificationChannel(
+                "setup_status",
+                "Setup Status",
+                NotificationManager.IMPORTANCE_LOW,
+            )
         notificationManager.createNotificationChannel(setupChannel)
 
         // Tracking Channel
-        val trackingChannel = NotificationChannel(
-            "tracking_status",
-            "Tracking Status",
-            NotificationManager.IMPORTANCE_LOW
-        )
+        val trackingChannel =
+            NotificationChannel(
+                "tracking_status",
+                "Tracking Status",
+                NotificationManager.IMPORTANCE_LOW,
+            )
         notificationManager.createNotificationChannel(trackingChannel)
     }
 }
