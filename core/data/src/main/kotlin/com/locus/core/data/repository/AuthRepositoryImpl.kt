@@ -1,5 +1,6 @@
 package com.locus.core.data.repository
 
+import android.util.Log
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import aws.sdk.kotlin.services.s3.listBuckets
@@ -47,13 +48,10 @@ class AuthRepositoryImpl
                             mutableProvisioningState.value = ProvisioningState.Working("Resuming setup...")
                         }
                         WorkInfo.State.FAILED -> {
-                            // Can't easily retrieve custom object error from Data here without more logic,
-                            // but we can signal generic error.
-                            // For now, let's just expose a generic error so UI can handle it.
-                            // Ideally we would inspect output data if we serialized the error there.
+                            val errorMessage = info.outputData.getString("error_message") ?: "Setup failed in background"
                             mutableProvisioningState.value =
                                 ProvisioningState.Failure(
-                                    DomainException.ProvisioningError.DeploymentFailed("Setup failed in background"),
+                                    DomainException.ProvisioningError.DeploymentFailed(errorMessage),
                                 )
                         }
                         else -> {
@@ -64,8 +62,7 @@ class AuthRepositoryImpl
                     }
                 }
             } catch (e: Exception) {
-                // Should log this properly in production, using printStackTrace for debug visibility
-                e.printStackTrace()
+                Log.e(TAG, "Failed to check provisioning worker status", e)
             }
         }
 
@@ -121,7 +118,7 @@ class AuthRepositoryImpl
                 }
                 LocusResult.Success(Unit)
             } catch (e: Exception) {
-                LocusResult.Failure(com.locus.core.domain.result.DomainException.AuthError.InvalidCredentials)
+                LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
             }
         }
 
@@ -165,11 +162,15 @@ class AuthRepositoryImpl
                 is LocusResult.Success -> {
                     val data =
                         result.data ?: return LocusResult.Failure(
-                            com.locus.core.domain.result.DomainException.AuthError.InvalidCredentials,
+                            DomainException.AuthError.InvalidCredentials,
                         )
                     LocusResult.Success(data)
                 }
                 is LocusResult.Failure -> result
             }
+        }
+
+        companion object {
+            private const val TAG = "AuthRepositoryImpl"
         }
     }
