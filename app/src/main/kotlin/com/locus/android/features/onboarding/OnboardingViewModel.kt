@@ -116,8 +116,7 @@ class OnboardingViewModel
 
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, error = null) }
-                // Note: Region hardcoded to us-east-1 for Bootstrap as per memory/spec
-                // "The AWS connection strategy hardcodes us-east-1 for the Bootstrap process"
+                // Note: Region hardcoded to us-east-1 for Bootstrap as per Network Infrastructure Spec (Section 2.1)
                 val creds =
                     BootstrapCredentials(
                         accessKeyId = currentState.accessKeyId,
