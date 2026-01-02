@@ -1,5 +1,7 @@
 package com.locus.core.data.repository
 
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import aws.sdk.kotlin.services.s3.listBuckets
 import com.locus.core.data.source.local.SecureStorageDataSource
 import com.locus.core.data.source.remote.aws.AwsClientFactory
@@ -24,12 +26,45 @@ class AuthRepositoryImpl
         private val awsClientFactory: AwsClientFactory,
         private val secureStorage: SecureStorageDataSource,
         private val applicationScope: CoroutineScope,
+        private val workManager: WorkManager,
     ) : AuthRepository {
         private val mutableAuthState = MutableStateFlow<AuthState>(AuthState.Uninitialized)
         private val mutableProvisioningState = MutableStateFlow<ProvisioningState>(ProvisioningState.Idle)
 
         override suspend fun initialize() {
             loadInitialState()
+            checkProvisioningWorkerStatus()
+        }
+
+        private suspend fun checkProvisioningWorkerStatus() {
+            try {
+                val workInfos = workManager.getWorkInfosForUniqueWork("provisioning").get()
+                if (workInfos.isNotEmpty()) {
+                    val info = workInfos.first()
+                    when (info.state) {
+                        WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> {
+                            mutableProvisioningState.value = ProvisioningState.DeployingStack("Resuming setup...")
+                        }
+                        WorkInfo.State.FAILED -> {
+                            // Can't easily retrieve custom object error from Data here without more logic,
+                            // but we can signal generic error.
+                            // For now, let's just expose a generic error so UI can handle it.
+                            // Ideally we would inspect output data if we serialized the error there.
+                            mutableProvisioningState.value =
+                                ProvisioningState.Failure(
+                                    DomainException.ProvisioningError.DeploymentFailed("Setup failed in background"),
+                                )
+                        }
+                        else -> {
+                            // Succeeded or Cancelled - standard flow should have updated state,
+                            // or it is old work. If SUCCEEDED, we might want to check auth state?
+                            // But initialize() already loaded auth state.
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore work manager errors during init
+            }
         }
 
         private suspend fun loadInitialState() {
@@ -54,6 +89,27 @@ class AuthRepositoryImpl
 
         override suspend fun updateProvisioningState(state: ProvisioningState) {
             mutableProvisioningState.value = state
+        }
+
+        override suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials> {
+            return try {
+                val result = secureStorage.getBootstrapCredentials()
+                when (result) {
+                    is LocusResult.Success -> {
+                        val data = result.data
+                        if (data != null) {
+                            LocusResult.Success(data)
+                        } else {
+                            LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                        }
+                    }
+                    is LocusResult.Failure -> {
+                        LocusResult.Failure(DomainException.AuthError.Generic(result.error))
+                    }
+                }
+            } catch (e: Exception) {
+                LocusResult.Failure(DomainException.AuthError.Generic(e))
+            }
         }
 
         override suspend fun validateCredentials(creds: BootstrapCredentials): LocusResult<Unit> {

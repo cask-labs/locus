@@ -43,6 +43,15 @@ class SecureStorageDataSource
             }
         }
 
+        // Helper properties for legacy access if needed, but we prefer suspend functions above.
+        // The RepositoryImpl uses these properties currently, so we need to expose them via suspend functions or properties.
+        // Wait, RepositoryImpl uses direct property access? The plan assumed so, but I need to check if I can expose these.
+        // Ah, the RepositoryImpl code I wrote assumes 'secureStorage.bootstrapAccessKey', etc.
+        // But SecureStorageDataSource only exposes suspend methods returning DTO/Domain.
+        // I need to update RepositoryImpl to use 'getBootstrapCredentials()' which I already added to interface.
+        // Actually, in RepositoryImpl, I implemented getBootstrapCredentials using properties that don't exist yet on SecureStorageDataSource.
+        // So I should stick to using the existing 'getBootstrapCredentials' method of SecureStorageDataSource.
+
         suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials?> {
             return try {
                 val dto = bootstrapDataStore.data.first()

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
+import androidx.work.WorkManager
 import com.google.crypto.tink.Aead
 import com.locus.core.data.infrastructure.CloudFormationClientImpl
 import com.locus.core.data.infrastructure.ResourceProviderImpl
@@ -21,6 +22,8 @@ import com.locus.core.domain.infrastructure.S3Client
 import com.locus.core.domain.repository.AppVersionRepository
 import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.repository.ConfigurationRepository
+import com.locus.core.domain.util.DefaultTimeProvider
+import com.locus.core.domain.util.TimeProvider
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -57,7 +60,18 @@ abstract class DataModule {
     @Binds
     abstract fun bindResourceProvider(resourceProviderImpl: ResourceProviderImpl): ResourceProvider
 
+    @Binds
+    abstract fun bindTimeProvider(systemTimeProvider: DefaultTimeProvider): TimeProvider
+
     companion object {
+        @Provides
+        @Singleton
+        fun provideWorkManager(
+            @ApplicationContext context: Context,
+        ): WorkManager {
+            return WorkManager.getInstance(context)
+        }
+
         @Provides
         @Singleton
         @Named("bootstrapDataStore")

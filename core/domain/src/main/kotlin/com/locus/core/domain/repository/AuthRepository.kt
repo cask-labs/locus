@@ -37,6 +37,11 @@ interface AuthRepository {
     suspend fun validateCredentials(creds: BootstrapCredentials): LocusResult<Unit>
 
     /**
+     * Retrieves the stored Bootstrap Credentials securely.
+     */
+    suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials>
+
+    /**
      * Persists the Bootstrap Credentials securely (RAM/EncryptedSharedPrefs).
      */
     suspend fun saveBootstrapCredentials(creds: BootstrapCredentials): LocusResult<Unit>
