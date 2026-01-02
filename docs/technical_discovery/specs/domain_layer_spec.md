@@ -156,6 +156,7 @@ interface AuthRepository {
     suspend fun updateProvisioningState(state: ProvisioningState)
 
     // Actions
+    suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials>
     suspend fun saveBootstrapCredentials(creds: BootstrapCredentials): LocusResult<Unit>
     suspend fun promoteToRuntimeCredentials(creds: RuntimeCredentials): LocusResult<Unit>
     suspend fun replaceWithAdminCredentials(creds: RuntimeCredentials): LocusResult<Unit>

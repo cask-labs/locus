@@ -10,6 +10,8 @@ import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +26,42 @@ class AuthRepositoryImpl
         private val awsClientFactory: AwsClientFactory,
         private val secureStorage: SecureStorageDataSource,
         private val applicationScope: CoroutineScope,
+        private val workManager: WorkManager,
     ) : AuthRepository {
         private val mutableAuthState = MutableStateFlow<AuthState>(AuthState.Uninitialized)
         private val mutableProvisioningState = MutableStateFlow<ProvisioningState>(ProvisioningState.Idle)
 
         override suspend fun initialize() {
             loadInitialState()
+            checkProvisioningWorkerStatus()
+        }
+
+        private suspend fun checkProvisioningWorkerStatus() {
+            try {
+                val workInfos = workManager.getWorkInfosForUniqueWork(AuthRepository.PROVISIONING_WORK_NAME).get()
+                if (workInfos.isNotEmpty()) {
+                    val info = workInfos.first()
+                    when (info.state) {
+                        WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> {
+                            mutableProvisioningState.value = ProvisioningState.Working("Resuming setup...")
+                        }
+                        WorkInfo.State.FAILED -> {
+                             // Can't easily retrieve custom object error from Data here without more logic,
+                             // but we can signal generic error.
+                             // For now, let's just expose a generic error so UI can handle it.
+                             // Ideally we would inspect output data if we serialized the error there.
+                             mutableProvisioningState.value = ProvisioningState.Failure(DomainException.ProvisioningError.DeploymentFailed("Setup failed in background"))
+                        }
+                        else -> {
+                            // Succeeded or Cancelled - standard flow should have updated state,
+                            // or it is old work. If SUCCEEDED, we might want to check auth state?
+                            // But initialize() already loaded auth state.
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore work manager errors during init
+            }
         }
 
         private suspend fun loadInitialState() {
@@ -56,6 +88,25 @@ class AuthRepositoryImpl
             mutableProvisioningState.value = state
         }
 
+    override suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials> {
+        return try {
+            val result = secureStorage.getBootstrapCredentials()
+            when (result) {
+                is LocusResult.Success -> {
+                    val creds = result.data
+                    if (creds != null) {
+                        LocusResult.Success(creds)
+                    } else {
+                        LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                    }
+                }
+                is LocusResult.Failure -> LocusResult.Failure(result.error)
+            }
+        } catch (e: Exception) {
+            LocusResult.Failure(DomainException.AuthError.Generic(e))
+        }
+    }
+
         override suspend fun validateCredentials(creds: BootstrapCredentials): LocusResult<Unit> {
             return try {
                 val client = awsClientFactory.createBootstrapS3Client(creds)
@@ -65,7 +116,7 @@ class AuthRepositoryImpl
                 }
                 LocusResult.Success(Unit)
             } catch (e: Exception) {
-                LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                LocusResult.Failure(com.locus.core.domain.result.DomainException.AuthError.InvalidCredentials)
             }
         }
 
@@ -107,7 +158,7 @@ class AuthRepositoryImpl
             val result = secureStorage.getRuntimeCredentials()
             return when (result) {
                 is LocusResult.Success -> {
-                    val data = result.data ?: return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                    val data = result.data ?: return LocusResult.Failure(com.locus.core.domain.result.DomainException.AuthError.InvalidCredentials)
                     LocusResult.Success(data)
                 }
                 is LocusResult.Failure -> result
