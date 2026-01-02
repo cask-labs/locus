@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.repository.AuthRepository
+import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -137,7 +138,13 @@ class OnboardingViewModel
                         _uiState.update { it.copy(error = "Failed to save credentials") }
                     }
                 } else {
-                    _uiState.update { it.copy(error = "Invalid credentials or network error") }
+                    val errorMsg =
+                        when ((validationResult as LocusResult.Failure).error) {
+                            is DomainException.AuthError -> "Invalid credentials provided"
+                            is DomainException.NetworkError -> "Network connection error"
+                            else -> "Invalid credentials or network error"
+                        }
+                    _uiState.update { it.copy(error = errorMsg) }
                 }
                 _uiState.update { it.copy(isLoading = false) }
             }

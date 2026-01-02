@@ -73,14 +73,14 @@ class OnboardingViewModelTest {
 
     @Test
     fun `pasteJson handles missing keys`() {
-        val json =
+        val incompleteJson =
             """
             {
                 "AccessKeyId": "testKey"
             }
             """.trimIndent()
 
-        viewModel.pasteJson(json)
+        viewModel.pasteJson(incompleteJson)
 
         val state = viewModel.uiState.value
         assertThat(state.error).contains("Invalid JSON format")
@@ -89,9 +89,9 @@ class OnboardingViewModelTest {
     @Test
     fun `validateCredentials calls repository and updates state on success`() =
         runTest {
-            viewModel.onAccessKeyIdChanged("key")
-            viewModel.onSecretAccessKeyChanged("secret")
-            viewModel.onSessionTokenChanged("token")
+            viewModel.onAccessKeyIdChanged(TEST_KEY)
+            viewModel.onSecretAccessKeyChanged(TEST_SECRET)
+            viewModel.onSessionTokenChanged(TEST_TOKEN)
 
             coEvery { authRepository.validateCredentials(any()) } returns LocusResult.Success(Unit)
             coEvery { authRepository.saveBootstrapCredentials(any()) } returns LocusResult.Success(Unit)
@@ -107,9 +107,9 @@ class OnboardingViewModelTest {
     @Test
     fun `validateCredentials sets error on failure`() =
         runTest {
-            viewModel.onAccessKeyIdChanged("key")
-            viewModel.onSecretAccessKeyChanged("secret")
-            viewModel.onSessionTokenChanged("token")
+            viewModel.onAccessKeyIdChanged(TEST_KEY)
+            viewModel.onSecretAccessKeyChanged(TEST_SECRET)
+            viewModel.onSessionTokenChanged(TEST_TOKEN)
 
             coEvery { authRepository.validateCredentials(any()) } returns LocusResult.Failure(Exception("Fail"))
 
@@ -118,4 +118,10 @@ class OnboardingViewModelTest {
 
             assertThat(viewModel.uiState.value.error).contains("Invalid credentials")
         }
+
+    companion object {
+        private const val TEST_KEY = "key"
+        private const val TEST_SECRET = "secret"
+        private const val TEST_TOKEN = "token"
+    }
 }
