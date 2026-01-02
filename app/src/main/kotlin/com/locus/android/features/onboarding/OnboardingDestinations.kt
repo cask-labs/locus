@@ -64,7 +64,7 @@ fun OnboardingNavigation(
                 onDeviceNameChanged = viewModel::onDeviceNameChanged,
                 onCheckAvailability = viewModel::checkAvailability,
                 onDeploy = {
-                    // Trigger deployment (Task 10/11)
+                    // TODO(Task 10/11): Trigger deployment
                     // For now just simulate completion
                     onOnboardingComplete()
                 },
@@ -79,7 +79,7 @@ fun OnboardingNavigation(
                 uiState = state,
                 onLoadBuckets = viewModel::loadBuckets,
                 onBucketSelected = {
-                    // Handle selection (Task 10/11)
+                    // TODO(Task 10/11): Handle selection
                     onOnboardingComplete()
                 },
             )

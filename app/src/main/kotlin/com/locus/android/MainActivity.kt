@@ -32,13 +32,7 @@ class MainActivity : ComponentActivity() {
 
                     when (authState) {
                         AuthState.Uninitialized, AuthState.SetupPending -> {
-                            OnboardingNavigation(
-                                onOnboardingComplete = {
-                                    // Normally we would re-check auth state or explicit nav,
-                                    // but AuthState.Authenticated will naturally trigger the switch
-                                    // if logic is correct.
-                                },
-                            )
+                            OnboardingNavigation()
                         }
                         AuthState.Authenticated -> {
                             DashboardScreen()
