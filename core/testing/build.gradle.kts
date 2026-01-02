@@ -7,6 +7,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:domain"))
+
     // Testing - exported as API so consuming modules get them
     api(libs.junit)
     api(libs.androidx.junit)

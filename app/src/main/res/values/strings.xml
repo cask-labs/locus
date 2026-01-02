@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Locus</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_setup_name">Setup Status</string>
+    <string name="notification_channel_tracking_name">Tracking Status</string>
+    <string name="notification_setup_title">Locus • Setup</string>
+    <string name="notification_setup_starting">Starting setup...</string>
+    <string name="notification_setup_fallback_message">Setup failed</string>
+    <string name="notification_setup_unknown_error">Unknown error occurred</string>
 </resources>

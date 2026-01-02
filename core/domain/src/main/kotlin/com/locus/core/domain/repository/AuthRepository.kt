@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.Flow
  * Repository for managing Authentication and Provisioning state.
  */
 interface AuthRepository {
+    companion object {
+        const val PROVISIONING_WORK_NAME = "provisioning"
+    }
+
     /**
      * Initializes the repository, loading the initial state.
      */
@@ -35,6 +39,11 @@ interface AuthRepository {
      * Validates that the provided Bootstrap Credentials are valid AWS Temporary Credentials.
      */
     suspend fun validateCredentials(creds: BootstrapCredentials): LocusResult<Unit>
+
+    /**
+     * Retrieves the stored Bootstrap Credentials securely.
+     */
+    suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials>
 
     /**
      * Persists the Bootstrap Credentials securely (RAM/EncryptedSharedPrefs).

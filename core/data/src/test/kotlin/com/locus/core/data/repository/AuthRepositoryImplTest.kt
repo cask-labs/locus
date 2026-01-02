@@ -1,8 +1,10 @@
 package com.locus.core.data.repository
 
+import androidx.work.WorkManager
 import app.cash.turbine.test
 import aws.sdk.kotlin.services.s3.S3Client
 import com.google.common.truth.Truth.assertThat
+import com.google.common.util.concurrent.Futures
 import com.locus.core.data.source.local.SecureStorageDataSource
 import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.domain.model.auth.AuthState
@@ -24,6 +26,7 @@ import org.junit.Test
 class AuthRepositoryImplTest {
     private val awsClientFactory: AwsClientFactory = mockk()
     private val secureStorage: SecureStorageDataSource = mockk(relaxed = true)
+    private val workManager: WorkManager = mockk(relaxed = true)
 
     // We will initialize this in each test using runTest's scope or mock logic
     private lateinit var repository: AuthRepositoryImpl
@@ -50,6 +53,8 @@ class AuthRepositoryImplTest {
         // Default storage behavior: empty
         coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(null)
         coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(null)
+        // Default WorkManager behavior: empty list of workers
+        io.mockk.every { workManager.getWorkInfosForUniqueWork(any()) } returns Futures.immediateFuture(emptyList())
     }
 
     @Test
@@ -57,7 +62,7 @@ class AuthRepositoryImplTest {
         runTest {
             coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(runtimeCreds)
 
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
             repository.initialize()
 
             // Wait for init block to complete
@@ -74,7 +79,7 @@ class AuthRepositoryImplTest {
             coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(null)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(bootstrapCreds)
 
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
             repository.initialize()
 
             advanceUntilIdle()
@@ -90,7 +95,7 @@ class AuthRepositoryImplTest {
             coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(null)
             coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(null)
 
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
             repository.initialize()
 
             advanceUntilIdle()
@@ -103,7 +108,7 @@ class AuthRepositoryImplTest {
     @Test
     fun `promoteToRuntimeCredentials saves runtime, deletes bootstrap, and updates state`() =
         runTest {
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
             repository.initialize()
 
             coEvery { secureStorage.saveRuntimeCredentials(any()) } returns LocusResult.Success(Unit)
@@ -130,7 +135,7 @@ class AuthRepositoryImplTest {
     @Test
     fun `validateCredentials returns Success when listBuckets succeeds`() =
         runTest {
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
             val s3Client = mockk<S3Client>(relaxed = true)
             io.mockk.every { awsClientFactory.createBootstrapS3Client(any()) } returns s3Client
             coEvery { s3Client.listBuckets() } returns mockk()
@@ -144,7 +149,7 @@ class AuthRepositoryImplTest {
     @Test
     fun `validateCredentials returns Failure when listBuckets fails`() =
         runTest {
-            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this)
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
             val s3Client = mockk<S3Client>(relaxed = true)
             io.mockk.every { awsClientFactory.createBootstrapS3Client(any()) } returns s3Client
             coEvery { s3Client.listBuckets() } throws RuntimeException("Network error")

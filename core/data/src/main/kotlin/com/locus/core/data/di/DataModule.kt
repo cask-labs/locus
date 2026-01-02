@@ -21,6 +21,8 @@ import com.locus.core.domain.infrastructure.S3Client
 import com.locus.core.domain.repository.AppVersionRepository
 import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.repository.ConfigurationRepository
+import com.locus.core.domain.util.DefaultTimeProvider
+import com.locus.core.domain.util.TimeProvider
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -56,6 +58,9 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindResourceProvider(resourceProviderImpl: ResourceProviderImpl): ResourceProvider
+
+    @Binds
+    abstract fun bindTimeProvider(defaultTimeProvider: DefaultTimeProvider): TimeProvider
 
     companion object {
         @Provides

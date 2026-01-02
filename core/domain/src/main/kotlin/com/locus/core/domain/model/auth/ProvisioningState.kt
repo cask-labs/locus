@@ -14,6 +14,8 @@ sealed class ProvisioningState {
 
     data object VerifyingBootstrapKeys : ProvisioningState()
 
+    data class Working(val message: String) : ProvisioningState()
+
     data class DeployingStack(val stackName: String) : ProvisioningState()
 
     data class WaitingForCompletion(val stackName: String, val status: String) : ProvisioningState()
