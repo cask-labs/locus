@@ -3,6 +3,7 @@ package com.locus.android.features.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +30,7 @@ class RecoveryViewModel
 
                 // Mocking bucket loading for UI development
                 // Real implementation will come in Task 10/11
-                kotlinx.coroutines.delay(SIMULATED_DELAY_MS)
+                delay(SIMULATED_DELAY_MS)
                 _uiState.update {
                     it.copy(
                         isLoading = false,

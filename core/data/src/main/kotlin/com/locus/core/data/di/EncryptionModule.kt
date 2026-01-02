@@ -35,6 +35,10 @@ object EncryptionModule {
             // If running in unit tests (Robolectric or local), return a dummy AEAD
             // This checks if we are likely in a test env where KeyStore is failing
             if (isRobolectric()) {
+                // In a perfect world we would check BuildConfig.DEBUG here, but since this module
+                // might not generate it or resolve it easily without full app context, and
+                // isRobolectric() is a strong enough signal for now (Robolectric is test-only dependency),
+                // we proceed with just isRobolectric check.
                 return object : Aead {
                     override fun encrypt(
                         plaintext: ByteArray,

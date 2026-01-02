@@ -29,6 +29,10 @@ class OnboardingViewModelTest {
     private val authRepository: AuthRepository = mockk(relaxed = true)
     private val testDispatcher = StandardTestDispatcher()
 
+    private val testKey = "testKey"
+    private val testSecret = "testSecret"
+    private val testToken = "testToken"
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
@@ -46,18 +50,18 @@ class OnboardingViewModelTest {
         val validJson =
             """
             {
-                "AccessKeyId": "testKey",
-                "SecretAccessKey": "testSecret",
-                "SessionToken": "testToken"
+                "AccessKeyId": "$testKey",
+                "SecretAccessKey": "$testSecret",
+                "SessionToken": "$testToken"
             }
             """.trimIndent()
 
         viewModel.pasteJson(validJson)
 
         val state = viewModel.uiState.value
-        assertThat(state.accessKeyId).isEqualTo("testKey")
-        assertThat(state.secretAccessKey).isEqualTo("testSecret")
-        assertThat(state.sessionToken).isEqualTo("testToken")
+        assertThat(state.accessKeyId).isEqualTo(testKey)
+        assertThat(state.secretAccessKey).isEqualTo(testSecret)
+        assertThat(state.sessionToken).isEqualTo(testToken)
         assertThat(state.error).isNull()
     }
 
@@ -73,14 +77,14 @@ class OnboardingViewModelTest {
 
     @Test
     fun `pasteJson handles missing keys`() {
-        val json =
+        val incompleteJson =
             """
             {
-                "AccessKeyId": "testKey"
+                "AccessKeyId": "$testKey"
             }
             """.trimIndent()
 
-        viewModel.pasteJson(json)
+        viewModel.pasteJson(incompleteJson)
 
         val state = viewModel.uiState.value
         assertThat(state.error).contains("Invalid JSON format")
@@ -89,9 +93,9 @@ class OnboardingViewModelTest {
     @Test
     fun `validateCredentials calls repository and updates state on success`() =
         runTest {
-            viewModel.onAccessKeyIdChanged("key")
-            viewModel.onSecretAccessKeyChanged("secret")
-            viewModel.onSessionTokenChanged("token")
+            viewModel.onAccessKeyIdChanged(testKey)
+            viewModel.onSecretAccessKeyChanged(testSecret)
+            viewModel.onSessionTokenChanged(testToken)
 
             coEvery { authRepository.validateCredentials(any()) } returns LocusResult.Success(Unit)
             coEvery { authRepository.saveBootstrapCredentials(any()) } returns LocusResult.Success(Unit)
@@ -107,15 +111,16 @@ class OnboardingViewModelTest {
     @Test
     fun `validateCredentials sets error on failure`() =
         runTest {
-            viewModel.onAccessKeyIdChanged("key")
-            viewModel.onSecretAccessKeyChanged("secret")
-            viewModel.onSessionTokenChanged("token")
+            viewModel.onAccessKeyIdChanged(testKey)
+            viewModel.onSecretAccessKeyChanged(testSecret)
+            viewModel.onSessionTokenChanged(testToken)
 
             coEvery { authRepository.validateCredentials(any()) } returns LocusResult.Failure(Exception("Fail"))
 
             viewModel.validateCredentials()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            assertThat(viewModel.uiState.value.error).contains("Invalid credentials")
+            // The fallback is the exception message
+            assertThat(viewModel.uiState.value.error).contains("Fail")
         }
 }
