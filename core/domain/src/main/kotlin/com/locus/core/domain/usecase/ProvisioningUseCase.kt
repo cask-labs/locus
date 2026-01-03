@@ -61,16 +61,13 @@ class ProvisioningUseCase
             updateState("Initiating stack creation...")
             val stackName = "$STACK_NAME_PREFIX$deviceName"
 
-            // Note: StackProvisioningService currently updates state independently, which might break our history continuity.
-            // Ideally, we'd refactor StackProvisioningService to report progress back here.
-            // For now, we accept that the service will overwrite the "Working" state.
-            // A more advanced implementation would pass a callback or Flow collector.
             val stackResult =
                 stackProvisioningService.createAndPollStack(
                     creds = creds,
                     stackName = stackName,
                     template = template,
                     parameters = mapOf("StackName" to deviceName),
+                    onStatusUpdate = { updateState(it) },
                 )
 
             val resultData =

@@ -38,9 +38,15 @@ class MainActivity : ComponentActivity() {
 
                     when (authState) {
                         AuthState.Uninitialized, AuthState.SetupPending -> {
-                            // Standard onboarding handles its own internal nav.
-                            // Existing OnboardingNavigation starts at Welcome.
+                            val start =
+                                if (onboardingStage == OnboardingStage.PROVISIONING) {
+                                    OnboardingDestinations.PROVISIONING
+                                } else {
+                                    OnboardingDestinations.WELCOME
+                                }
+
                             OnboardingNavigation(
+                                startDestination = start,
                                 onOnboardingComplete = { viewModel.completeOnboarding() },
                             )
                         }

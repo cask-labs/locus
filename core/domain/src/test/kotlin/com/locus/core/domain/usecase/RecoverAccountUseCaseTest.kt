@@ -106,7 +106,9 @@ class RecoverAccountUseCaseTest {
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
             val expectedError = DomainException.NetworkError.Generic(Exception("AWS Error"))
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns LocusResult.Failure(expectedError)
+            coEvery {
+                stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any())
+            } returns LocusResult.Failure(expectedError)
 
             val result = useCase(creds, bucketName)
 
@@ -127,7 +129,7 @@ class RecoverAccountUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(StackProvisioningResult(stackId, mapOf("SomeKey" to "SomeValue")))
 
             val result = useCase(creds, bucketName)
@@ -147,7 +149,7 @@ class RecoverAccountUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -176,7 +178,7 @@ class RecoverAccountUseCaseTest {
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
             val invalidStackId = "invalid-arn"
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         invalidStackId,
@@ -201,7 +203,7 @@ class RecoverAccountUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -235,7 +237,7 @@ class RecoverAccountUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -281,7 +283,7 @@ class RecoverAccountUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -311,7 +313,7 @@ class RecoverAccountUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -355,7 +357,7 @@ class RecoverAccountUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -382,6 +384,7 @@ class RecoverAccountUseCaseTest {
                     match { it.startsWith("locus-user-") },
                     template,
                     match { it["BucketName"] == bucketName },
+                    any(),
                 )
             }
 

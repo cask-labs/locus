@@ -146,22 +146,11 @@ class AuthRepositoryImpl
             mutableAuthState.value = AuthState.Authenticated
             mutableProvisioningState.value = ProvisioningState.Success
 
-            // Mark stage as COMPLETE so we can move to permissions (or just complete auth part)
-            // Wait, the plan says "Success" screen leads to Permissions.
-            // If we set COMPLETE here, we might skip "Success" screen logic?
-            // "Log-Style" list flow ends with "Success".
-            // Then user clicks "Continue".
-            // So we should NOT set COMPLETE here. UseCase sets ProvisioningState.Success.
-            // But we should probably set stage to IDLE or stay in PROVISIONING until confirmed?
-            // Actually, AuthState.Authenticated is the key.
-            // But the Setup Trap requires us to handle PERMISSIONS_PENDING.
-            // Let's set it to PERMISSIONS_PENDING *after* user clicks "Continue"?
-            // Or does "Success" imply "Permissions Pending"?
-            // Plan says: Success Screen "Continue" button -> triggers navigation to Permissions. -> Updates persistent stage to PERMISSIONS_PENDING.
-            // So here we don't need to force it. But if the app dies after promotion but before "Continue"?
-            // We are Authenticated.
-            // If Authenticated and stage != COMPLETE, we might want to resume at Success or Permissions.
-            // If we leave it as PROVISIONING, and we are Authenticated, MainViewModel logic needs to handle it.
+            // Set persistent stage to PERMISSIONS_PENDING as a safety net.
+            // Even if the user hasn't clicked "Continue" yet, we are technically done with provisioning
+            // and the next mandatory step is Permissions.
+            // This ensures if the app crashes here, we resume at the Permissions screen (or Success screen logic in MainViewModel)
+            setOnboardingStage(OnboardingStage.PERMISSIONS_PENDING)
 
             return LocusResult.Success(Unit)
         }

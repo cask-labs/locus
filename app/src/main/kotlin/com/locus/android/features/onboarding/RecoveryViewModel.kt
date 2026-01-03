@@ -2,9 +2,13 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.locus.android.features.onboarding.work.ProvisioningWorker
 import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.result.LocusResult
-import com.locus.core.domain.usecase.RecoverAccountUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -30,8 +34,8 @@ sealed class RecoveryEvent {
 class RecoveryViewModel
     @Inject
     constructor(
-        private val recoverAccountUseCase: RecoverAccountUseCase,
         private val authRepository: AuthRepository,
+        private val workManager: WorkManager,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(RecoveryUiState())
         val uiState: StateFlow<RecoveryUiState> = _uiState.asStateFlow()
@@ -58,14 +62,29 @@ class RecoveryViewModel
         fun onBucketSelected(bucketName: String) {
             viewModelScope.launch {
                 val credsResult = authRepository.getBootstrapCredentials()
-                if (credsResult is LocusResult.Success) {
-                    launch {
-                        recoverAccountUseCase(credsResult.data, bucketName)
-                    }
-                    _event.send(RecoveryEvent.NavigateToProvisioning)
-                } else {
+                if (credsResult !is LocusResult.Success) {
                     _uiState.update { it.copy(error = "Missing bootstrap credentials") }
+                    return@launch
                 }
+
+                // Enqueue Worker to ensure process survival ("The Trap")
+                val workRequest =
+                    OneTimeWorkRequestBuilder<ProvisioningWorker>()
+                        .setInputData(
+                            workDataOf(
+                                ProvisioningWorker.KEY_MODE to ProvisioningWorker.MODE_RECOVER,
+                                ProvisioningWorker.KEY_BUCKET_NAME to bucketName,
+                            ),
+                        )
+                        .build()
+
+                workManager.enqueueUniqueWork(
+                    AuthRepository.PROVISIONING_WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    workRequest,
+                )
+
+                _event.send(RecoveryEvent.NavigateToProvisioning)
             }
         }
 

@@ -99,7 +99,9 @@ class ProvisioningUseCaseTest {
             // StackProvisioningService handles its own state updates, so we just check failure propagation
 
             val originalError = DomainException.NetworkError.Generic(Exception("Network"))
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns LocusResult.Failure(originalError)
+            coEvery {
+                stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any())
+            } returns LocusResult.Failure(originalError)
 
             val result = useCase(creds, deviceName)
 
@@ -118,7 +120,7 @@ class ProvisioningUseCaseTest {
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(StackProvisioningResult(stackId, emptyMap()))
 
             val result = useCase(creds, deviceName)
@@ -135,7 +137,7 @@ class ProvisioningUseCaseTest {
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -161,7 +163,7 @@ class ProvisioningUseCaseTest {
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -188,7 +190,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -221,7 +223,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -266,7 +268,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -295,7 +297,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -337,7 +339,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -365,6 +367,7 @@ class ProvisioningUseCaseTest {
                     match { it.startsWith("locus-user-") },
                     template,
                     match { it["StackName"] == deviceName },
+                    any(),
                 )
             }
 

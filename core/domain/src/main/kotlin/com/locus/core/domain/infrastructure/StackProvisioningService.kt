@@ -5,9 +5,7 @@ import com.locus.core.domain.infrastructure.InfrastructureConstants.POLL_INTERVA
 import com.locus.core.domain.infrastructure.InfrastructureConstants.POLL_TIMEOUT
 import com.locus.core.domain.infrastructure.InfrastructureConstants.STATUS_CREATE_COMPLETE
 import com.locus.core.domain.model.auth.BootstrapCredentials
-import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.StackProvisioningResult
-import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
 import com.locus.core.domain.util.TimeProvider
@@ -22,7 +20,6 @@ class StackProvisioningService
     @Inject
     constructor(
         private val cloudFormationClient: CloudFormationClient,
-        private val authRepository: AuthRepository,
         private val timeProvider: TimeProvider,
     ) {
         /**
@@ -32,6 +29,7 @@ class StackProvisioningService
          * @param stackName The name of the stack to create.
          * @param template The CloudFormation template body.
          * @param parameters The parameters for the stack.
+         * @param onStatusUpdate Callback for reporting progress status messages.
          * @return A [LocusResult] containing the stack ID and outputs on success.
          */
         suspend fun createAndPollStack(
@@ -39,13 +37,9 @@ class StackProvisioningService
             stackName: String,
             template: String,
             parameters: Map<String, String>,
+            onStatusUpdate: suspend (String) -> Unit,
         ): LocusResult<StackProvisioningResult> {
-            // NOTE: We do not pass history here as this service blindly updates state.
-            // A more robust implementation would read current state to preserve history,
-            // but for now, we assume this service drives the "Working" state during this phase.
-            // Ideally, we'd append to history, but AuthRepository doesn't support atomic append yet.
-            // For the UI "log", we can just emit the current action.
-            authRepository.updateProvisioningState(ProvisioningState.Working("Deploying stack $stackName..."))
+            onStatusUpdate("Deploying stack $stackName...")
 
             // 1. Create Stack
             val createResult =
@@ -62,17 +56,17 @@ class StackProvisioningService
                         ?: DomainException.ProvisioningError.DeploymentFailed(
                             createResult.error.message ?: "Unknown error",
                         )
-                authRepository.updateProvisioningState(ProvisioningState.Failure(error))
                 return LocusResult.Failure(error)
             }
 
             // 2. Poll for Completion
-            return pollForCompletion(creds, stackName)
+            return pollForCompletion(creds, stackName, onStatusUpdate)
         }
 
         private suspend fun pollForCompletion(
             creds: BootstrapCredentials,
             stackName: String,
+            onStatusUpdate: suspend (String) -> Unit,
         ): LocusResult<StackProvisioningResult> {
             val startTime = timeProvider.currentTimeMillis()
 
@@ -82,9 +76,7 @@ class StackProvisioningService
                 if (describeResult is LocusResult.Success) {
                     val details = describeResult.data
 
-                    authRepository.updateProvisioningState(
-                        ProvisioningState.Working("Status: ${details.status}"),
-                    )
+                    onStatusUpdate("Status: ${details.status}")
 
                     if (details.status == STATUS_CREATE_COMPLETE) {
                         if (details.outputs == null) {
@@ -121,8 +113,7 @@ class StackProvisioningService
             return fail(DomainException.NetworkError.Timeout())
         }
 
-        private suspend fun fail(error: DomainException): LocusResult.Failure {
-            authRepository.updateProvisioningState(ProvisioningState.Failure(error))
+        private fun fail(error: DomainException): LocusResult.Failure {
             return LocusResult.Failure(error)
         }
 

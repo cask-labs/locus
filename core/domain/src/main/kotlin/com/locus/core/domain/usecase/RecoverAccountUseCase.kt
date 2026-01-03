@@ -83,6 +83,7 @@ class RecoverAccountUseCase
                             "BucketName" to bucketName,
                             "StackName" to newDeviceId,
                         ),
+                    onStatusUpdate = { updateState(it) },
                 )
 
             val resultData =
