@@ -8,21 +8,16 @@ import com.locus.core.domain.result.DomainException
 sealed class ProvisioningState {
     data object Idle : ProvisioningState()
 
-    data object ValidatingInput : ProvisioningState()
-
-    data object ValidatingBucket : ProvisioningState()
-
-    data object VerifyingBootstrapKeys : ProvisioningState()
-
-    data class Working(val message: String) : ProvisioningState()
-
-    data class DeployingStack(val stackName: String) : ProvisioningState()
-
-    data class WaitingForCompletion(val stackName: String, val status: String) : ProvisioningState()
-
-    data object FinalizingSetup : ProvisioningState()
+    data class Working(
+        val currentStep: String,
+        val history: List<String> = emptyList(),
+    ) : ProvisioningState()
 
     data object Success : ProvisioningState()
 
     data class Failure(val error: DomainException) : ProvisioningState()
+
+    companion object {
+        const val MAX_HISTORY_SIZE = 100
+    }
 }

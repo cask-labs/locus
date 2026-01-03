@@ -45,8 +45,12 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
-            // Code does NOT call updateProvisioningState for this case
-            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
+            // Code calls updateProvisioningState for "Validating input..." before validation
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Validating input..." },
+                )
+            }
         }
 
     @Test
@@ -56,7 +60,6 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
-            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
         }
 
     @Test
@@ -68,7 +71,6 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
-            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
         }
 
     @Test
@@ -193,7 +195,11 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." },
+                )
+            }
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -226,7 +232,11 @@ class ProvisioningUseCaseTest {
             assertThat(error).isEqualTo(exception)
 
             // But verify the state update used the wrapped error
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." },
+                )
+            }
             coVerify {
                 authRepository.updateProvisioningState(
                     match {
@@ -351,6 +361,11 @@ class ProvisioningUseCaseTest {
             assertThat(slot.captured.accessKeyId).isEqualTo("rk")
             assertThat(slot.captured.bucketName).isEqualTo("bucket")
             assertThat(slot.captured.accountId).isEqualTo("123456789012")
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." },
+                )
+            }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Success }) }
         }
 }
