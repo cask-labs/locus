@@ -51,7 +51,7 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.RecoveryError.MissingStackTag)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.ValidatingBucket }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Validating bucket access..." }) }
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -64,7 +64,7 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.RecoveryError.MissingStackTag)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.ValidatingBucket }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Validating bucket access..." }) }
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -80,6 +80,7 @@ class RecoverAccountUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.ProvisioningError.InvalidConfiguration::class.java)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Loading CloudFormation template..." }) }
         }
 
     @Test
@@ -97,6 +98,7 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Initiating recovery stack..." }) }
         }
 
     @Test
@@ -199,7 +201,7 @@ class RecoverAccountUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." }) }
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -233,7 +235,7 @@ class RecoverAccountUseCaseTest {
             assertThat(error).isEqualTo(exception)
 
             // But verify the state update used the wrapped error
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." }) }
             coVerify {
                 authRepository.updateProvisioningState(
                     match {
@@ -362,6 +364,6 @@ class RecoverAccountUseCaseTest {
             assertThat(slot.captured.accessKeyId).isEqualTo("rk")
             assertThat(slot.captured.bucketName).isEqualTo(bucketName)
             assertThat(slot.captured.accountId).isEqualTo("123456789012")
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Success }) }
         }
 }

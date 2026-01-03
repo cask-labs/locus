@@ -79,7 +79,7 @@ class StackProvisioningServiceTest {
             val data = (result as LocusResult.Success).data
             assertThat(data.stackId).isEqualTo(stackId)
             assertThat(data.outputs).containsEntry("Out", "Val")
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.WaitingForCompletion }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep.startsWith("Status:") }) }
         }
 
     @Test
