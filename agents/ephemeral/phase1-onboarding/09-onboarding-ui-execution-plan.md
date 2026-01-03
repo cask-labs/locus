@@ -20,7 +20,7 @@ No automated refactoring required.
 1.  **Refactor `ProvisioningState`:**
     -   Change the sealed hierarchy to support granular updates.
     -   Example: `data class Working(val currentStep: String, val history: List<String>) : ProvisioningState()` instead of individual object states for every step.
-    -   **Constraint:** The `history` list must be implemented as a **Bounded Circular Buffer** (e.g., max 100 items) to prevent unbounded memory growth during long sessions.
+    -   **Constraint:** The `history` list must be implemented as a **Bounded Circular Buffer** with a fixed capacity of 100 items, and this limit must be defined and used in code as a named constant (for example, `MAX_PROVISIONING_HISTORY_SIZE = 100`) to prevent unbounded memory growth during long sessions.
 2.  **Update `ProvisioningUseCase` & `RecoverAccountUseCase`:**
     -   Emit granular `Working` states with descriptive strings (e.g., "Creating S3 Bucket", "Deploying CloudFormation").
 3.  **Update Domain Tests (Crucial):**
