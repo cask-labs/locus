@@ -8,6 +8,7 @@ import com.locus.core.data.model.RuntimeCredentialsDto
 import com.locus.core.data.model.toDomain
 import com.locus.core.data.model.toDto
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.LocusResult
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +30,39 @@ class SecureStorageDataSource
     ) {
         companion object {
             const val KEY_SALT = "telemetry_salt"
+            const val KEY_ONBOARDING_STAGE = "onboarding_stage"
             private const val TAG = "SecureStorageDataSource"
+        }
+
+        // --- Onboarding Stage (Plain Prefs) ---
+
+        suspend fun saveOnboardingStage(stage: OnboardingStage): LocusResult<Unit> {
+            return withContext(Dispatchers.IO) {
+                try {
+                    plainPrefs.edit().putString(KEY_ONBOARDING_STAGE, stage.name).commit()
+                    LocusResult.Success(Unit)
+                } catch (e: Exception) {
+                    LocusResult.Failure(e)
+                }
+            }
+        }
+
+        suspend fun getOnboardingStage(): LocusResult<OnboardingStage?> {
+            return withContext(Dispatchers.IO) {
+                try {
+                    val stageName = plainPrefs.getString(KEY_ONBOARDING_STAGE, null)
+                    val stage = stageName?.let {
+                        try {
+                            OnboardingStage.valueOf(it)
+                        } catch (e: IllegalArgumentException) {
+                            OnboardingStage.IDLE
+                        }
+                    }
+                    LocusResult.Success(stage)
+                } catch (e: Exception) {
+                    LocusResult.Failure(e)
+                }
+            }
         }
 
         // --- Bootstrap Credentials ---

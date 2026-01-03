@@ -11,9 +11,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.locus.android.features.dashboard.DashboardScreen
+import com.locus.android.features.onboarding.OnboardingDestinations
 import com.locus.android.features.onboarding.OnboardingNavigation
 import com.locus.android.ui.theme.LocusTheme
 import com.locus.core.domain.model.auth.AuthState
+import com.locus.core.domain.model.auth.OnboardingStage
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -29,13 +31,24 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     val authState by viewModel.authState.collectAsState()
+                    val onboardingStage by viewModel.onboardingStage.collectAsState()
 
-                    when (authState) {
-                        AuthState.Uninitialized, AuthState.SetupPending -> {
-                            OnboardingNavigation()
-                        }
-                        AuthState.Authenticated -> {
-                            DashboardScreen()
+                    if (onboardingStage == OnboardingStage.PERMISSIONS_PENDING) {
+                        OnboardingNavigation(startDestination = OnboardingDestinations.PERMISSIONS)
+                    } else {
+                        when (authState) {
+                            AuthState.Uninitialized, AuthState.SetupPending -> {
+                                OnboardingNavigation(startDestination = OnboardingDestinations.WELCOME)
+                            }
+                            AuthState.Authenticated -> {
+                                if (onboardingStage == OnboardingStage.COMPLETE) {
+                                    DashboardScreen()
+                                } else {
+                                    // Fallback if authenticated but stage not updated (e.g. migration or glitch)
+                                    // Logic: If authenticated, we assume complete unless explicitly stuck in permissions
+                                    DashboardScreen()
+                                }
+                            }
                         }
                     }
                 }

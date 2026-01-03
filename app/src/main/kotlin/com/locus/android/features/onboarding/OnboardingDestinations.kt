@@ -11,7 +11,10 @@ import androidx.navigation.compose.rememberNavController
 import com.locus.android.features.onboarding.ui.ChoiceScreen
 import com.locus.android.features.onboarding.ui.CredentialEntryScreen
 import com.locus.android.features.onboarding.ui.NewDeviceSetupScreen
+import com.locus.android.features.onboarding.ui.PermissionScreen
+import com.locus.android.features.onboarding.ui.ProvisioningScreen
 import com.locus.android.features.onboarding.ui.RecoveryScreen
+import com.locus.android.features.onboarding.ui.SuccessScreen
 import com.locus.android.features.onboarding.ui.WelcomeScreen
 
 object OnboardingDestinations {
@@ -20,16 +23,19 @@ object OnboardingDestinations {
     const val CHOICE = "choice"
     const val NEW_DEVICE = "new_device"
     const val RECOVERY = "recovery"
+    const val PROVISIONING = "provisioning"
+    const val SUCCESS = "success"
+    const val PERMISSIONS = "permissions"
 }
 
 @Composable
 fun OnboardingNavigation(
     navController: NavHostController = rememberNavController(),
-    onOnboardingComplete: () -> Unit = {},
+    startDestination: String = OnboardingDestinations.WELCOME,
 ) {
     NavHost(
         navController = navController,
-        startDestination = OnboardingDestinations.WELCOME,
+        startDestination = startDestination,
     ) {
         composable(OnboardingDestinations.WELCOME) {
             WelcomeScreen(
@@ -59,15 +65,20 @@ fun OnboardingNavigation(
             val viewModel: NewDeviceViewModel = hiltViewModel()
             val state by viewModel.uiState.collectAsState()
 
+            // Observe navigation events from ViewModel
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                viewModel.event.collect { event ->
+                    if (event is NewDeviceEvent.NavigateToProvisioning) {
+                        navController.navigate(OnboardingDestinations.PROVISIONING)
+                    }
+                }
+            }
+
             NewDeviceSetupScreen(
                 uiState = state,
                 onDeviceNameChanged = viewModel::onDeviceNameChanged,
                 onCheckAvailability = viewModel::checkAvailability,
-                onDeploy = {
-                    // TODO(Task 10/11): Trigger deployment
-                    // For now just simulate completion
-                    onOnboardingComplete()
-                },
+                onDeploy = viewModel::onDeploy,
             )
         }
 
@@ -75,12 +86,57 @@ fun OnboardingNavigation(
             val viewModel: RecoveryViewModel = hiltViewModel()
             val state by viewModel.uiState.collectAsState()
 
+            // Observe navigation events
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                viewModel.event.collect { event ->
+                    if (event is RecoveryEvent.NavigateToProvisioning) {
+                        navController.navigate(OnboardingDestinations.PROVISIONING)
+                    }
+                }
+            }
+
             RecoveryScreen(
                 uiState = state,
                 onLoadBuckets = viewModel::loadBuckets,
-                onBucketSelected = {
-                    // TODO(Task 10/11): Handle selection
-                    onOnboardingComplete()
+                onBucketSelected = viewModel::onBucketSelected,
+            )
+        }
+
+        composable(OnboardingDestinations.PROVISIONING) {
+            val viewModel: ProvisioningViewModel = hiltViewModel()
+            val state by viewModel.uiState.collectAsState()
+
+            ProvisioningScreen(
+                state = state,
+                onSuccess = {
+                    viewModel.markSuccess()
+                    navController.navigate(OnboardingDestinations.SUCCESS) {
+                        popUpTo(OnboardingDestinations.CHOICE) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(OnboardingDestinations.SUCCESS) {
+            val viewModel: ProvisioningViewModel = hiltViewModel()
+            SuccessScreen(
+                onContinue = {
+                    viewModel.advanceToPermissions()
+                    navController.navigate(OnboardingDestinations.PERMISSIONS) {
+                        popUpTo(OnboardingDestinations.SUCCESS) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(OnboardingDestinations.PERMISSIONS) {
+            val viewModel: ProvisioningViewModel = hiltViewModel()
+            PermissionScreen(
+                onPermissionsGranted = {
+                    viewModel.completeOnboarding()
+                    // MainActivity should handle the route change to Dashboard via state observation,
+                    // but we can also pop back stack here to be safe.
+                    // The main activity routing logic will swap the nav graph entirely.
                 },
             )
         }
