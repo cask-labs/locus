@@ -46,7 +46,11 @@ class ProvisioningUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
             // It calls updateState("Validating input...") before failing
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Validating input..." }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Validating input..." },
+                )
+            }
         }
 
     @Test
@@ -79,7 +83,13 @@ class ProvisioningUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.ProvisioningError.InvalidConfiguration::class.java)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Loading CloudFormation template..." }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match {
+                        it is ProvisioningState.Working && it.currentStep == "Loading CloudFormation template..."
+                    },
+                )
+            }
         }
 
     @Test
@@ -96,7 +106,11 @@ class ProvisioningUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isEqualTo(originalError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Initiating stack creation..." }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Initiating stack creation..." },
+                )
+            }
         }
 
     @Test
@@ -193,7 +207,11 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." },
+                )
+            }
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -226,7 +244,11 @@ class ProvisioningUseCaseTest {
             assertThat(error).isEqualTo(exception)
 
             // But verify the state update used the wrapped error
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." },
+                )
+            }
             coVerify {
                 authRepository.updateProvisioningState(
                     match {
