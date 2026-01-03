@@ -109,7 +109,15 @@ class AuthRepositoryImpl
         override fun getProvisioningState(): Flow<ProvisioningState> = mutableProvisioningState.asStateFlow()
 
         override suspend fun updateProvisioningState(state: ProvisioningState) {
-            mutableProvisioningState.value = state
+            val currentState = mutableProvisioningState.value
+            val newState =
+                if (state is ProvisioningState.Working && currentState is ProvisioningState.Working) {
+                    val newHistory = (currentState.history + currentState.currentStep).takeLast(ProvisioningState.MAX_HISTORY_SIZE)
+                    state.copy(history = newHistory)
+                } else {
+                    state
+                }
+            mutableProvisioningState.value = newState
         }
 
         override suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials> {

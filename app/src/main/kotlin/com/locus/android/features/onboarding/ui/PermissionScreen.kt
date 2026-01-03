@@ -54,31 +54,76 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
         checkPermissions()
     }
 
+    val activity = LocalContext.current as? android.app.Activity
+
     val foregroundLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestMultiplePermissions(),
-            onResult = { permissions ->
-                val granted =
-                    permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                        permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        rememberForegroundLauncher(
+            onResult = { granted ->
                 if (!granted) {
-                    showRational = true
+                    val shouldShowRationale =
+                        activity?.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) == true
+                    showRational = !shouldShowRationale
                 }
                 checkPermissions()
             },
         )
 
     val backgroundLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
-            onResult = { isGranted ->
-                if (!isGranted) {
-                    showRational = true
+        rememberBackgroundLauncher(
+            onResult = { granted ->
+                if (!granted) {
+                    val shouldShowRationale =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            activity?.shouldShowRequestPermissionRationale(
+                                Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                            ) == true
+                        } else {
+                            false
+                        }
+                    showRational = !shouldShowRationale
                 }
                 checkPermissions()
             },
         )
 
+    PermissionContent(
+        currentStep = currentStep,
+        showRational = showRational,
+        context = context,
+        foregroundLauncher = foregroundLauncher,
+        backgroundLauncher = backgroundLauncher,
+    )
+}
+
+@Composable
+private fun rememberForegroundLauncher(onResult: (Boolean) -> Unit) =
+    rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            val granted =
+                permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            onResult(granted)
+        },
+    )
+
+@Composable
+private fun rememberBackgroundLauncher(onResult: (Boolean) -> Unit) =
+    rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            onResult(isGranted)
+        },
+    )
+
+@Composable
+private fun PermissionContent(
+    currentStep: PermissionStep,
+    showRational: Boolean,
+    context: Context,
+    foregroundLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
+    backgroundLauncher: ManagedActivityResultLauncher<String, Boolean>,
+) {
     Column(
         modifier =
             Modifier
@@ -95,15 +140,9 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         when (currentStep) {
-            PermissionStep.FOREGROUND -> {
-                ForegroundPermissionContent(foregroundLauncher)
-            }
-            PermissionStep.BACKGROUND -> {
-                BackgroundPermissionContent(context, backgroundLauncher)
-            }
-            PermissionStep.COMPLETE -> {
-                // Should navigate away via callback
-            }
+            PermissionStep.FOREGROUND -> ForegroundPermissionContent(foregroundLauncher)
+            PermissionStep.BACKGROUND -> BackgroundPermissionContent(context, backgroundLauncher)
+            PermissionStep.COMPLETE -> { /* Navigate away via callback */ }
         }
 
         if (showRational) {

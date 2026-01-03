@@ -71,5 +71,8 @@ class NewDeviceViewModel
             // Trigger provisioning logic here.
             // For now, this is a placeholder to satisfy the navigation wiring.
             // In the next task (Task 10), we will inject ProvisioningUseCase or start the Worker.
+
+            // Note: In the real implementation, this should start the Service/Worker which updates the Repo state.
+            // For now, we assume the UI navigates to ProvisioningScreen which observes the Repo state.
         }
     }

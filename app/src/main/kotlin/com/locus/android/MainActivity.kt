@@ -40,14 +40,14 @@ class MainActivity : ComponentActivity() {
                             com.locus.core.domain.model.auth.OnboardingStage.PERMISSIONS_PENDING
 
                     when {
-                        isComplete && isAuthenticated -> {
-                            DashboardScreen()
-                        }
                         isPermissionsPending -> {
                             OnboardingNavigation(
                                 startDestination =
                                     com.locus.android.features.onboarding.OnboardingDestinations.PERMISSIONS,
                             )
+                        }
+                        isComplete && isAuthenticated -> {
+                            DashboardScreen()
                         }
                         else -> {
                             OnboardingNavigation(
