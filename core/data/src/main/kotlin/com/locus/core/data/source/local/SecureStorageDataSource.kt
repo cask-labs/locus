@@ -8,6 +8,7 @@ import com.locus.core.data.model.RuntimeCredentialsDto
 import com.locus.core.data.model.toDomain
 import com.locus.core.data.model.toDto
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.LocusResult
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,7 @@ class SecureStorageDataSource
     ) {
         companion object {
             const val KEY_SALT = "telemetry_salt"
+            const val KEY_ONBOARDING_STAGE = "onboarding_stage"
             private const val TAG = "SecureStorageDataSource"
         }
 
@@ -121,4 +123,35 @@ class SecureStorageDataSource
             // 2. Fallback to Plain SharedPreferences
             return plainPrefs.getString(KEY_SALT, null)
         }
+
+        // --- Onboarding Stage ---
+
+        suspend fun getOnboardingStage(): OnboardingStage =
+            withContext(Dispatchers.IO) {
+                try {
+                    val stageName = plainPrefs.getString(KEY_ONBOARDING_STAGE, null)
+                    if (stageName != null) {
+                        try {
+                            OnboardingStage.valueOf(stageName)
+                        } catch (e: IllegalArgumentException) {
+                            OnboardingStage.IDLE
+                        }
+                    } else {
+                        OnboardingStage.IDLE
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to read onboarding stage", e)
+                    OnboardingStage.IDLE
+                }
+            }
+
+        suspend fun setOnboardingStage(stage: OnboardingStage) =
+            withContext(Dispatchers.IO) {
+                try {
+                    plainPrefs.edit().putString(KEY_ONBOARDING_STAGE, stage.name).commit()
+                    Unit
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to write onboarding stage", e)
+                }
+            }
     }

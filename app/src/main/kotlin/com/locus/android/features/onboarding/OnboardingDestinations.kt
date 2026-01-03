@@ -8,6 +8,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.locus.android.features.onboarding.permissions.PermissionScreen
+import com.locus.android.features.onboarding.provisioning.ProvisioningScreen
+import com.locus.android.features.onboarding.provisioning.SuccessScreen
 import com.locus.android.features.onboarding.ui.ChoiceScreen
 import com.locus.android.features.onboarding.ui.CredentialEntryScreen
 import com.locus.android.features.onboarding.ui.NewDeviceSetupScreen
@@ -20,16 +23,20 @@ object OnboardingDestinations {
     const val CHOICE = "choice"
     const val NEW_DEVICE = "new_device"
     const val RECOVERY = "recovery"
+    const val PROVISIONING = "provisioning"
+    const val SUCCESS = "success"
+    const val PERMISSIONS = "permissions"
 }
 
 @Composable
 fun OnboardingNavigation(
     navController: NavHostController = rememberNavController(),
+    startDestination: String = OnboardingDestinations.WELCOME,
     onOnboardingComplete: () -> Unit = {},
 ) {
     NavHost(
         navController = navController,
-        startDestination = OnboardingDestinations.WELCOME,
+        startDestination = startDestination,
     ) {
         composable(OnboardingDestinations.WELCOME) {
             WelcomeScreen(
@@ -64,9 +71,8 @@ fun OnboardingNavigation(
                 onDeviceNameChanged = viewModel::onDeviceNameChanged,
                 onCheckAvailability = viewModel::checkAvailability,
                 onDeploy = {
-                    // TODO(Task 10/11): Trigger deployment
-                    // For now just simulate completion
-                    onOnboardingComplete()
+                    viewModel.deployStack()
+                    navController.navigate(OnboardingDestinations.PROVISIONING)
                 },
             )
         }
@@ -78,10 +84,49 @@ fun OnboardingNavigation(
             RecoveryScreen(
                 uiState = state,
                 onLoadBuckets = viewModel::loadBuckets,
-                onBucketSelected = {
-                    // TODO(Task 10/11): Handle selection
-                    onOnboardingComplete()
+                onBucketSelected = { bucketName ->
+                    viewModel.recoverAccount(bucketName)
+                    navController.navigate(OnboardingDestinations.PROVISIONING)
                 },
+            )
+        }
+
+        composable(OnboardingDestinations.PROVISIONING) {
+            // Re-using ViewModels?
+            // NewDeviceViewModel and RecoveryViewModel both handle provisioning.
+            // Ideally we'd have a shared ProvisioningViewModel or pass the context.
+            // But Hilt scopes ViewModels to the graph entry or fragment.
+            // If we use hiltViewModel() here, we get a NEW instance.
+            // We need to share the view model from the previous screen or use a shared graph.
+            // For simplicity in Phase 1, we can have a ProvisioningViewModel that observes the Repository State.
+            // Since AuthRepository holds the state globally, a new ViewModel observing it is fine.
+
+            // Note: We use NewDeviceViewModel here as a generic "Provisioning Observer"
+            // because it exposes provisioningState. RecoveryViewModel does too.
+            // Let's assume NewDeviceViewModel is sufficient to observe.
+
+            ProvisioningScreen(
+                onSuccess = {
+                    navController.navigate(OnboardingDestinations.SUCCESS) {
+                        popUpTo(OnboardingDestinations.PROVISIONING) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(OnboardingDestinations.SUCCESS) {
+            SuccessScreen(
+                onContinue = {
+                    navController.navigate(OnboardingDestinations.PERMISSIONS) {
+                        popUpTo(OnboardingDestinations.SUCCESS) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(OnboardingDestinations.PERMISSIONS) {
+            PermissionScreen(
+                onPermissionsGranted = onOnboardingComplete,
             )
         }
     }
@@ -93,8 +138,6 @@ fun CredentialsRoute(
     state: OnboardingUiState,
     navController: NavHostController,
 ) {
-    // Handling success transition manually for now based on a hypothetical event or state change.
-    // In a real app we'd use Flow collection for events.
     androidx.compose.runtime.LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {

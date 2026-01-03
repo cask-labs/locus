@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.accompanist.permissions)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -99,6 +100,7 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.work.testing)
+    testImplementation("androidx.arch.core:core-testing:2.2.0") // Added for InstantTaskExecutorRule
 }
 
 koverReport {

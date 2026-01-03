@@ -2,6 +2,7 @@ package com.locus.core.domain.repository
 
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.LocusResult
@@ -34,6 +35,16 @@ interface AuthRepository {
      * Updates the provisioning state (typically called by the Provisioning Service/Worker).
      */
     suspend fun updateProvisioningState(state: ProvisioningState)
+
+    /**
+     * Retrieves the current persistent onboarding stage.
+     */
+    suspend fun getOnboardingStage(): OnboardingStage
+
+    /**
+     * Updates the persistent onboarding stage.
+     */
+    suspend fun setOnboardingStage(stage: OnboardingStage)
 
     /**
      * Validates that the provided Bootstrap Credentials are valid AWS Temporary Credentials.

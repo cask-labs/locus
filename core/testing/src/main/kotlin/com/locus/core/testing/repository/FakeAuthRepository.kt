@@ -2,6 +2,7 @@ package com.locus.core.testing.repository
 
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
@@ -19,6 +20,8 @@ class FakeAuthRepository
 
         private var storedBootstrap: BootstrapCredentials? = null
         private var storedRuntime: RuntimeCredentials? = null
+        private var storedOnboardingStage: OnboardingStage = OnboardingStage.IDLE
+
         var shouldFailValidation: Boolean = false
 
         override suspend fun initialize() {
@@ -39,6 +42,12 @@ class FakeAuthRepository
             mutableProvisioningState.value = state
         }
 
+        override suspend fun getOnboardingStage(): OnboardingStage = storedOnboardingStage
+
+        override suspend fun setOnboardingStage(stage: OnboardingStage) {
+            storedOnboardingStage = stage
+        }
+
         override suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials> {
             return storedBootstrap?.let { LocusResult.Success(it) }
                 ?: LocusResult.Failure(Exception("No bootstrap credentials"))
@@ -55,6 +64,7 @@ class FakeAuthRepository
         override suspend fun saveBootstrapCredentials(creds: BootstrapCredentials): LocusResult<Unit> {
             storedBootstrap = creds
             mutableAuthState.value = AuthState.SetupPending
+            storedOnboardingStage = OnboardingStage.PROVISIONING
             return LocusResult.Success(Unit)
         }
 
@@ -63,6 +73,7 @@ class FakeAuthRepository
             storedBootstrap = null
             mutableAuthState.value = AuthState.Authenticated
             mutableProvisioningState.value = ProvisioningState.Success
+            // Note: Fake doesn't automatically set COMPLETE, matching real implementation logic
             return LocusResult.Success(Unit)
         }
 
