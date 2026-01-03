@@ -35,7 +35,9 @@ No automated refactoring required.
     -   Implement `getOnboardingStage()` and `setOnboardingStage(stage)` backed by `EncryptedSharedPreferences` (or similar secure persistence).
     -   Stages: `IDLE`, `PROVISIONING`, `PERMISSIONS_PENDING`, `COMPLETE`.
     -   **Error Handling:**
-        -   **Read:** Wrap in `try/catch`. On failure (e.g., Keystore issues), return a safe default (e.g., `IDLE` or `PERMISSIONS_PENDING`) to ensure security rules are not bypassed.
+        -   **Read:** Wrap in `try/catch`. On failure (e.g., Keystore issues):
+            -   If **Authenticated**: Return `PERMISSIONS_PENDING` (Fail-Secure).
+            -   If **Unauthenticated**: Return `IDLE` (Fail-Safe for fresh installs).
         -   **Write:** Wrap in `try/catch`. Log failures but do not crash; maintain state in-memory for the current session.
 2.  **Update `MainViewModel`:**
     -   Expose the persistent `onboardingStage`.
@@ -58,7 +60,8 @@ No automated refactoring required.
     -   **Logic:** Updates persistent stage to `PERMISSIONS_PENDING`.
 3.  **Create `PermissionScreen` (The Two-Step Dance):**
     -   **Step 1:** Explain & Request Foreground Location (`ACCESS_FINE_LOCATION`).
-    -   **Step 2:** Explain & Request Background Location (`ACCESS_BACKGROUND_LOCATION`) - typically requires sending user to Settings on Android 11 (API 30+).
+    -   **Step 2:** Explain & Request Background Location (`ACCESS_BACKGROUND_LOCATION` - added in API 29).
+        -   **Note:** While API 29 introduced the permission, **Android 11 (API 30+)** enforces separate requests and mandates redirecting the user to System Settings.
     -   **Logic:** Once granted, call `viewModel.completeOnboarding()` (sets stage to `COMPLETE`).
     -   **Denial Handling:**
         -   **Standard Denial:** Show rationale and keep "Continue/Retry" button available.
