@@ -9,6 +9,7 @@ import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.data.util.await
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
@@ -33,6 +34,7 @@ class AuthRepositoryImpl
     ) : AuthRepository {
         private val mutableAuthState = MutableStateFlow<AuthState>(AuthState.Uninitialized)
         private val mutableProvisioningState = MutableStateFlow<ProvisioningState>(ProvisioningState.Idle)
+        private val mutableOnboardingStage = MutableStateFlow<OnboardingStage>(OnboardingStage.IDLE)
 
         override suspend fun initialize() {
             loadInitialState()
@@ -68,6 +70,12 @@ class AuthRepositoryImpl
         }
 
         private suspend fun loadInitialState() {
+            // Load Onboarding Stage
+            val stageResult = secureStorage.getOnboardingStage()
+            if (stageResult is LocusResult.Success) {
+                mutableOnboardingStage.value = stageResult.data
+            }
+
             val runtimeResult = secureStorage.getRuntimeCredentials()
             if (runtimeResult is LocusResult.Success && runtimeResult.data != null) {
                 mutableAuthState.value = AuthState.Authenticated
@@ -84,6 +92,19 @@ class AuthRepositoryImpl
         }
 
         override fun getAuthState(): Flow<AuthState> = mutableAuthState.asStateFlow()
+
+        override fun getOnboardingStage(): Flow<OnboardingStage> = mutableOnboardingStage.asStateFlow()
+
+        override suspend fun setOnboardingStage(stage: OnboardingStage) {
+            val result = secureStorage.saveOnboardingStage(stage)
+            if (result is LocusResult.Success) {
+                mutableOnboardingStage.value = stage
+            } else {
+                Log.e(TAG, "Failed to persist onboarding stage: $stage")
+                // Optimistically update memory so the user flow continues even if persistence fails
+                mutableOnboardingStage.value = stage
+            }
+        }
 
         override fun getProvisioningState(): Flow<ProvisioningState> = mutableProvisioningState.asStateFlow()
 
@@ -142,6 +163,8 @@ class AuthRepositoryImpl
 
             mutableAuthState.value = AuthState.Authenticated
             mutableProvisioningState.value = ProvisioningState.Success
+            // Note: We don't set OnboardingStage.COMPLETE here yet,
+            // because permissions might still be pending. The UI flow handles that.
             return LocusResult.Success(Unit)
         }
 

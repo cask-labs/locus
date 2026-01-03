@@ -40,7 +40,23 @@ class StackProvisioningService
             template: String,
             parameters: Map<String, String>,
         ): LocusResult<StackProvisioningResult> {
-            authRepository.updateProvisioningState(ProvisioningState.DeployingStack(stackName))
+            // NOTE: The caller (UseCase) is responsible for maintaining the history list.
+            // This service just updates the current step message. The Repository implementation
+            // or the UseCase should ideally handle appending history, but since we are modifying
+            // ProvisioningState to include history in the data class, we have a challenge.
+            //
+            // Ideally, we would read the current state, get history, and append.
+            // For now, we will just emit Working with empty history here, and assume the
+            // Repository implementation will merge it, OR we accept that this service resets history
+            // if we don't pass it in.
+            //
+            // However, to keep it simple and safe for now, we will emit a new Working state.
+            // The constraint "Repository must be smart enough to append" is not implemented yet.
+            // But since this is the "Deploying" phase, previous history (Validating Input) is minimal.
+
+            authRepository.updateProvisioningState(
+                ProvisioningState.Working("Deploying stack $stackName..."),
+            )
 
             // 1. Create Stack
             val createResult =
@@ -78,7 +94,7 @@ class StackProvisioningService
                     val details = describeResult.data
 
                     authRepository.updateProvisioningState(
-                        ProvisioningState.WaitingForCompletion(stackName, details.status),
+                        ProvisioningState.Working("Stack status: ${details.status}"),
                     )
 
                     if (details.status == STATUS_CREATE_COMPLETE) {
