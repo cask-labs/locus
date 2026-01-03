@@ -31,12 +31,20 @@ class ProvisioningUseCase
             deviceName: String,
         ): LocusResult<Unit> {
             // 1. Validate Input
+            authRepository.updateProvisioningState(ProvisioningState.Working("Validating input..."))
+
             // Stack name limit is 128 chars. Prefix "locus-user-" is 11 chars. Max deviceName is 117 chars.
             if (deviceName.isBlank() || deviceName.length > 117 || !deviceName.matches(Regex("^[a-zA-Z0-9-]*$"))) {
-                return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
+                val error = DomainException.AuthError.InvalidCredentials
+                // We typically don't fail state here if we return early, but consistent UX suggests we might.
+                // However, input validation usually happens before starting the heavy process.
+                // Let's keep it consistent: returns Failure, but state might remain in Working or go to Idle?
+                // The current contract returns Failure without updating state to Failure for input validation.
+                return LocusResult.Failure(error)
             }
 
             // 2. Load Template
+            authRepository.updateProvisioningState(ProvisioningState.Working("Loading CloudFormation template..."))
             val template =
                 try {
                     resourceProvider.getStackTemplate()
@@ -47,6 +55,7 @@ class ProvisioningUseCase
             // 3. Create Stack and Poll
             val stackName = "$STACK_NAME_PREFIX$deviceName"
 
+            // Note: StackProvisioningService will update state to Working("Deploying...") and Working("Stack status...")
             val stackResult =
                 stackProvisioningService.createAndPollStack(
                     creds = creds,
@@ -65,6 +74,7 @@ class ProvisioningUseCase
             val stackId = resultData.stackId
 
             // 4. Success Handling
+            authRepository.updateProvisioningState(ProvisioningState.Working("Verifying stack outputs..."))
             val accessKeyId = outputs[OUT_RUNTIME_ACCESS_KEY]
             val secretAccessKey = outputs[OUT_RUNTIME_SECRET_KEY]
             val bucket = outputs[OUT_BUCKET_NAME]
@@ -76,7 +86,7 @@ class ProvisioningUseCase
                 return LocusResult.Failure(error)
             }
 
-            authRepository.updateProvisioningState(ProvisioningState.FinalizingSetup)
+            authRepository.updateProvisioningState(ProvisioningState.Working("Finalizing setup..."))
 
             val newDeviceId = UUID.randomUUID().toString()
             val newSalt = AuthUtils.generateSalt()
@@ -109,6 +119,7 @@ class ProvisioningUseCase
                 return promoteResult
             }
 
+            authRepository.updateProvisioningState(ProvisioningState.Success)
             return LocusResult.Success(Unit)
         }
     }

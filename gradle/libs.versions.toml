@@ -14,6 +14,7 @@ core-ktx = "1.12.0"
 lifecycle-runtime-ktx = "2.7.0"
 activity-compose = "1.8.2"
 compose-bom = "2024.02.00"
+accompanist = "0.34.0" # Latest stable for Compose 1.6+
 
 # Architecture
 hilt = "2.51"
@@ -55,6 +56,7 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 
 # Hilt (DI)
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
