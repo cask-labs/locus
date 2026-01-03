@@ -54,6 +54,7 @@ class RecoveryViewModel
         fun recover(bucketName: String) {
             // NOTE: Temporary simulation for UI verification. Task 10 will replace this with actual Service start.
             viewModelScope.launch {
+                authRepository.setOnboardingStage(com.locus.core.domain.model.auth.OnboardingStage.PROVISIONING)
                 authRepository.updateProvisioningState(ProvisioningState.Working("Connecting to bucket: $bucketName"))
                 delay(SIM_STEP_DELAY_1)
                 authRepository.updateProvisioningState(ProvisioningState.Working("Verifying stack tags..."))

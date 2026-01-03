@@ -38,8 +38,17 @@ class MainActivity : ComponentActivity() {
                     val isPermissionsPending =
                         onboardingStage ==
                             com.locus.core.domain.model.auth.OnboardingStage.PERMISSIONS_PENDING
+                    val isProvisioning =
+                        onboardingStage ==
+                            com.locus.core.domain.model.auth.OnboardingStage.PROVISIONING
 
                     when {
+                        isProvisioning -> {
+                            OnboardingNavigation(
+                                startDestination =
+                                    com.locus.android.features.onboarding.OnboardingDestinations.PROVISIONING,
+                            )
+                        }
                         isPermissionsPending -> {
                             OnboardingNavigation(
                                 startDestination =
