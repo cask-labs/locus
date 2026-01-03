@@ -16,8 +16,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.locus.android.R
 
 @Composable
 fun SuccessScreen(onContinue: () -> Unit) {
@@ -39,7 +41,7 @@ fun SuccessScreen(onContinue: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Setup Successful!",
+            text = stringResource(id = R.string.onboarding_success_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
@@ -47,7 +49,7 @@ fun SuccessScreen(onContinue: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Your Locus infrastructure is ready. Now we just need to set up permissions to start tracking.",
+            text = stringResource(id = R.string.onboarding_success_description),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -56,7 +58,7 @@ fun SuccessScreen(onContinue: () -> Unit) {
         Spacer(modifier = Modifier.height(48.dp))
 
         Button(onClick = onContinue) {
-            Text("Continue")
+            Text(stringResource(id = R.string.onboarding_success_continue_button))
         }
     }
 }

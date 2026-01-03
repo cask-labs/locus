@@ -26,9 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.locus.android.R
 import com.locus.core.domain.model.auth.ProvisioningState
 
 @Composable
@@ -46,7 +48,7 @@ fun ProvisioningScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "Setting up your Locus",
+            text = stringResource(id = R.string.onboarding_provisioning_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
@@ -54,7 +56,7 @@ fun ProvisioningScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "This may take a few minutes. Please don't close the app.",
+            text = stringResource(id = R.string.onboarding_provisioning_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -90,7 +92,10 @@ fun ProvisioningLogList(
     ) {
         when (state) {
             is ProvisioningState.Idle -> {
-                Text(text = "Waiting to start...", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = stringResource(id = R.string.onboarding_provisioning_waiting),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
             is ProvisioningState.Working -> {
                 val listState = rememberLazyListState()
@@ -115,7 +120,7 @@ fun ProvisioningLogList(
                     onSuccess()
                 }
                 Text(
-                    text = "Provisioning Complete!",
+                    text = stringResource(id = R.string.onboarding_provisioning_complete),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -137,12 +142,12 @@ fun ProvisioningFailure(state: ProvisioningState.Failure) {
             modifier = Modifier.size(48.dp),
         )
         Text(
-            text = "Setup Failed",
+            text = stringResource(id = R.string.onboarding_provisioning_failed_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.error,
         )
         Text(
-            text = state.error.message ?: "Unknown error",
+            text = state.error.message ?: stringResource(id = R.string.onboarding_provisioning_unknown_error),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
         )

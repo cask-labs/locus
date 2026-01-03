@@ -2,6 +2,8 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.locus.core.domain.model.auth.ProvisioningState
+import com.locus.core.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +22,9 @@ data class RecoveryUiState(
 @HiltViewModel
 class RecoveryViewModel
     @Inject
-    constructor() : ViewModel() {
+    constructor(
+        private val authRepository: AuthRepository,
+    ) : ViewModel() {
         private val _uiState = MutableStateFlow(RecoveryUiState())
         val uiState: StateFlow<RecoveryUiState> = _uiState.asStateFlow()
 
@@ -42,12 +46,21 @@ class RecoveryViewModel
 
         companion object {
             private const val SIMULATED_DELAY_MS = 1000L
+            private const val SIM_STEP_DELAY_1 = 1000L
+            private const val SIM_STEP_DELAY_2 = 1500L
+            private const val SIM_STEP_DELAY_3 = 2000L
         }
 
         fun recover(bucketName: String) {
-            // Trigger recovery logic here.
-            // For now, this is a placeholder.
-            // We use bucketName to trigger the specific recovery.
-            println("Recovering from bucket: $bucketName")
+            // NOTE: Temporary simulation for UI verification. Task 10 will replace this with actual Service start.
+            viewModelScope.launch {
+                authRepository.updateProvisioningState(ProvisioningState.Working("Connecting to bucket: $bucketName"))
+                delay(SIM_STEP_DELAY_1)
+                authRepository.updateProvisioningState(ProvisioningState.Working("Verifying stack tags..."))
+                delay(SIM_STEP_DELAY_2)
+                authRepository.updateProvisioningState(ProvisioningState.Working("Recovering identity..."))
+                delay(SIM_STEP_DELAY_3)
+                authRepository.updateProvisioningState(ProvisioningState.Success)
+            }
         }
     }

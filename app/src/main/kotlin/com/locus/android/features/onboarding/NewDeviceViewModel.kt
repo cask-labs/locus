@@ -2,6 +2,8 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.locus.core.domain.model.auth.ProvisioningState
+import com.locus.core.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +24,9 @@ data class NewDeviceUiState(
 @HiltViewModel
 class NewDeviceViewModel
     @Inject
-    constructor() : ViewModel() {
+    constructor(
+        private val authRepository: AuthRepository,
+    ) : ViewModel() {
         private val _uiState = MutableStateFlow(NewDeviceUiState())
         val uiState: StateFlow<NewDeviceUiState> = _uiState.asStateFlow()
 
@@ -65,14 +69,24 @@ class NewDeviceViewModel
 
         companion object {
             private const val SIMULATED_DELAY_MS = 500L
+            private const val SIM_STEP_DELAY_1 = 1000L
+            private const val SIM_STEP_DELAY_2 = 1500L
+            private const val SIM_STEP_DELAY_3 = 2000L
         }
 
         fun deploy() {
-            // Trigger provisioning logic here.
-            // For now, this is a placeholder to satisfy the navigation wiring.
-            // In the next task (Task 10), we will inject ProvisioningUseCase or start the Worker.
-
-            // Note: In the real implementation, this should start the Service/Worker which updates the Repo state.
-            // For now, we assume the UI navigates to ProvisioningScreen which observes the Repo state.
+            // NOTE: Temporary simulation for UI verification. Task 10 will replace this with actual Service start.
+            viewModelScope.launch {
+                // Simulate Provisioning Steps
+                authRepository.updateProvisioningState(ProvisioningState.Working("Validating input..."))
+                delay(SIM_STEP_DELAY_1)
+                authRepository.updateProvisioningState(ProvisioningState.Working("Creating CloudFormation Stack..."))
+                delay(SIM_STEP_DELAY_2)
+                authRepository.updateProvisioningState(ProvisioningState.Working("Deploying resources..."))
+                delay(SIM_STEP_DELAY_3)
+                authRepository.updateProvisioningState(ProvisioningState.Working("Verifying outputs..."))
+                delay(SIM_STEP_DELAY_1)
+                authRepository.updateProvisioningState(ProvisioningState.Success)
+            }
         }
     }

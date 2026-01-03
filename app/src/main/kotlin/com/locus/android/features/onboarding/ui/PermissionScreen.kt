@@ -30,11 +30,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.locus.android.R
 
 @Composable
 fun PermissionScreen(onPermissionsGranted: () -> Unit) {
@@ -133,7 +135,7 @@ private fun PermissionContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Location Permissions",
+            text = stringResource(id = R.string.onboarding_permission_title),
             style = MaterialTheme.typography.headlineMedium,
         )
 
@@ -192,7 +194,7 @@ fun ObserveLifecycleResume(onResume: () -> Unit) {
 @Composable
 fun ForegroundPermissionContent(launcher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>) {
     Text(
-        text = "Locus needs high-precision location access to track your path accurately.",
+        text = stringResource(id = R.string.onboarding_permission_foreground_rationale),
         textAlign = TextAlign.Center,
     )
     Spacer(modifier = Modifier.height(24.dp))
@@ -206,7 +208,7 @@ fun ForegroundPermissionContent(launcher: ManagedActivityResultLauncher<Array<St
             )
         },
     ) {
-        Text("Grant Location Access")
+        Text(stringResource(id = R.string.onboarding_permission_grant_foreground))
     }
 }
 
@@ -216,12 +218,12 @@ fun BackgroundPermissionContent(
     launcher: ManagedActivityResultLauncher<String, Boolean>,
 ) {
     Text(
-        text = "To track you while the screen is off, Locus needs 'Allow all the time' permission.",
+        text = stringResource(id = R.string.onboarding_permission_background_rationale),
         textAlign = TextAlign.Center,
     )
     Spacer(modifier = Modifier.height(8.dp))
     Text(
-        text = "On the next screen (or in Settings), please select 'Allow all the time'.",
+        text = stringResource(id = R.string.onboarding_permission_background_instruction),
         style = MaterialTheme.typography.bodySmall,
         textAlign = TextAlign.Center,
     )
@@ -241,7 +243,7 @@ fun BackgroundPermissionContent(
             }
         },
     ) {
-        Text("Grant Background Access")
+        Text(stringResource(id = R.string.onboarding_permission_grant_background))
     }
 }
 
@@ -249,13 +251,13 @@ fun BackgroundPermissionContent(
 fun RationaleContent(context: Context) {
     Spacer(modifier = Modifier.height(16.dp))
     Text(
-        text = "Permission is required for the app to function.",
+        text = stringResource(id = R.string.onboarding_permission_denied_message),
         color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.bodySmall,
     )
     Spacer(modifier = Modifier.height(8.dp))
     OutlinedButton(onClick = { openAppSettings(context) }) {
-        Text("Open Settings")
+        Text(stringResource(id = R.string.onboarding_permission_open_settings))
     }
 }
 
