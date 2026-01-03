@@ -9,6 +9,7 @@ import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.data.util.await
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
@@ -33,6 +34,7 @@ class AuthRepositoryImpl
     ) : AuthRepository {
         private val mutableAuthState = MutableStateFlow<AuthState>(AuthState.Uninitialized)
         private val mutableProvisioningState = MutableStateFlow<ProvisioningState>(ProvisioningState.Idle)
+        private val mutableOnboardingStage = MutableStateFlow<OnboardingStage>(OnboardingStage.IDLE)
 
         override suspend fun initialize() {
             loadInitialState()
@@ -71,16 +73,19 @@ class AuthRepositoryImpl
             val runtimeResult = secureStorage.getRuntimeCredentials()
             if (runtimeResult is LocusResult.Success && runtimeResult.data != null) {
                 mutableAuthState.value = AuthState.Authenticated
-                return
+            } else {
+                val bootstrapResult = secureStorage.getBootstrapCredentials()
+                if (bootstrapResult is LocusResult.Success && bootstrapResult.data != null) {
+                    mutableAuthState.value = AuthState.SetupPending
+                } else {
+                    mutableAuthState.value = AuthState.Uninitialized
+                }
             }
 
-            val bootstrapResult = secureStorage.getBootstrapCredentials()
-            if (bootstrapResult is LocusResult.Success && bootstrapResult.data != null) {
-                mutableAuthState.value = AuthState.SetupPending
-                return
+            val stageResult = secureStorage.getOnboardingStage()
+            if (stageResult is LocusResult.Success) {
+                mutableOnboardingStage.value = stageResult.data ?: OnboardingStage.IDLE
             }
-
-            mutableAuthState.value = AuthState.Uninitialized
         }
 
         override fun getAuthState(): Flow<AuthState> = mutableAuthState.asStateFlow()
@@ -89,6 +94,16 @@ class AuthRepositoryImpl
 
         override suspend fun updateProvisioningState(state: ProvisioningState) {
             mutableProvisioningState.value = state
+        }
+
+        override fun getOnboardingStage(): Flow<OnboardingStage> = mutableOnboardingStage.asStateFlow()
+
+        override suspend fun setOnboardingStage(stage: OnboardingStage): LocusResult<Unit> {
+            val result = secureStorage.saveOnboardingStage(stage)
+            if (result is LocusResult.Success) {
+                mutableOnboardingStage.value = stage
+            }
+            return result
         }
 
         override suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials> {

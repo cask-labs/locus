@@ -30,13 +30,26 @@ class ProvisioningUseCase
             creds: BootstrapCredentials,
             deviceName: String,
         ): LocusResult<Unit> {
+            // Helper to manage local history for this run
+            val history = mutableListOf<String>()
+
+            suspend fun updateState(step: String) {
+                history.add(step)
+                if (history.size > ProvisioningState.MAX_HISTORY_SIZE) {
+                    history.removeAt(0)
+                }
+                authRepository.updateProvisioningState(ProvisioningState.Working(step, history.toList()))
+            }
+
             // 1. Validate Input
+            updateState("Validating input...")
             // Stack name limit is 128 chars. Prefix "locus-user-" is 11 chars. Max deviceName is 117 chars.
             if (deviceName.isBlank() || deviceName.length > 117 || !deviceName.matches(Regex("^[a-zA-Z0-9-]*$"))) {
                 return LocusResult.Failure(DomainException.AuthError.InvalidCredentials)
             }
 
             // 2. Load Template
+            updateState("Loading CloudFormation template...")
             val template =
                 try {
                     resourceProvider.getStackTemplate()
@@ -45,8 +58,13 @@ class ProvisioningUseCase
                 }
 
             // 3. Create Stack and Poll
+            updateState("Initiating stack creation...")
             val stackName = "$STACK_NAME_PREFIX$deviceName"
 
+            // Note: StackProvisioningService currently updates state independently, which might break our history continuity.
+            // Ideally, we'd refactor StackProvisioningService to report progress back here.
+            // For now, we accept that the service will overwrite the "Working" state.
+            // A more advanced implementation would pass a callback or Flow collector.
             val stackResult =
                 stackProvisioningService.createAndPollStack(
                     creds = creds,
@@ -65,6 +83,7 @@ class ProvisioningUseCase
             val stackId = resultData.stackId
 
             // 4. Success Handling
+            updateState("Verifying stack outputs...")
             val accessKeyId = outputs[OUT_RUNTIME_ACCESS_KEY]
             val secretAccessKey = outputs[OUT_RUNTIME_SECRET_KEY]
             val bucket = outputs[OUT_BUCKET_NAME]
@@ -76,7 +95,7 @@ class ProvisioningUseCase
                 return LocusResult.Failure(error)
             }
 
-            authRepository.updateProvisioningState(ProvisioningState.FinalizingSetup)
+            updateState("Finalizing setup...")
 
             val newDeviceId = UUID.randomUUID().toString()
             val newSalt = AuthUtils.generateSalt()
@@ -109,6 +128,7 @@ class ProvisioningUseCase
                 return promoteResult
             }
 
+            authRepository.updateProvisioningState(ProvisioningState.Success)
             return LocusResult.Success(Unit)
         }
     }

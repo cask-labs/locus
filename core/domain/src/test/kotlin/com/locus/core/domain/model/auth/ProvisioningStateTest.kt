@@ -11,31 +11,11 @@ class ProvisioningStateTest {
     }
 
     @Test
-    fun `ValidatingInput state exists`() {
-        assertThat(ProvisioningState.ValidatingInput).isInstanceOf(ProvisioningState::class.java)
-    }
-
-    @Test
-    fun `VerifyingBootstrapKeys state exists`() {
-        assertThat(ProvisioningState.VerifyingBootstrapKeys).isInstanceOf(ProvisioningState::class.java)
-    }
-
-    @Test
-    fun `DeployingStack state holds stack name`() {
-        val state = ProvisioningState.DeployingStack("stack-name")
-        assertThat(state.stackName).isEqualTo("stack-name")
-    }
-
-    @Test
-    fun `WaitingForCompletion state holds details`() {
-        val state = ProvisioningState.WaitingForCompletion("stack-name", "CREATE_IN_PROGRESS")
-        assertThat(state.stackName).isEqualTo("stack-name")
-        assertThat(state.status).isEqualTo("CREATE_IN_PROGRESS")
-    }
-
-    @Test
-    fun `FinalizingSetup state exists`() {
-        assertThat(ProvisioningState.FinalizingSetup).isInstanceOf(ProvisioningState::class.java)
+    fun `Working state holds step and history`() {
+        val history = listOf("Step 1", "Step 2")
+        val state = ProvisioningState.Working("Step 3", history)
+        assertThat(state.currentStep).isEqualTo("Step 3")
+        assertThat(state.history).containsExactlyElementsIn(history)
     }
 
     @Test
@@ -48,5 +28,10 @@ class ProvisioningStateTest {
         val error = DomainException.NetworkError.Offline
         val state = ProvisioningState.Failure(error)
         assertThat(state.error).isEqualTo(error)
+    }
+
+    @Test
+    fun `Max history size is 100`() {
+        assertThat(ProvisioningState.MAX_HISTORY_SIZE).isEqualTo(100)
     }
 }
