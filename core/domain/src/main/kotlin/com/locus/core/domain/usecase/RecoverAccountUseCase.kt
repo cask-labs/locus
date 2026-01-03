@@ -32,30 +32,48 @@ class RecoverAccountUseCase
             creds: BootstrapCredentials,
             bucketName: String,
         ): LocusResult<Unit> {
-            // 1. Resolve Stack Name from Bucket Tags
-            authRepository.updateProvisioningState(ProvisioningState.ValidatingBucket)
-            val tagsResult = s3Client.getBucketTags(creds, bucketName)
-            if (tagsResult is LocusResult.Failure) {
-                val error = DomainException.RecoveryError.MissingStackTag
+            val history = mutableListOf<String>()
+
+            suspend fun updateStep(step: String) {
+                authRepository.updateProvisioningState(ProvisioningState.Working(step, history.toList()))
+            }
+
+            suspend fun completeStep(step: String) {
+                if (history.size >= ProvisioningState.MAX_HISTORY_SIZE) {
+                    history.removeAt(0)
+                }
+                history.add(step)
+            }
+
+            suspend fun fail(error: DomainException): LocusResult.Failure {
                 authRepository.updateProvisioningState(ProvisioningState.Failure(error))
                 return LocusResult.Failure(error)
+            }
+
+            // 1. Resolve Stack Name from Bucket Tags
+            val step1 = "Validating bucket ownership..."
+            updateStep(step1)
+            val tagsResult = s3Client.getBucketTags(creds, bucketName)
+            if (tagsResult is LocusResult.Failure) {
+                return fail(DomainException.RecoveryError.MissingStackTag)
             }
             val tags = (tagsResult as LocusResult.Success).data
 
-            // Validate that this is a Locus-managed bucket by checking for the stack name tag
             if (!tags.containsKey(TAG_STACK_NAME)) {
-                val error = DomainException.RecoveryError.MissingStackTag
-                authRepository.updateProvisioningState(ProvisioningState.Failure(error))
-                return LocusResult.Failure(error)
+                return fail(DomainException.RecoveryError.MissingStackTag)
             }
+            completeStep(step1)
 
             // 2. Load Template
+            val step2 = "Loading CloudFormation template..."
+            updateStep(step2)
             val template =
                 try {
                     resourceProvider.getStackTemplate()
                 } catch (e: Exception) {
-                    return LocusResult.Failure(DomainException.ProvisioningError.InvalidConfiguration)
+                    return fail(DomainException.ProvisioningError.InvalidConfiguration)
                 }
+            completeStep(step2)
 
             val newDeviceId = UUID.randomUUID().toString()
             val stackNameForRecovery = "$STACK_NAME_PREFIX$newDeviceId"
@@ -71,6 +89,7 @@ class RecoverAccountUseCase
                             "BucketName" to bucketName,
                             "StackName" to newDeviceId,
                         ),
+                    history = history.toList(),
                 )
 
             val resultData =
@@ -79,20 +98,25 @@ class RecoverAccountUseCase
                     is LocusResult.Failure -> return stackResult
                 }
 
+            completeStep("Deployed CloudFormation Stack")
+
             val outputs = resultData.outputs
             val stackId = resultData.stackId
+
+            val step4 = "Verifying stack outputs..."
+            updateStep(step4)
 
             val accessKeyId = outputs[OUT_RUNTIME_ACCESS_KEY]
             val secretAccessKey = outputs[OUT_RUNTIME_SECRET_KEY]
             val accountId = ArnUtils.extractAccountId(stackId)
 
             if (accessKeyId == null || secretAccessKey == null || accountId == null) {
-                val error = DomainException.ProvisioningError.DeploymentFailed("Invalid stack outputs")
-                authRepository.updateProvisioningState(ProvisioningState.Failure(error))
-                return LocusResult.Failure(error)
+                return fail(DomainException.ProvisioningError.DeploymentFailed("Invalid stack outputs"))
             }
+            completeStep(step4)
 
-            authRepository.updateProvisioningState(ProvisioningState.FinalizingSetup)
+            val step5 = "Finalizing setup..."
+            updateStep(step5)
 
             val newSalt = AuthUtils.generateSalt()
             val initResult = configRepository.initializeIdentity(newDeviceId, newSalt)
@@ -100,8 +124,7 @@ class RecoverAccountUseCase
                 val error =
                     initResult.error as? DomainException
                         ?: DomainException.AuthError.Generic(initResult.error)
-                authRepository.updateProvisioningState(ProvisioningState.Failure(error))
-                return initResult as LocusResult.Failure
+                return fail(error)
             }
 
             val runtimeCreds =
@@ -119,10 +142,10 @@ class RecoverAccountUseCase
                 val error =
                     promoteResult.error as? DomainException
                         ?: DomainException.AuthError.Generic(promoteResult.error)
-                authRepository.updateProvisioningState(ProvisioningState.Failure(error))
-                return promoteResult
+                return fail(error)
             }
 
+            authRepository.updateProvisioningState(ProvisioningState.Success)
             return LocusResult.Success(Unit)
         }
     }

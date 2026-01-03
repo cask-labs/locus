@@ -29,6 +29,7 @@ class SecureStorageDataSource
     ) {
         companion object {
             const val KEY_SALT = "telemetry_salt"
+            const val KEY_ONBOARDING_STAGE = "onboarding_stage"
             private const val TAG = "SecureStorageDataSource"
         }
 
@@ -120,5 +121,19 @@ class SecureStorageDataSource
 
             // 2. Fallback to Plain SharedPreferences
             return plainPrefs.getString(KEY_SALT, null)
+        }
+
+        // --- Onboarding Stage ---
+
+        suspend fun saveOnboardingStage(stage: String) {
+            withContext(Dispatchers.IO) {
+                plainPrefs.edit().putString(KEY_ONBOARDING_STAGE, stage).apply()
+            }
+        }
+
+        suspend fun getOnboardingStage(): String? {
+            return withContext(Dispatchers.IO) {
+                plainPrefs.getString(KEY_ONBOARDING_STAGE, null)
+            }
         }
     }

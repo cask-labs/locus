@@ -32,6 +32,7 @@ class StackProvisioningService
          * @param stackName The name of the stack to create.
          * @param template The CloudFormation template body.
          * @param parameters The parameters for the stack.
+         * @param history The previous history steps to preserve.
          * @return A [LocusResult] containing the stack ID and outputs on success.
          */
         suspend fun createAndPollStack(
@@ -39,8 +40,11 @@ class StackProvisioningService
             stackName: String,
             template: String,
             parameters: Map<String, String>,
+            history: List<String> = emptyList(),
         ): LocusResult<StackProvisioningResult> {
-            authRepository.updateProvisioningState(ProvisioningState.DeployingStack(stackName))
+            authRepository.updateProvisioningState(
+                ProvisioningState.Working("Deploying stack $stackName...", history),
+            )
 
             // 1. Create Stack
             val createResult =
@@ -62,12 +66,13 @@ class StackProvisioningService
             }
 
             // 2. Poll for Completion
-            return pollForCompletion(creds, stackName)
+            return pollForCompletion(creds, stackName, history)
         }
 
         private suspend fun pollForCompletion(
             creds: BootstrapCredentials,
             stackName: String,
+            history: List<String>,
         ): LocusResult<StackProvisioningResult> {
             val startTime = timeProvider.currentTimeMillis()
 
@@ -78,7 +83,7 @@ class StackProvisioningService
                     val details = describeResult.data
 
                     authRepository.updateProvisioningState(
-                        ProvisioningState.WaitingForCompletion(stackName, details.status),
+                        ProvisioningState.Working("Stack status: ${details.status}", history),
                     )
 
                     if (details.status == STATUS_CREATE_COMPLETE) {
