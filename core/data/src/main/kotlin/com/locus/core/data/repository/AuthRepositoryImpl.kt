@@ -20,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -109,15 +110,14 @@ class AuthRepositoryImpl
         override fun getProvisioningState(): Flow<ProvisioningState> = mutableProvisioningState.asStateFlow()
 
         override suspend fun updateProvisioningState(state: ProvisioningState) {
-            val currentState = mutableProvisioningState.value
-            val newState =
+            mutableProvisioningState.update { currentState ->
                 if (state is ProvisioningState.Working && currentState is ProvisioningState.Working) {
                     val newHistory = (currentState.history + currentState.currentStep).takeLast(ProvisioningState.MAX_HISTORY_SIZE)
                     state.copy(history = newHistory)
                 } else {
                     state
                 }
-            mutableProvisioningState.value = newState
+            }
         }
 
         override suspend fun getBootstrapCredentials(): LocusResult<BootstrapCredentials> {
