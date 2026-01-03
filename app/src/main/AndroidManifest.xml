@@ -33,7 +33,7 @@
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
 
-        <!-- nosemgrep: java.android.security.exported_activity.exported_activity; MainActivity must be exported because it is the app's launcher (MAIN/LAUNCHER) activity. -->
+        <!-- nosemgrep: java.android.security.exported_activity.exported_activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

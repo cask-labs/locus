@@ -74,6 +74,9 @@ class AuthRepositoryImpl
                 return
             }
 
+            // Sync Onboarding Stage if needed, but AuthState drives the primary flow.
+            // OnboardingStage is mostly for the Permission Trap.
+
             val bootstrapResult = secureStorage.getBootstrapCredentials()
             if (bootstrapResult is LocusResult.Success && bootstrapResult.data != null) {
                 mutableAuthState.value = AuthState.SetupPending
@@ -168,6 +171,35 @@ class AuthRepositoryImpl
                     LocusResult.Success(data)
                 }
                 is LocusResult.Failure -> result
+            }
+        }
+
+        override suspend fun getOnboardingStage(): com.locus.core.domain.model.auth.OnboardingStage {
+            return try {
+                val stageStr = secureStorage.getOnboardingStage()
+                if (stageStr != null) {
+                    com.locus.core.domain.model.auth.OnboardingStage.valueOf(stageStr)
+                } else {
+                    // Fail-Safe for fresh installs
+                    com.locus.core.domain.model.auth.OnboardingStage.IDLE
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load onboarding stage", e)
+                // Fail-Secure if authenticated, else Idle
+                if (mutableAuthState.value == AuthState.Authenticated) {
+                    com.locus.core.domain.model.auth.OnboardingStage.PERMISSIONS_PENDING
+                } else {
+                    com.locus.core.domain.model.auth.OnboardingStage.IDLE
+                }
+            }
+        }
+
+        override suspend fun setOnboardingStage(stage: com.locus.core.domain.model.auth.OnboardingStage) {
+            try {
+                secureStorage.saveOnboardingStage(stage.name)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save onboarding stage", e)
+                // We don't crash, just log. In-memory flow continues.
             }
         }
 

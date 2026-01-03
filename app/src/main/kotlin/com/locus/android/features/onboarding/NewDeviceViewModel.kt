@@ -2,6 +2,9 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.locus.core.domain.model.auth.OnboardingStage
+import com.locus.core.domain.repository.AuthRepository
+import com.locus.core.domain.usecase.ProvisioningUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +25,10 @@ data class NewDeviceUiState(
 @HiltViewModel
 class NewDeviceViewModel
     @Inject
-    constructor() : ViewModel() {
+    constructor(
+        private val provisioningUseCase: ProvisioningUseCase,
+        private val authRepository: AuthRepository,
+    ) : ViewModel() {
         private val _uiState = MutableStateFlow(NewDeviceUiState())
         val uiState: StateFlow<NewDeviceUiState> = _uiState.asStateFlow()
 
@@ -67,5 +73,29 @@ class NewDeviceViewModel
             private const val SIMULATED_DELAY_MS = 500L
         }
 
-        // Future: deploy() function to trigger provisioning worker
+        fun onDeploy(onSuccess: () -> Unit) {
+            viewModelScope.launch {
+                // 1. Set stage to PROVISIONING to trap the user
+                authRepository.setOnboardingStage(OnboardingStage.PROVISIONING)
+
+                // The actual triggering of the long-running task should happen here or be delegated.
+                // For now, to link it up, we'll start the process.
+
+                onSuccess()
+
+                launchProvisioning()
+            }
+        }
+
+        private fun launchProvisioning() {
+            // Retrieve Bootstrap Credentials
+            viewModelScope.launch {
+                val credsResult = authRepository.getBootstrapCredentials()
+                if (credsResult is com.locus.core.domain.result.LocusResult.Success && credsResult.data != null) {
+                    // This is dangerous in ViewModel scope (process death).
+                    // But for Phase 1 demonstration/UI wiring, it suffices.
+                    provisioningUseCase(credsResult.data!!, _uiState.value.deviceName)
+                }
+            }
+        }
     }

@@ -20,16 +20,23 @@ object OnboardingDestinations {
     const val CHOICE = "choice"
     const val NEW_DEVICE = "new_device"
     const val RECOVERY = "recovery"
+
+    // New Destinations
+    const val PROVISIONING = "provisioning"
+    const val SUCCESS = "success"
+    const val PERMISSIONS = "permissions"
 }
 
 @Composable
+@Suppress("LongMethod")
 fun OnboardingNavigation(
     navController: NavHostController = rememberNavController(),
+    startDestination: String = OnboardingDestinations.WELCOME,
     onOnboardingComplete: () -> Unit = {},
 ) {
     NavHost(
         navController = navController,
-        startDestination = OnboardingDestinations.WELCOME,
+        startDestination = startDestination,
     ) {
         composable(OnboardingDestinations.WELCOME) {
             WelcomeScreen(
@@ -64,9 +71,9 @@ fun OnboardingNavigation(
                 onDeviceNameChanged = viewModel::onDeviceNameChanged,
                 onCheckAvailability = viewModel::checkAvailability,
                 onDeploy = {
-                    // TODO(Task 10/11): Trigger deployment
-                    // For now just simulate completion
-                    onOnboardingComplete()
+                    viewModel.onDeploy {
+                        navController.navigate(OnboardingDestinations.PROVISIONING)
+                    }
                 },
             )
         }
@@ -78,8 +85,41 @@ fun OnboardingNavigation(
             RecoveryScreen(
                 uiState = state,
                 onLoadBuckets = viewModel::loadBuckets,
-                onBucketSelected = {
-                    // TODO(Task 10/11): Handle selection
+                onBucketSelected = { bucketName ->
+                    viewModel.onBucketSelected(bucketName) {
+                        navController.navigate(OnboardingDestinations.PROVISIONING)
+                    }
+                },
+            )
+        }
+
+        composable(OnboardingDestinations.PROVISIONING) {
+            val viewModel: com.locus.android.features.onboarding.ProvisioningViewModel = hiltViewModel()
+            val state by viewModel.provisioningState.collectAsState()
+
+            com.locus.android.features.onboarding.ui.ProvisioningScreen(
+                state = state,
+                onNavigateToSuccess = {
+                    navController.navigate(OnboardingDestinations.SUCCESS) {
+                        popUpTo(OnboardingDestinations.PROVISIONING) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(OnboardingDestinations.SUCCESS) {
+            com.locus.android.features.onboarding.ui.SuccessScreen(
+                onContinue = {
+                    navController.navigate(OnboardingDestinations.PERMISSIONS) {
+                        popUpTo(OnboardingDestinations.SUCCESS) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(OnboardingDestinations.PERMISSIONS) {
+            com.locus.android.features.onboarding.ui.PermissionScreen(
+                onPermissionsGranted = {
                     onOnboardingComplete()
                 },
             )
@@ -93,8 +133,6 @@ fun CredentialsRoute(
     state: OnboardingUiState,
     navController: NavHostController,
 ) {
-    // Handling success transition manually for now based on a hypothetical event or state change.
-    // In a real app we'd use Flow collection for events.
     androidx.compose.runtime.LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {

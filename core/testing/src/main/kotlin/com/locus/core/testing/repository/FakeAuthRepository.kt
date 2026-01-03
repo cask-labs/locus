@@ -2,6 +2,7 @@ package com.locus.core.testing.repository
 
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
@@ -19,6 +20,7 @@ class FakeAuthRepository
 
         private var storedBootstrap: BootstrapCredentials? = null
         private var storedRuntime: RuntimeCredentials? = null
+        private var storedOnboardingStage: OnboardingStage = OnboardingStage.IDLE
         var shouldFailValidation: Boolean = false
 
         override suspend fun initialize() {
@@ -83,5 +85,13 @@ class FakeAuthRepository
         override suspend fun getRuntimeCredentials(): LocusResult<RuntimeCredentials> {
             return storedRuntime?.let { LocusResult.Success(it) }
                 ?: LocusResult.Failure(Exception("No runtime credentials"))
+        }
+
+        override suspend fun getOnboardingStage(): OnboardingStage {
+            return storedOnboardingStage
+        }
+
+        override suspend fun setOnboardingStage(stage: OnboardingStage) {
+            storedOnboardingStage = stage
         }
     }

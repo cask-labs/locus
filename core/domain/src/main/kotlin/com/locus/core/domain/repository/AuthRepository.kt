@@ -2,6 +2,7 @@ package com.locus.core.domain.repository
 
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.LocusResult
@@ -70,4 +71,14 @@ interface AuthRepository {
      * Retrieves the currently active Runtime Credentials.
      */
     suspend fun getRuntimeCredentials(): LocusResult<RuntimeCredentials>
+
+    /**
+     * Retrieves the current persisted onboarding stage.
+     */
+    suspend fun getOnboardingStage(): OnboardingStage
+
+    /**
+     * Persists the current onboarding stage.
+     */
+    suspend fun setOnboardingStage(stage: OnboardingStage)
 }
