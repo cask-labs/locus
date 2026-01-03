@@ -32,6 +32,6 @@ class ProvisioningStateTest {
 
     @Test
     fun `Max history size is 100`() {
-        assertThat(ProvisioningState.MAX_HISTORY_SIZE).isEqualTo(100)
+        assertThat(ProvisioningState.MAX_PROVISIONING_HISTORY_SIZE).isEqualTo(100)
     }
 }

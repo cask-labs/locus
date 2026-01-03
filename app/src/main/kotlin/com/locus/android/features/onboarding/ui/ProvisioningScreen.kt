@@ -44,9 +44,10 @@ fun ProvisioningScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
     ) {
         Text(
             text = "Setting up Locus",
@@ -93,10 +94,11 @@ private fun LogList(
 
     LazyColumn(
         state = listState,
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
-            .padding(16.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(history) { step ->
@@ -166,13 +168,14 @@ private fun ErrorView(error: DomainException) {
 
 @Preview(showBackground = true)
 @Composable
-private fun ProvisioningPreview() {
+fun ProvisioningPreview() {
     LocusTheme {
         ProvisioningScreen(
-            state = ProvisioningState.Working(
-                currentStep = "Deploying Stack...",
-                history = listOf("Validating input", "Creating Bucket"),
-            ),
+            state =
+                ProvisioningState.Working(
+                    currentStep = "Deploying Stack...",
+                    history = listOf("Validating input", "Creating Bucket"),
+                ),
             onSuccess = {},
         )
     }

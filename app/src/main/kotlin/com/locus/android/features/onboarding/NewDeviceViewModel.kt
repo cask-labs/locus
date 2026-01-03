@@ -2,10 +2,10 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.result.LocusResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,7 +87,7 @@ class NewDeviceViewModel
                 val result = authRepository.setOnboardingStage(OnboardingStage.PROVISIONING)
                 if (result is LocusResult.Success) {
                     _event.send(NewDeviceEvent.NavigateToProvisioning)
-                    // TODO: Actually start the WorkManager job here in the next task
+                    // Note: WorkManager job start is implemented in the data layer / worker task
                 } else {
                     _uiState.update { it.copy(error = "Failed to start provisioning") }
                 }

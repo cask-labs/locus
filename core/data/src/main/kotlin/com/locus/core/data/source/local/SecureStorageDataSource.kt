@@ -51,13 +51,14 @@ class SecureStorageDataSource
             return withContext(Dispatchers.IO) {
                 try {
                     val stageName = plainPrefs.getString(KEY_ONBOARDING_STAGE, null)
-                    val stage = stageName?.let {
-                        try {
-                            OnboardingStage.valueOf(it)
-                        } catch (e: IllegalArgumentException) {
-                            OnboardingStage.IDLE
+                    val stage =
+                        stageName?.let {
+                            try {
+                                OnboardingStage.valueOf(it)
+                            } catch (e: IllegalArgumentException) {
+                                OnboardingStage.IDLE
+                            }
                         }
-                    }
                     LocusResult.Success(stage)
                 } catch (e: Exception) {
                     LocusResult.Failure(e)

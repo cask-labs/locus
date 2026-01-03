@@ -35,7 +35,7 @@ class ProvisioningUseCase
 
             suspend fun updateState(step: String) {
                 history.add(step)
-                if (history.size > ProvisioningState.MAX_HISTORY_SIZE) {
+                if (history.size > ProvisioningState.MAX_PROVISIONING_HISTORY_SIZE) {
                     history.removeAt(0)
                 }
                 authRepository.updateProvisioningState(ProvisioningState.Working(step, history.toList()))

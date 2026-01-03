@@ -45,7 +45,6 @@ class MainActivity : ComponentActivity() {
                                     DashboardScreen()
                                 } else {
                                     // Fallback if authenticated but stage not updated (e.g. migration or glitch)
-                                    // Logic: If authenticated, we assume complete unless explicitly stuck in permissions
                                     DashboardScreen()
                                 }
                             }

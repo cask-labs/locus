@@ -62,85 +62,110 @@ fun OnboardingNavigation(
         }
 
         composable(OnboardingDestinations.NEW_DEVICE) {
-            val viewModel: NewDeviceViewModel = hiltViewModel()
-            val state by viewModel.uiState.collectAsState()
-
-            // Observe navigation events from ViewModel
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                viewModel.event.collect { event ->
-                    if (event is NewDeviceEvent.NavigateToProvisioning) {
-                        navController.navigate(OnboardingDestinations.PROVISIONING)
-                    }
-                }
-            }
-
-            NewDeviceSetupScreen(
-                uiState = state,
-                onDeviceNameChanged = viewModel::onDeviceNameChanged,
-                onCheckAvailability = viewModel::checkAvailability,
-                onDeploy = viewModel::onDeploy,
-            )
+            NewDeviceRoute(navController)
         }
 
         composable(OnboardingDestinations.RECOVERY) {
-            val viewModel: RecoveryViewModel = hiltViewModel()
-            val state by viewModel.uiState.collectAsState()
-
-            // Observe navigation events
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                viewModel.event.collect { event ->
-                    if (event is RecoveryEvent.NavigateToProvisioning) {
-                        navController.navigate(OnboardingDestinations.PROVISIONING)
-                    }
-                }
-            }
-
-            RecoveryScreen(
-                uiState = state,
-                onLoadBuckets = viewModel::loadBuckets,
-                onBucketSelected = viewModel::onBucketSelected,
-            )
+            RecoveryRoute(navController)
         }
 
         composable(OnboardingDestinations.PROVISIONING) {
-            val viewModel: ProvisioningViewModel = hiltViewModel()
-            val state by viewModel.uiState.collectAsState()
-
-            ProvisioningScreen(
-                state = state,
-                onSuccess = {
-                    viewModel.markSuccess()
-                    navController.navigate(OnboardingDestinations.SUCCESS) {
-                        popUpTo(OnboardingDestinations.CHOICE) { inclusive = true }
-                    }
-                },
-            )
+            ProvisioningRoute(navController)
         }
 
         composable(OnboardingDestinations.SUCCESS) {
-            val viewModel: ProvisioningViewModel = hiltViewModel()
-            SuccessScreen(
-                onContinue = {
-                    viewModel.advanceToPermissions()
-                    navController.navigate(OnboardingDestinations.PERMISSIONS) {
-                        popUpTo(OnboardingDestinations.SUCCESS) { inclusive = true }
-                    }
-                },
-            )
+            SuccessRoute(navController)
         }
 
         composable(OnboardingDestinations.PERMISSIONS) {
-            val viewModel: ProvisioningViewModel = hiltViewModel()
-            PermissionScreen(
-                onPermissionsGranted = {
-                    viewModel.completeOnboarding()
-                    // MainActivity should handle the route change to Dashboard via state observation,
-                    // but we can also pop back stack here to be safe.
-                    // The main activity routing logic will swap the nav graph entirely.
-                },
-            )
+            PermissionsRoute()
         }
     }
+}
+
+@Composable
+private fun NewDeviceRoute(navController: NavHostController) {
+    val viewModel: NewDeviceViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
+
+    // Observe navigation events from ViewModel
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.event.collect { event ->
+            if (event is NewDeviceEvent.NavigateToProvisioning) {
+                navController.navigate(OnboardingDestinations.PROVISIONING)
+            }
+        }
+    }
+
+    NewDeviceSetupScreen(
+        uiState = state,
+        onDeviceNameChanged = viewModel::onDeviceNameChanged,
+        onCheckAvailability = viewModel::checkAvailability,
+        onDeploy = viewModel::onDeploy,
+    )
+}
+
+@Composable
+private fun RecoveryRoute(navController: NavHostController) {
+    val viewModel: RecoveryViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
+
+    // Observe navigation events
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.event.collect { event ->
+            if (event is RecoveryEvent.NavigateToProvisioning) {
+                navController.navigate(OnboardingDestinations.PROVISIONING)
+            }
+        }
+    }
+
+    RecoveryScreen(
+        uiState = state,
+        onLoadBuckets = viewModel::loadBuckets,
+        onBucketSelected = viewModel::onBucketSelected,
+    )
+}
+
+@Composable
+private fun ProvisioningRoute(navController: NavHostController) {
+    val viewModel: ProvisioningViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
+
+    ProvisioningScreen(
+        state = state,
+        onSuccess = {
+            viewModel.markSuccess()
+            navController.navigate(OnboardingDestinations.SUCCESS) {
+                popUpTo(OnboardingDestinations.CHOICE) { inclusive = true }
+            }
+        },
+    )
+}
+
+@Composable
+private fun SuccessRoute(navController: NavHostController) {
+    val viewModel: ProvisioningViewModel = hiltViewModel()
+    SuccessScreen(
+        onContinue = {
+            viewModel.advanceToPermissions()
+            navController.navigate(OnboardingDestinations.PERMISSIONS) {
+                popUpTo(OnboardingDestinations.SUCCESS) { inclusive = true }
+            }
+        },
+    )
+}
+
+@Composable
+private fun PermissionsRoute() {
+    val viewModel: ProvisioningViewModel = hiltViewModel()
+    PermissionScreen(
+        onPermissionsGranted = {
+            viewModel.completeOnboarding()
+            // MainActivity should handle the route change to Dashboard via state observation,
+            // but we can also pop back stack here to be safe.
+            // The main activity routing logic will swap the nav graph entirely.
+        },
+    )
 }
 
 @Composable

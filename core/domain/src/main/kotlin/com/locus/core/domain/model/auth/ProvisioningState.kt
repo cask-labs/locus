@@ -18,6 +18,6 @@ sealed class ProvisioningState {
     data class Failure(val error: DomainException) : ProvisioningState()
 
     companion object {
-        const val MAX_HISTORY_SIZE = 100
+        const val MAX_PROVISIONING_HISTORY_SIZE = 100
     }
 }

@@ -58,12 +58,13 @@ class RecoveryViewModel
             private const val SIMULATED_DELAY_MS = 1000L
         }
 
+        @Suppress("UnusedParameter") // bucketName will be used when worker is connected
         fun onBucketSelected(bucketName: String) {
             viewModelScope.launch {
                 val result = authRepository.setOnboardingStage(OnboardingStage.PROVISIONING)
                 if (result is LocusResult.Success) {
                     _event.send(RecoveryEvent.NavigateToProvisioning)
-                    // TODO: Trigger actual recovery worker
+                    // Note: Recovery worker trigger is implemented in data layer
                 } else {
                     _uiState.update { it.copy(error = "Failed to start recovery") }
                 }

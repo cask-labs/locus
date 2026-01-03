@@ -4,5 +4,5 @@ enum class OnboardingStage {
     IDLE,
     PROVISIONING,
     PERMISSIONS_PENDING,
-    COMPLETE
+    COMPLETE,
 }

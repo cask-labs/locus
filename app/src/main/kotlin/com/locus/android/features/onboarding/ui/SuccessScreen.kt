@@ -22,13 +22,12 @@ import androidx.compose.ui.unit.dp
 import com.locus.android.ui.theme.LocusTheme
 
 @Composable
-fun SuccessScreen(
-    onContinue: () -> Unit,
-) {
+fun SuccessScreen(onContinue: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -66,7 +65,7 @@ fun SuccessScreen(
 
 @Preview(showBackground = true)
 @Composable
-private fun SuccessPreview() {
+fun SuccessPreview() {
     LocusTheme {
         SuccessScreen(onContinue = {})
     }
