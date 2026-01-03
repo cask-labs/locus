@@ -9,6 +9,7 @@ import com.locus.core.data.source.local.SecureStorageDataSource
 import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.DomainException
@@ -53,6 +54,7 @@ class AuthRepositoryImplTest {
         // Default storage behavior: empty
         coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(null)
         coEvery { secureStorage.getBootstrapCredentials() } returns LocusResult.Success(null)
+        coEvery { secureStorage.getOnboardingStage() } returns OnboardingStage.IDLE
         // Default WorkManager behavior: empty list of workers
         io.mockk.every { workManager.getWorkInfosForUniqueWork(any()) } returns Futures.immediateFuture(emptyList())
     }
@@ -158,5 +160,37 @@ class AuthRepositoryImplTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isInstanceOf(DomainException.AuthError.InvalidCredentials::class.java)
+        }
+
+    @Test
+    fun `saveBootstrapCredentials updates state and sets onboarding stage`() =
+        runTest {
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
+            repository.initialize()
+            coEvery { secureStorage.saveBootstrapCredentials(any()) } returns LocusResult.Success(Unit)
+            coEvery { secureStorage.setOnboardingStage(any()) } returns Unit
+
+            repository.saveBootstrapCredentials(bootstrapCreds)
+
+            coVerify { secureStorage.saveBootstrapCredentials(bootstrapCreds) }
+            coVerify { secureStorage.setOnboardingStage(OnboardingStage.PROVISIONING) }
+
+            repository.getAuthState().test {
+                assertThat(awaitItem()).isEqualTo(AuthState.SetupPending)
+            }
+        }
+
+    @Test
+    fun `getOnboardingStage defaults to PERMISSIONS_PENDING if authenticated but stage is IDLE`() =
+        runTest {
+            coEvery { secureStorage.getRuntimeCredentials() } returns LocusResult.Success(runtimeCreds)
+            coEvery { secureStorage.getOnboardingStage() } returns OnboardingStage.IDLE
+
+            repository = AuthRepositoryImpl(awsClientFactory, secureStorage, this, workManager)
+            repository.initialize()
+            advanceUntilIdle()
+
+            val stage = repository.getOnboardingStage()
+            assertThat(stage).isEqualTo(OnboardingStage.PERMISSIONS_PENDING)
         }
 }

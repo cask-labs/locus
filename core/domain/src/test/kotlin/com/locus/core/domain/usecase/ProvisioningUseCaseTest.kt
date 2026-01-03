@@ -45,8 +45,12 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
-            // Code does NOT call updateProvisioningState for this case
-            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
+            // It calls updateState("Validating input...") before failing
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Validating input..." },
+                )
+            }
         }
 
     @Test
@@ -56,7 +60,6 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
-            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
         }
 
     @Test
@@ -68,7 +71,6 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(DomainException.AuthError.InvalidCredentials)
-            coVerify(exactly = 0) { authRepository.updateProvisioningState(any()) }
         }
 
     @Test
@@ -81,6 +83,13 @@ class ProvisioningUseCaseTest {
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isInstanceOf(DomainException.ProvisioningError.InvalidConfiguration::class.java)
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match {
+                        it is ProvisioningState.Working && it.currentStep == "Loading CloudFormation template..."
+                    },
+                )
+            }
         }
 
     @Test
@@ -90,13 +99,20 @@ class ProvisioningUseCaseTest {
             // StackProvisioningService handles its own state updates, so we just check failure propagation
 
             val originalError = DomainException.NetworkError.Generic(Exception("Network"))
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns LocusResult.Failure(originalError)
+            coEvery {
+                stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any())
+            } returns LocusResult.Failure(originalError)
 
             val result = useCase(creds, deviceName)
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             val error = (result as LocusResult.Failure).error
             assertThat(error).isEqualTo(originalError)
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Initiating stack creation..." },
+                )
+            }
         }
 
     @Test
@@ -104,7 +120,7 @@ class ProvisioningUseCaseTest {
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(StackProvisioningResult(stackId, emptyMap()))
 
             val result = useCase(creds, deviceName)
@@ -121,7 +137,7 @@ class ProvisioningUseCaseTest {
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -147,7 +163,7 @@ class ProvisioningUseCaseTest {
         runBlocking {
             every { resourceProvider.getStackTemplate() } returns template
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -174,7 +190,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -193,7 +209,11 @@ class ProvisioningUseCaseTest {
 
             assertThat(result).isInstanceOf(LocusResult.Failure::class.java)
             assertThat((result as LocusResult.Failure).error).isEqualTo(expectedError)
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." },
+                )
+            }
             coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Failure }) }
         }
 
@@ -203,7 +223,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -226,7 +246,11 @@ class ProvisioningUseCaseTest {
             assertThat(error).isEqualTo(exception)
 
             // But verify the state update used the wrapped error
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify {
+                authRepository.updateProvisioningState(
+                    match { it is ProvisioningState.Working && it.currentStep == "Finalizing setup..." },
+                )
+            }
             coVerify {
                 authRepository.updateProvisioningState(
                     match {
@@ -244,7 +268,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -273,7 +297,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -315,7 +339,7 @@ class ProvisioningUseCaseTest {
             every { resourceProvider.getStackTemplate() } returns template
             coEvery { authRepository.updateProvisioningState(any()) } returns Unit
 
-            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any()) } returns
+            coEvery { stackProvisioningService.createAndPollStack(any(), any(), any(), any(), any()) } returns
                 LocusResult.Success(
                     StackProvisioningResult(
                         stackId,
@@ -343,6 +367,7 @@ class ProvisioningUseCaseTest {
                     match { it.startsWith("locus-user-") },
                     template,
                     match { it["StackName"] == deviceName },
+                    any(),
                 )
             }
 
@@ -351,6 +376,6 @@ class ProvisioningUseCaseTest {
             assertThat(slot.captured.accessKeyId).isEqualTo("rk")
             assertThat(slot.captured.bucketName).isEqualTo("bucket")
             assertThat(slot.captured.accountId).isEqualTo("123456789012")
-            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.FinalizingSetup }) }
+            coVerify { authRepository.updateProvisioningState(match { it is ProvisioningState.Success }) }
         }
 }

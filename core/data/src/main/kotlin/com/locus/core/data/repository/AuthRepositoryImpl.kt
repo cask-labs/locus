@@ -9,6 +9,7 @@ import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.data.util.await
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
@@ -127,6 +128,8 @@ class AuthRepositoryImpl
             val result = secureStorage.saveBootstrapCredentials(creds)
             if (result is LocusResult.Success) {
                 mutableAuthState.value = AuthState.SetupPending
+                // We assume if we are saving bootstrap creds, we are starting provisioning
+                setOnboardingStage(OnboardingStage.PROVISIONING)
             }
             return result
         }
@@ -142,6 +145,13 @@ class AuthRepositoryImpl
 
             mutableAuthState.value = AuthState.Authenticated
             mutableProvisioningState.value = ProvisioningState.Success
+
+            // Set persistent stage to PERMISSIONS_PENDING as a safety net.
+            // Even if the user hasn't clicked "Continue" yet, we are technically done with provisioning
+            // and the next mandatory step is Permissions.
+            // This ensures if the app crashes here, we resume at the Permissions screen (or Success screen logic in MainViewModel)
+            setOnboardingStage(OnboardingStage.PERMISSIONS_PENDING)
+
             return LocusResult.Success(Unit)
         }
 
@@ -169,6 +179,29 @@ class AuthRepositoryImpl
                 }
                 is LocusResult.Failure -> result
             }
+        }
+
+        override suspend fun getOnboardingStage(): OnboardingStage {
+            // Fail-safe logic
+            return try {
+                val stage = secureStorage.getOnboardingStage()
+
+                // Consistency Check: If we are Authenticated, we must be at least PERMISSIONS_PENDING or COMPLETE.
+                // If IDLE/PROVISIONING but we have runtime creds, assume PERMISSIONS_PENDING (Setup Trap).
+                if (mutableAuthState.value == AuthState.Authenticated &&
+                    (stage == OnboardingStage.IDLE || stage == OnboardingStage.PROVISIONING)
+                ) {
+                    return OnboardingStage.PERMISSIONS_PENDING
+                }
+
+                stage
+            } catch (e: Exception) {
+                OnboardingStage.IDLE
+            }
+        }
+
+        override suspend fun setOnboardingStage(stage: OnboardingStage) {
+            secureStorage.setOnboardingStage(stage)
         }
 
         companion object {
