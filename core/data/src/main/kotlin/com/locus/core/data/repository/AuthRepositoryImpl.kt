@@ -47,14 +47,15 @@ class AuthRepositoryImpl
                     val info = workInfos.first()
                     when (info.state) {
                         WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> {
-                            mutableProvisioningState.value = ProvisioningState.Working("Resuming setup...")
+                            updateProvisioningState(ProvisioningState.Working("Resuming setup..."))
                         }
                         WorkInfo.State.FAILED -> {
                             val errorMessage = info.outputData.getString("error_message") ?: "Setup failed in background"
-                            mutableProvisioningState.value =
+                            updateProvisioningState(
                                 ProvisioningState.Failure(
                                     ProvisioningError.DeploymentFailed(errorMessage),
-                                )
+                                ),
+                            )
                         }
                         else -> {
                             // Succeeded or Cancelled - standard flow should have updated state,
@@ -72,9 +73,6 @@ class AuthRepositoryImpl
             val runtimeResult = secureStorage.getRuntimeCredentials()
             if (runtimeResult is LocusResult.Success && runtimeResult.data != null) {
                 mutableAuthState.value = AuthState.Authenticated
-                // If we are authenticated but stage is not complete, we should check stage
-                // But generally runtime creds implies completion of provisioning.
-                // However, permissions might be pending.
                 return
             }
 
@@ -92,35 +90,28 @@ class AuthRepositoryImpl
         override fun getProvisioningState(): Flow<ProvisioningState> = mutableProvisioningState.asStateFlow()
 
         override suspend fun updateProvisioningState(state: ProvisioningState) {
-            mutableProvisioningState.value = state
+            val currentState = mutableProvisioningState.value
+
+            if (state is ProvisioningState.Working && currentState is ProvisioningState.Working) {
+                // History accumulation logic
+                val newHistory =
+                    (currentState.history + currentState.currentStep)
+                        .takeLast(ProvisioningState.MAX_HISTORY_SIZE)
+
+                mutableProvisioningState.value = state.copy(history = newHistory)
+            } else {
+                mutableProvisioningState.value = state
+            }
         }
 
         override suspend fun getOnboardingStage(): OnboardingStage {
             // Read from persistent storage, but apply fail-safe logic
             val stage = secureStorage.getOnboardingStage()
 
-            // If secure storage failed or returned IDLE, but we are authenticated,
-            // we should probably be in COMPLETE or PERMISSIONS_PENDING.
-            // But if we are authenticated, the app logic usually bypasses onboarding unless stage is explicitly PERMISSIONS_PENDING.
-
+            // Fail-Secure logic: If Authenticated but stage is IDLE, we assume PERMISSIONS_PENDING
+            // to ensure users don't skip permission checks.
             val authState = mutableAuthState.value
             if (authState is AuthState.Authenticated && stage == OnboardingStage.IDLE) {
-                // If we are authenticated but stage is IDLE (maybe due to upgrade),
-                // we assume COMPLETE or check permissions.
-                // For now, let's respect what storage says, but the UI should handle it.
-                // Actually, the requirements say: "If Authenticated: Return PERMISSIONS_PENDING (Fail-Secure)" on failure.
-                // SecureStorage returns IDLE on failure/missing.
-
-                // Let's refine logic based on requirements:
-                // Error Handling Read: Wrap in try/catch. On failure:
-                // If Authenticated: Return PERMISSIONS_PENDING.
-                // Since SecureStorage swallows exceptions and returns IDLE, we might need to check here.
-
-                // However, for a fresh install (Unauthenticated), IDLE is correct.
-                // If we are Authenticated, we should ideally have marked it COMPLETE or PERMISSIONS_PENDING.
-                // If it's IDLE and Authenticated, it's a mismatch.
-                // We'll treat it as COMPLETE to avoid locking user out, OR PERMISSIONS_PENDING if we want to be safe.
-                // The plan says "Fail-Secure" -> PERMISSIONS_PENDING.
                 return OnboardingStage.PERMISSIONS_PENDING
             }
 
@@ -185,10 +176,6 @@ class AuthRepositoryImpl
             mutableProvisioningState.value = ProvisioningState.Success
 
             // Note: We do NOT set COMPLETE here. We set PERMISSIONS_PENDING via the UI flow (Success Screen).
-            // But strictly speaking, the UseCase calls this.
-            // The UI will transition to Success Screen, then user clicks "Continue" -> sets PERMISSIONS_PENDING.
-            // So here we leave it as PROVISIONING (or whatever it was).
-
             return LocusResult.Success(Unit)
         }
 

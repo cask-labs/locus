@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
                     } else if (onboardingStage == OnboardingStage.PERMISSIONS_PENDING) {
                         // The trap: Even if authenticated, force permissions
                         OnboardingNavigation(
+                            mainViewModel = viewModel,
                             startDestination = OnboardingDestinations.PERMISSIONS,
                             onOnboardingComplete = { viewModel.completeOnboarding() },
                         )
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
                         // and let the state/user navigate, or if we have SetupPending we might need logic.
                         // But for now, standard OnboardingNavigation logic applies.
                         OnboardingNavigation(
+                            mainViewModel = viewModel,
                             onOnboardingComplete = { viewModel.completeOnboarding() },
                         )
                     }

@@ -47,4 +47,9 @@ class MainViewModel
                 _onboardingStage.value = OnboardingStage.COMPLETE
             }
         }
+
+        suspend fun advanceToPermissions() {
+            authRepository.setOnboardingStage(OnboardingStage.PERMISSIONS_PENDING)
+            _onboardingStage.value = OnboardingStage.PERMISSIONS_PENDING
+        }
     }
