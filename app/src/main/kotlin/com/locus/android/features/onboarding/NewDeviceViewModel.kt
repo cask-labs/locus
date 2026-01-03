@@ -2,11 +2,16 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.locus.core.domain.repository.AuthRepository
+import com.locus.core.domain.result.LocusResult
+import com.locus.core.domain.usecase.ProvisioningUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,12 +24,22 @@ data class NewDeviceUiState(
     val availabilityMessage: String? = null,
 )
 
+sealed class NewDeviceEvent {
+    data object NavigateToProvisioning : NewDeviceEvent()
+}
+
 @HiltViewModel
 class NewDeviceViewModel
     @Inject
-    constructor() : ViewModel() {
+    constructor(
+        private val provisioningUseCase: ProvisioningUseCase,
+        private val authRepository: AuthRepository,
+    ) : ViewModel() {
         private val _uiState = MutableStateFlow(NewDeviceUiState())
         val uiState: StateFlow<NewDeviceUiState> = _uiState.asStateFlow()
+
+        private val _event = Channel<NewDeviceEvent>(Channel.BUFFERED)
+        val event = _event.receiveAsFlow()
 
         private val deviceNameRegex = Regex("^[a-z0-9-]+$")
 
@@ -63,9 +78,32 @@ class NewDeviceViewModel
             }
         }
 
+        fun onDeploy() {
+            viewModelScope.launch {
+                // In real implementation this triggers background worker or use case
+                // For now, we manually kick off the use case or just navigate to provisioning to simulate
+                // The provisioning screen observes state.
+
+                // We need bootstrap creds.
+                val credsResult = authRepository.getBootstrapCredentials()
+                if (credsResult is LocusResult.Success) {
+                    // We launch the UseCase in a separate scope or WorkManager in real life.
+                    // For this synchronous/fake version, we launch here but don't block navigation.
+                    // Ideally we use WorkManager.
+
+                    launch {
+                        // This is blocking/suspend, so it runs in background
+                        provisioningUseCase(credsResult.data, _uiState.value.deviceName)
+                    }
+
+                    _event.send(NewDeviceEvent.NavigateToProvisioning)
+                } else {
+                    _uiState.update { it.copy(error = "Missing bootstrap credentials") }
+                }
+            }
+        }
+
         companion object {
             private const val SIMULATED_DELAY_MS = 500L
         }
-
-        // Future: deploy() function to trigger provisioning worker
     }

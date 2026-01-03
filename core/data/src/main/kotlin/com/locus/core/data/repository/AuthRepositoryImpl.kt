@@ -9,6 +9,7 @@ import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.data.util.await
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
@@ -127,6 +128,8 @@ class AuthRepositoryImpl
             val result = secureStorage.saveBootstrapCredentials(creds)
             if (result is LocusResult.Success) {
                 mutableAuthState.value = AuthState.SetupPending
+                // We assume if we are saving bootstrap creds, we are starting provisioning
+                setOnboardingStage(OnboardingStage.PROVISIONING)
             }
             return result
         }
@@ -142,6 +145,24 @@ class AuthRepositoryImpl
 
             mutableAuthState.value = AuthState.Authenticated
             mutableProvisioningState.value = ProvisioningState.Success
+
+            // Mark stage as COMPLETE so we can move to permissions (or just complete auth part)
+            // Wait, the plan says "Success" screen leads to Permissions.
+            // If we set COMPLETE here, we might skip "Success" screen logic?
+            // "Log-Style" list flow ends with "Success".
+            // Then user clicks "Continue".
+            // So we should NOT set COMPLETE here. UseCase sets ProvisioningState.Success.
+            // But we should probably set stage to IDLE or stay in PROVISIONING until confirmed?
+            // Actually, AuthState.Authenticated is the key.
+            // But the Setup Trap requires us to handle PERMISSIONS_PENDING.
+            // Let's set it to PERMISSIONS_PENDING *after* user clicks "Continue"?
+            // Or does "Success" imply "Permissions Pending"?
+            // Plan says: Success Screen "Continue" button -> triggers navigation to Permissions. -> Updates persistent stage to PERMISSIONS_PENDING.
+            // So here we don't need to force it. But if the app dies after promotion but before "Continue"?
+            // We are Authenticated.
+            // If Authenticated and stage != COMPLETE, we might want to resume at Success or Permissions.
+            // If we leave it as PROVISIONING, and we are Authenticated, MainViewModel logic needs to handle it.
+
             return LocusResult.Success(Unit)
         }
 
@@ -169,6 +190,29 @@ class AuthRepositoryImpl
                 }
                 is LocusResult.Failure -> result
             }
+        }
+
+        override suspend fun getOnboardingStage(): OnboardingStage {
+            // Fail-safe logic
+            return try {
+                val stage = secureStorage.getOnboardingStage()
+
+                // Consistency Check: If we are Authenticated, we must be at least PERMISSIONS_PENDING or COMPLETE.
+                // If IDLE/PROVISIONING but we have runtime creds, assume PERMISSIONS_PENDING (Setup Trap).
+                if (mutableAuthState.value == AuthState.Authenticated &&
+                    (stage == OnboardingStage.IDLE || stage == OnboardingStage.PROVISIONING)
+                ) {
+                    return OnboardingStage.PERMISSIONS_PENDING
+                }
+
+                stage
+            } catch (e: Exception) {
+                OnboardingStage.IDLE
+            }
+        }
+
+        override suspend fun setOnboardingStage(stage: OnboardingStage) {
+            secureStorage.setOnboardingStage(stage)
         }
 
         companion object {

@@ -3,18 +3,22 @@ package com.locus.android
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.locus.core.domain.model.auth.AuthState
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel
     @Inject
     constructor(
-        authRepository: AuthRepository,
+        private val authRepository: AuthRepository,
     ) : ViewModel() {
         val authState: StateFlow<AuthState> =
             authRepository.getAuthState()
@@ -23,4 +27,28 @@ class MainViewModel
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = AuthState.Uninitialized,
                 )
+
+        private val _onboardingStage = MutableStateFlow(OnboardingStage.IDLE)
+        val onboardingStage: StateFlow<OnboardingStage> = _onboardingStage.asStateFlow()
+
+        init {
+            loadOnboardingStage()
+        }
+
+        private fun loadOnboardingStage() {
+            viewModelScope.launch {
+                _onboardingStage.value = authRepository.getOnboardingStage()
+            }
+        }
+
+        fun refreshOnboardingStage() {
+            loadOnboardingStage()
+        }
+
+        fun completeOnboarding() {
+            viewModelScope.launch {
+                authRepository.setOnboardingStage(OnboardingStage.COMPLETE)
+                _onboardingStage.value = OnboardingStage.COMPLETE
+            }
+        }
     }
