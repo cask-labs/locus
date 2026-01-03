@@ -3,15 +3,19 @@ package com.locus.android.features.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
+import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.repository.AuthRepository
 import com.locus.core.domain.result.DomainException
 import com.locus.core.domain.result.LocusResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -39,6 +43,7 @@ class OnboardingViewModel
     ) : ViewModel() {
         private companion object {
             const val BOOTSTRAP_REGION = "us-east-1"
+            const val STATE_TIMEOUT_MILLIS = 5000L
         }
 
         private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -46,6 +51,14 @@ class OnboardingViewModel
 
         private val _event = Channel<OnboardingEvent>()
         val event = _event.receiveAsFlow()
+
+        val provisioningState: StateFlow<ProvisioningState> =
+            authRepository.getProvisioningState()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(STATE_TIMEOUT_MILLIS),
+                    initialValue = ProvisioningState.Idle,
+                )
 
         init {
             checkAuthState()
@@ -57,6 +70,18 @@ class OnboardingViewModel
                     // Initial check logic could go here, but navigation is mostly handled by MainActivity/NavGraph
                     // watching AuthRepository state.
                 }
+            }
+        }
+
+        fun acknowledgeSuccess() {
+            viewModelScope.launch {
+                authRepository.setOnboardingStage(OnboardingStage.PERMISSIONS_PENDING)
+            }
+        }
+
+        fun completeOnboarding() {
+            viewModelScope.launch {
+                authRepository.setOnboardingStage(OnboardingStage.COMPLETE)
             }
         }
 

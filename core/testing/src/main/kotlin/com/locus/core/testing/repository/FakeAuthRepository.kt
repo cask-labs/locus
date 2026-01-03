@@ -2,6 +2,7 @@ package com.locus.core.testing.repository
 
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.repository.AuthRepository
@@ -16,6 +17,7 @@ class FakeAuthRepository
     constructor() : AuthRepository {
         private val mutableAuthState = MutableStateFlow<AuthState>(AuthState.Uninitialized)
         private val mutableProvisioningState = MutableStateFlow<ProvisioningState>(ProvisioningState.Idle)
+        private val mutableOnboardingStage = MutableStateFlow<OnboardingStage>(OnboardingStage.IDLE)
 
         private var storedBootstrap: BootstrapCredentials? = null
         private var storedRuntime: RuntimeCredentials? = null
@@ -32,6 +34,12 @@ class FakeAuthRepository
         }
 
         override fun getAuthState(): Flow<AuthState> = mutableAuthState.asStateFlow()
+
+        override fun getOnboardingStage(): Flow<OnboardingStage> = mutableOnboardingStage.asStateFlow()
+
+        override suspend fun setOnboardingStage(stage: OnboardingStage) {
+            mutableOnboardingStage.value = stage
+        }
 
         override fun getProvisioningState(): Flow<ProvisioningState> = mutableProvisioningState.asStateFlow()
 

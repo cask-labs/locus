@@ -29,13 +29,31 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     val authState by viewModel.authState.collectAsState()
+                    val onboardingStage by viewModel.onboardingStage.collectAsState()
 
-                    when (authState) {
-                        AuthState.Uninitialized, AuthState.SetupPending -> {
-                            OnboardingNavigation()
-                        }
-                        AuthState.Authenticated -> {
+                    val isComplete =
+                        onboardingStage ==
+                            com.locus.core.domain.model.auth.OnboardingStage.COMPLETE
+                    val isAuthenticated = authState == AuthState.Authenticated
+                    val isPermissionsPending =
+                        onboardingStage ==
+                            com.locus.core.domain.model.auth.OnboardingStage.PERMISSIONS_PENDING
+
+                    when {
+                        isComplete && isAuthenticated -> {
                             DashboardScreen()
+                        }
+                        isPermissionsPending -> {
+                            OnboardingNavigation(
+                                startDestination =
+                                    com.locus.android.features.onboarding.OnboardingDestinations.PERMISSIONS,
+                            )
+                        }
+                        else -> {
+                            OnboardingNavigation(
+                                startDestination =
+                                    com.locus.android.features.onboarding.OnboardingDestinations.WELCOME,
+                            )
                         }
                     }
                 }

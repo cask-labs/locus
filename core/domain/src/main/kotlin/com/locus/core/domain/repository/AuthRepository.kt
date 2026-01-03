@@ -2,6 +2,7 @@ package com.locus.core.domain.repository
 
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.model.auth.RuntimeCredentials
 import com.locus.core.domain.result.LocusResult
@@ -24,6 +25,16 @@ interface AuthRepository {
      * Observes the current high-level authentication state.
      */
     fun getAuthState(): Flow<AuthState>
+
+    /**
+     * Observes the current onboarding stage ("Setup Trap").
+     */
+    fun getOnboardingStage(): Flow<OnboardingStage>
+
+    /**
+     * Persists the onboarding stage to ensure process death survival.
+     */
+    suspend fun setOnboardingStage(stage: OnboardingStage)
 
     /**
      * Observes the detailed provisioning state during setup.

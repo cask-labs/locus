@@ -43,4 +43,11 @@ class RecoveryViewModel
         companion object {
             private const val SIMULATED_DELAY_MS = 1000L
         }
+
+        fun recover(bucketName: String) {
+            // Trigger recovery logic here.
+            // For now, this is a placeholder.
+            // We use bucketName to trigger the specific recovery.
+            println("Recovering from bucket: $bucketName")
+        }
     }

@@ -67,5 +67,9 @@ class NewDeviceViewModel
             private const val SIMULATED_DELAY_MS = 500L
         }
 
-        // Future: deploy() function to trigger provisioning worker
+        fun deploy() {
+            // Trigger provisioning logic here.
+            // For now, this is a placeholder to satisfy the navigation wiring.
+            // In the next task (Task 10), we will inject ProvisioningUseCase or start the Worker.
+        }
     }
