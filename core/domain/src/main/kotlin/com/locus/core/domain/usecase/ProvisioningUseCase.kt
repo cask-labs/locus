@@ -36,10 +36,7 @@ class ProvisioningUseCase
             // Stack name limit is 128 chars. Prefix "locus-user-" is 11 chars. Max deviceName is 117 chars.
             if (deviceName.isBlank() || deviceName.length > 117 || !deviceName.matches(Regex("^[a-zA-Z0-9-]*$"))) {
                 val error = DomainException.AuthError.InvalidCredentials
-                // We typically don't fail state here if we return early, but consistent UX suggests we might.
-                // However, input validation usually happens before starting the heavy process.
-                // Let's keep it consistent: returns Failure, but state might remain in Working or go to Idle?
-                // The current contract returns Failure without updating state to Failure for input validation.
+                authRepository.updateProvisioningState(ProvisioningState.Failure(error))
                 return LocusResult.Failure(error)
             }
 

@@ -1,5 +1,7 @@
 package com.locus.android.features.onboarding
 
+import android.app.Application
+import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.locus.core.domain.repository.AuthRepository
 import io.mockk.mockk
@@ -18,16 +20,17 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE)
+@Config(sdk = [34])
 class NewDeviceViewModelTest {
     private lateinit var viewModel: NewDeviceViewModel
     private val authRepository: AuthRepository = mockk(relaxed = true)
     private val testDispatcher = StandardTestDispatcher()
+    private val application: Application = ApplicationProvider.getApplicationContext()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = NewDeviceViewModel(authRepository)
+        viewModel = NewDeviceViewModel(authRepository, application)
     }
 
     @After

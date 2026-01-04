@@ -1,7 +1,9 @@
 package com.locus.android.features.onboarding
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.locus.android.R
 import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +28,8 @@ class NewDeviceViewModel
     @Inject
     constructor(
         private val authRepository: AuthRepository,
-    ) : ViewModel() {
+        application: Application,
+    ) : AndroidViewModel(application) {
         private val _uiState = MutableStateFlow(NewDeviceUiState())
         val uiState: StateFlow<NewDeviceUiState> = _uiState.asStateFlow()
 
@@ -40,7 +43,7 @@ class NewDeviceViewModel
                     isNameValid = isValid,
                     error =
                         if (!isValid && name.isNotEmpty()) {
-                            "Only lowercase letters, numbers, and hyphens allowed"
+                            getApplication<Application>().getString(R.string.onboarding_new_device_name_invalid)
                         } else {
                             null
                         },
@@ -60,9 +63,23 @@ class NewDeviceViewModel
 
                 // Basic mock logic: reject if "existing" is in the name for testing
                 if (name.contains("existing")) {
-                    _uiState.update { it.copy(isChecking = false, error = "Device name unavailable") }
+                    _uiState.update {
+                        it.copy(
+                            isChecking = false,
+                            error =
+                                getApplication<Application>()
+                                    .getString(R.string.onboarding_new_device_name_unavailable),
+                        )
+                    }
                 } else {
-                    _uiState.update { it.copy(isChecking = false, availabilityMessage = "Available!") }
+                    _uiState.update {
+                        it.copy(
+                            isChecking = false,
+                            availabilityMessage =
+                                getApplication<Application>()
+                                    .getString(R.string.onboarding_new_device_name_available),
+                        )
+                    }
                 }
             }
         }

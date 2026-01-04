@@ -32,4 +32,9 @@
     <string name="onboarding_permission_grant_background">Grant Background Access</string>
     <string name="onboarding_permission_denied_message">Permission is required for the app to function.</string>
     <string name="onboarding_permission_open_settings">Open Settings</string>
+
+    <!-- Onboarding: New Device -->
+    <string name="onboarding_new_device_name_invalid">Only lowercase letters, numbers, and hyphens allowed</string>
+    <string name="onboarding_new_device_name_unavailable">Device name unavailable</string>
+    <string name="onboarding_new_device_name_available">Available!</string>
 </resources>

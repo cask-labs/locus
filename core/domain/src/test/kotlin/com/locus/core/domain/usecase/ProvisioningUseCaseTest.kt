@@ -51,6 +51,10 @@ class ProvisioningUseCaseTest {
                     match { it is ProvisioningState.Working && it.currentStep == "Validating input..." },
                 )
             }
+            // Code calls updateProvisioningState(Failure) on input error
+            coVerify {
+                authRepository.updateProvisioningState(match { it is ProvisioningState.Failure })
+            }
         }
 
     @Test

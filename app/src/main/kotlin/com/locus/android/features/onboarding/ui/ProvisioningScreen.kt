@@ -148,31 +148,64 @@ fun ProvisioningFailure(state: ProvisioningState.Failure) {
             LogItem(text = historyItem, isComplete = true)
         }
 
-        // 2. Show Failure Message as the last item
+        // 2. Show Failed Step if present
+        failedStepItem(state.failedStep)
+
+        // 3. Show Failure Message as the last item
         item {
-            Column(
-                modifier = Modifier.padding(top = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            FailureMessage(state.error)
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.failedStepItem(failedStep: String?) {
+    if (failedStep != null) {
+        item {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Error",
+                    contentDescription = "Failed",
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(16.dp),
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(id = R.string.onboarding_provisioning_failed_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                Text(
-                    text = state.error.message ?: stringResource(id = R.string.onboarding_provisioning_unknown_error),
+                    text = failedStep,
                     style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun FailureMessage(error: com.locus.core.domain.result.DomainException) {
+    Column(
+        modifier = Modifier.padding(top = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Error",
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(48.dp),
+        )
+        Text(
+            text = stringResource(id = R.string.onboarding_provisioning_failed_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+        Text(
+            text = error.message ?: stringResource(id = R.string.onboarding_provisioning_unknown_error),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

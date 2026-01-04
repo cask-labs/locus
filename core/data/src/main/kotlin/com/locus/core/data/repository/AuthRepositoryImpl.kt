@@ -97,12 +97,18 @@ class AuthRepositoryImpl
         override fun getOnboardingStage(): Flow<OnboardingStage> = mutableOnboardingStage.asStateFlow()
 
         override suspend fun setOnboardingStage(stage: OnboardingStage) {
-            val result = secureStorage.saveOnboardingStage(stage)
-            if (result is LocusResult.Success) {
-                mutableOnboardingStage.value = stage
-            } else {
-                Log.e(TAG, "Failed to persist onboarding stage: $stage")
-                // Optimistically update memory so the user flow continues even if persistence fails
+            try {
+                val result = secureStorage.saveOnboardingStage(stage)
+                if (result is LocusResult.Success) {
+                    mutableOnboardingStage.value = stage
+                } else {
+                    Log.e(TAG, "Failed to persist onboarding stage: $stage")
+                    // Optimistically update memory so the user flow continues even if persistence fails
+                    mutableOnboardingStage.value = stage
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception saving onboarding stage", e)
+                // Fail-Open: Update memory so the user flow continues
                 mutableOnboardingStage.value = stage
             }
         }
@@ -117,8 +123,11 @@ class AuthRepositoryImpl
                         state.copy(history = newHistory)
                     }
                     state is ProvisioningState.Failure && currentState is ProvisioningState.Working -> {
-                        val finalHistory = (currentState.history + currentState.currentStep).takeLast(ProvisioningState.MAX_HISTORY_SIZE)
-                        state.copy(history = finalHistory)
+                        // Capture the step that was running when we failed
+                        state.copy(
+                            failedStep = currentState.currentStep,
+                            history = currentState.history,
+                        )
                     }
                     else -> state
                 }

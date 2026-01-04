@@ -17,6 +17,7 @@ sealed class ProvisioningState {
 
     data class Failure(
         val error: DomainException,
+        val failedStep: String? = null,
         val history: List<String> = emptyList(),
     ) : ProvisioningState()
 
