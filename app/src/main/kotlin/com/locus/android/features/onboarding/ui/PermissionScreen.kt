@@ -1,6 +1,7 @@
 package com.locus.android.features.onboarding.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -236,9 +237,7 @@ fun BackgroundPermissionContent(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 try {
                     launcher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                } catch (
-                    @Suppress("TooGenericExceptionCaught", "SwallowedException") e: Exception,
-                ) {
+                } catch (e: ActivityNotFoundException) {
                     Log.e(TAG, "Failed to launch background permission request", e)
                     openAppSettings(context)
                 }
