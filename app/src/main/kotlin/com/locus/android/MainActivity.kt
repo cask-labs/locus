@@ -11,9 +11,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.locus.android.features.dashboard.DashboardScreen
+import com.locus.android.features.onboarding.OnboardingDestinations
 import com.locus.android.features.onboarding.OnboardingNavigation
 import com.locus.android.ui.theme.LocusTheme
 import com.locus.core.domain.model.auth.AuthState
+import com.locus.core.domain.model.auth.OnboardingStage
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -31,28 +33,20 @@ class MainActivity : ComponentActivity() {
                     val authState by viewModel.authState.collectAsState()
                     val onboardingStage by viewModel.onboardingStage.collectAsState()
 
-                    val isComplete =
-                        onboardingStage ==
-                            com.locus.core.domain.model.auth.OnboardingStage.COMPLETE
+                    val isComplete = onboardingStage == OnboardingStage.COMPLETE
                     val isAuthenticated = authState == AuthState.Authenticated
-                    val isPermissionsPending =
-                        onboardingStage ==
-                            com.locus.core.domain.model.auth.OnboardingStage.PERMISSIONS_PENDING
-                    val isProvisioning =
-                        onboardingStage ==
-                            com.locus.core.domain.model.auth.OnboardingStage.PROVISIONING
+                    val isPermissionsPending = onboardingStage == OnboardingStage.PERMISSIONS_PENDING
+                    val isProvisioning = onboardingStage == OnboardingStage.PROVISIONING
 
                     when {
                         isProvisioning -> {
                             OnboardingNavigation(
-                                startDestination =
-                                    com.locus.android.features.onboarding.OnboardingDestinations.PROVISIONING,
+                                startDestination = OnboardingDestinations.PROVISIONING,
                             )
                         }
                         isPermissionsPending -> {
                             OnboardingNavigation(
-                                startDestination =
-                                    com.locus.android.features.onboarding.OnboardingDestinations.PERMISSIONS,
+                                startDestination = OnboardingDestinations.PERMISSIONS,
                             )
                         }
                         isComplete && isAuthenticated -> {
@@ -60,8 +54,7 @@ class MainActivity : ComponentActivity() {
                         }
                         else -> {
                             OnboardingNavigation(
-                                startDestination =
-                                    com.locus.android.features.onboarding.OnboardingDestinations.WELCOME,
+                                startDestination = OnboardingDestinations.WELCOME,
                             )
                         }
                     }

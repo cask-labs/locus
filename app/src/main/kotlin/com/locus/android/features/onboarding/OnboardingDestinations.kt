@@ -33,7 +33,6 @@ object OnboardingDestinations {
 fun OnboardingNavigation(
     navController: NavHostController = rememberNavController(),
     startDestination: String = OnboardingDestinations.WELCOME,
-    @Suppress("UnusedParameter") onOnboardingComplete: () -> Unit = {},
 ) {
     NavHost(
         navController = navController,

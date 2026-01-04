@@ -110,12 +110,34 @@ class AuthRepositoryImpl
                     mutableOnboardingStage.value = stage
                 } else {
                     Log.e(TAG, "Failed to persist onboarding stage: $stage")
-                    // Optimistically update memory so the user flow continues even if persistence fails
+                    // Fail-open / optimistic update:
+                    // We still advance the in-memory onboarding stage so that the user can
+                    // continue through the flow even if persistence fails (e.g. due to an
+                    // intermittent storage or encryption error). This means the in-memory
+                    // value may temporarily diverge from what is stored on disk.
+                    //
+                    // Known edge cases:
+                    // - If the process dies before a subsequent successful save, the
+                    // persisted stage will still reflect the older value. On next app
+                    // start, loadInitialState() will restore from storage and the user
+                    // may see an earlier onboarding stage than the one they had reached
+                    // in-memory.
+                    // - If persistence keeps failing, we will only ever have the
+                    // in-memory progression; callers relying on durable storage must
+                    // account for this and handle retries or error reporting at a higher level.
+                    //
+                    // This tradeoff is intentional in favor of UX continuity. Revisit this
+                    // behavior if stronger guarantees about persisted onboarding progress
+                    // are required.
                     mutableOnboardingStage.value = stage
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Exception saving onboarding stage", e)
-                // Fail-Open: Update memory so the user flow continues
+                // Fail-open behavior also applies when an unexpected exception occurs.
+                // We still advance the in-memory stage so the UI and user flow are not
+                // blocked on storage reliability. The same caveats as above apply:
+                // process death before a successful write will cause the stage derived
+                // from storage on next startup to lag behind what the user last saw.
                 mutableOnboardingStage.value = stage
             }
         }
@@ -192,8 +214,9 @@ class AuthRepositoryImpl
 
             mutableAuthState.value = AuthState.Authenticated
             mutableProvisioningState.value = ProvisioningState.Success
-            // Note: We don't set OnboardingStage.COMPLETE here yet,
-            // because permissions might still be pending. The UI flow handles that.
+            // Note: We intentionally do not update OnboardingStage here.
+            // The caller or surrounding flow is responsible for setting it explicitly
+            // (for example to PERMISSIONS_PENDING after promotion, and later to COMPLETE).
             return LocusResult.Success(Unit)
         }
 
