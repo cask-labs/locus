@@ -4,8 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.locus.android.R
-import com.locus.core.domain.model.auth.ProvisioningState
 import com.locus.core.domain.repository.AuthRepository
+import com.locus.core.domain.result.LocusResult
+import com.locus.core.domain.usecase.ProvisioningUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ class NewDeviceViewModel
     @Inject
     constructor(
         private val authRepository: AuthRepository,
+        private val provisioningUseCase: ProvisioningUseCase,
         application: Application,
     ) : AndroidViewModel(application) {
         private val _uiState = MutableStateFlow(NewDeviceUiState())
@@ -86,25 +88,29 @@ class NewDeviceViewModel
 
         companion object {
             private const val SIMULATED_DELAY_MS = 500L
-            private const val SIM_STEP_DELAY_1 = 1000L
-            private const val SIM_STEP_DELAY_2 = 1500L
-            private const val SIM_STEP_DELAY_3 = 2000L
         }
 
         fun deploy() {
-            // NOTE: Temporary simulation for UI verification. Task 10 will replace this with actual Service start.
+            val deviceName = _uiState.value.deviceName
+            if (!deviceNameRegex.matches(deviceName)) return
+
             viewModelScope.launch {
+                val bootstrapResult = authRepository.getBootstrapCredentials()
+                if (bootstrapResult is LocusResult.Failure) {
+                    // This should theoretically not happen if we are here,
+                    // but we should handle it or log it.
+                    // For now, we assume credentials exist.
+                    return@launch
+                }
+                val creds = (bootstrapResult as LocusResult.Success).data
+
                 authRepository.setOnboardingStage(com.locus.core.domain.model.auth.OnboardingStage.PROVISIONING)
-                // Simulate Provisioning Steps
-                authRepository.updateProvisioningState(ProvisioningState.Working("Validating input..."))
-                delay(SIM_STEP_DELAY_1)
-                authRepository.updateProvisioningState(ProvisioningState.Working("Creating CloudFormation Stack..."))
-                delay(SIM_STEP_DELAY_2)
-                authRepository.updateProvisioningState(ProvisioningState.Working("Deploying resources..."))
-                delay(SIM_STEP_DELAY_3)
-                authRepository.updateProvisioningState(ProvisioningState.Working("Verifying outputs..."))
-                delay(SIM_STEP_DELAY_1)
-                authRepository.updateProvisioningState(ProvisioningState.Success)
+
+                // Trigger the use case
+                provisioningUseCase(creds, deviceName)
+
+                // Note: The UseCase updates ProvisioningState in the repository,
+                // which the UI (ProvisioningScreen) observes.
             }
         }
     }

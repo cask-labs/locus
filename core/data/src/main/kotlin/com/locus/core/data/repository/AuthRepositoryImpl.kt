@@ -71,16 +71,26 @@ class AuthRepositoryImpl
         }
 
         private suspend fun loadInitialState() {
-            // Load Onboarding Stage
-            val stageResult = secureStorage.getOnboardingStage()
-            if (stageResult is LocusResult.Success) {
-                mutableOnboardingStage.value = stageResult.data
-            }
-
             val runtimeResult = secureStorage.getRuntimeCredentials()
             if (runtimeResult is LocusResult.Success && runtimeResult.data != null) {
                 mutableAuthState.value = AuthState.Authenticated
+
+                // Fail-Secure: If authenticated, ensure we have a valid stage.
+                // If reading stage fails, default to PERMISSIONS_PENDING to prevent falling back to Welcome.
+                val stageResult = secureStorage.getOnboardingStage()
+                if (stageResult is LocusResult.Success) {
+                    mutableOnboardingStage.value = stageResult.data
+                } else {
+                    Log.w(TAG, "Failed to load onboarding stage for authenticated user. Defaulting to PERMISSIONS_PENDING.")
+                    mutableOnboardingStage.value = OnboardingStage.PERMISSIONS_PENDING
+                }
                 return
+            }
+
+            // If not authenticated, load stage normally
+            val stageResult = secureStorage.getOnboardingStage()
+            if (stageResult is LocusResult.Success) {
+                mutableOnboardingStage.value = stageResult.data
             }
 
             val bootstrapResult = secureStorage.getBootstrapCredentials()
