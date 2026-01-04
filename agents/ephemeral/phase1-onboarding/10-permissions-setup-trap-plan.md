@@ -14,7 +14,7 @@
 | **R1.1560** | **Permission Trap:** Force user back to permission screen on next launch. | `MainActivity` (Routes based on `PERMISSIONS_PENDING` persisted state) + `PermissionScreen` (Blocking UI). |
 | **R1.1900** | **Setup Trap:** Restore last known provisioning state. | `AuthRepository` (Persists `OnboardingStage`) + `MainActivity`. |
 | **R1.1600** | Manual confirmation ("Go to Dashboard"). | `PermissionViewModel` handles the final transition to `COMPLETE` after permissions are granted. |
-| **R1.1800** | **Start Tracking:** Automatically start services upon Dashboard entry. | `MainActivity` (Triggers `TrackerService` and `WatchdogWorker`). |
+| **R1.1800** | **Start Tracking:** Automatically start services upon Dashboard entry. | `MainActivity` (Triggers `StartTrackingUseCase`). |
 | **Architecture**| Android 14 FG Service Compliance | Manifest includes `FOREGROUND_SERVICE_LOCATION` and `FOREGROUND_SERVICE_DATA_SYNC`. |
 | **Architecture**| Android 13 Notification Compliance | `PermissionViewModel` requests `POST_NOTIFICATIONS` (Optional). |
 
@@ -31,7 +31,7 @@
     -   *Verification:* Read Manifest file.
 
 2.  **Update `AuthRepositoryImpl` (State Correction)**
-    -   **Self-Healing Logic:** In `initialize()` or `loadInitialState()`, check for inconsistent state.
+    -   **Self-Healing Logic:** Implement in `initialize()`. Check for inconsistent state.
         -   *Logic:* `if (authState == Authenticated && onboardingStage != COMPLETE) { onboardingStage = PERMISSIONS_PENDING }`.
         -   *Justification:* Ensures users who finished provisioning but didn't complete permissions are "trapped" back to the permission flow, without resetting fully onboarded users.
     -   *Verification:* Read Repository file.
@@ -56,7 +56,7 @@
         -   `ForegroundPermissionContent`: Explains tracking & alerts. Button -> `launcher.launch(FINE + COARSE + NOTIFICATIONS)`.
         -   `BackgroundPermissionContent`: Explains "Always Allow".
             -   **UX:** Button first attempts `launcher.launch(ACCESS_BACKGROUND_LOCATION)`.
-            -   **Fallback:** If denied or system ignores, launch `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`.
+            -   **Fallback:** If denied or system ignores (`shouldShowRequestPermissionRationale` indicates permanent denial), launch `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`.
         -   `PermanentDenialContent`: Explains the app is blocked. Button -> Open App Settings.
     -   Lifecycle: Observe `ON_RESUME` to trigger `viewModel.checkPermissions()`.
     -   *Verification:* Read UI file.
@@ -69,21 +69,28 @@
     -   Implement `start()` helper method or Companion Object Intent factory.
     -   *Verification:* Read Service file.
 
-6.  **Update `OnboardingDestinations.kt`** (Navigation)
+6.  **Create `StartTrackingUseCase`** (`core/domain/usecase`)
+    -   **Goal:** Encapsulate the logic for starting background processes.
+    -   **Logic:**
+        -   Invoke `TrackerService.start()`.
+        -   Schedule `WatchdogWorker` (if applicable/stubbed).
+    -   *Verification:* Read UseCase file.
+
+7.  **Update `OnboardingDestinations.kt`** (Navigation)
     -   Update `PERMISSIONS` composable route to use `PermissionViewModel`.
     -   Connect `onPermissionsGranted` -> `viewModel.completeOnboarding()`.
     -   *Verification:* Read Navigation file.
 
-7.  **Update `MainActivity.kt`**
+8.  **Update `MainActivity.kt`**
     -   **Routing Verification:** Ensure `PERMISSIONS_PENDING` stage maps to `OnboardingDestinations.PERMISSIONS`.
     -   **Service Trigger:** Add `LaunchedEffect` monitoring the transition to `COMPLETE`.
-        -   Action: Call `TrackerService.start()` and schedule `WatchdogWorker`.
+        -   Action: Invoke `StartTrackingUseCase`.
     -   *Verification:* Read MainActivity file.
 
 ### Phase 4: Verification & Testing
 **Goal:** Ensure robustness across API levels and user behaviors.
 
-8.  **Create `PermissionViewModelTest.kt`**
+9.  **Create `PermissionViewModelTest.kt`**
     -   Test flows:
         -   Coarse Grant -> Treated as pending/failure.
         -   Foreground Grant -> Background Pending.
@@ -91,12 +98,12 @@
         -   All Granted -> Complete.
     -   *Verification:* Read Test file.
 
-9.  **Execute Tests**
+10. **Execute Tests**
     -   Run `./gradlew testDebugUnitTest`.
 
 ## Completion Criteria
 - Unit tests pass.
 - Manifest contains all required permissions and FG service types.
 - "Self-Healing" logic correctly targets only incomplete setups.
-- Services (Tracker/Watchdog) start immediately upon reaching the Dashboard.
+- Services (Tracker/Watchdog) start immediately upon reaching the Dashboard via `StartTrackingUseCase`.
 - Precise Location is mandatory; Notifications are optional.
