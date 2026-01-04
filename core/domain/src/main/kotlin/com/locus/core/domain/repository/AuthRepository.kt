@@ -81,4 +81,14 @@ interface AuthRepository {
      * Persists the current onboarding stage.
      */
     suspend fun setOnboardingStage(stage: OnboardingStage)
+
+    /**
+     * Starts the provisioning process in the background.
+     * @param mode "new_device" or "recovery"
+     * @param param Device Name or Bucket Name
+     */
+    suspend fun startProvisioning(
+        mode: String,
+        param: String,
+    ): LocusResult<Unit>
 }

@@ -42,9 +42,9 @@ class StackProvisioningService
             parameters: Map<String, String>,
             history: List<String> = emptyList(),
         ): LocusResult<StackProvisioningResult> {
-            authRepository.updateProvisioningState(
-                ProvisioningState.Working("Deploying stack $stackName...", history),
-            )
+            val currentHistory = history.toMutableList()
+            // Add initial step to history immediately if not present, though usually handled by caller.
+            // Caller says "Working: Deploying stack...".
 
             // 1. Create Stack
             val createResult =
@@ -66,24 +66,50 @@ class StackProvisioningService
             }
 
             // 2. Poll for Completion
-            return pollForCompletion(creds, stackName, history)
+            return pollForCompletion(creds, stackName, currentHistory)
         }
 
         private suspend fun pollForCompletion(
             creds: BootstrapCredentials,
             stackName: String,
-            history: List<String>,
+            initialHistory: MutableList<String>,
         ): LocusResult<StackProvisioningResult> {
             val startTime = timeProvider.currentTimeMillis()
+            val seenEvents = mutableSetOf<String>()
 
             while (timeProvider.currentTimeMillis() - startTime < POLL_TIMEOUT) {
+                // Poll Events
+                val eventsResult = cloudFormationClient.describeStackEvents(creds, stackName)
+                if (eventsResult is LocusResult.Success) {
+                    val newEvents =
+                        eventsResult.data.filter { !seenEvents.contains(it.eventId) }
+                            .sortedBy { it.timestamp } // Oldest first
+
+                    for (event in newEvents) {
+                        seenEvents.add(event.eventId)
+                        // Add interesting events to history
+                        if (event.resourceStatus.endsWith("_IN_PROGRESS") ||
+                            event.resourceStatus.endsWith("_COMPLETE") ||
+                            event.resourceStatus.endsWith("_FAILED")
+                        ) {
+                            val message = "${event.logicalResourceId}: ${event.resourceStatus}"
+                            addHistoryItem(initialHistory, message)
+                        }
+                    }
+                }
+
+                // Poll Status
                 val describeResult = cloudFormationClient.describeStack(creds, stackName)
 
                 if (describeResult is LocusResult.Success) {
                     val details = describeResult.data
+                    val statusMessage = "Stack status: ${details.status}"
+
+                    // We don't add "Stack status" to history repeatedly, it's the 'currentStep'.
+                    // But we ensure the UI updates with the latest history.
 
                     authRepository.updateProvisioningState(
-                        ProvisioningState.Working("Stack status: ${details.status}", history),
+                        ProvisioningState.Working(statusMessage, initialHistory.toList()),
                     )
 
                     if (details.status == STATUS_CREATE_COMPLETE) {
@@ -119,6 +145,16 @@ class StackProvisioningService
             }
 
             return fail(DomainException.NetworkError.Timeout())
+        }
+
+        private fun addHistoryItem(
+            history: MutableList<String>,
+            item: String,
+        ) {
+            if (history.size >= ProvisioningState.MAX_HISTORY_SIZE) {
+                history.removeAt(0)
+            }
+            history.add(item)
         }
 
         private suspend fun fail(error: DomainException): LocusResult.Failure {

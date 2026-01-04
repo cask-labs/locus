@@ -65,7 +65,7 @@ class SecureStorageDataSourceTest {
         val prefs = context.getSharedPreferences("test_prefs", Context.MODE_PRIVATE)
         prefs.edit().clear().commit()
 
-        dataSource = SecureStorageDataSource(bootstrapStore, runtimeStore, prefs)
+        dataSource = SecureStorageDataSource(bootstrapStore, runtimeStore, prefs, aead)
     }
 
     @Test

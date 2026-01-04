@@ -15,9 +15,10 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import java.time.Instant
 
 class StackProvisioningServiceTest {
-    private val cloudFormationClient = mockk<CloudFormationClient>()
+    private val cloudFormationClient = mockk<CloudFormationClient>(relaxed = true)
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val timeProvider = mockk<TimeProvider>(relaxed = true)
 
@@ -63,7 +64,7 @@ class StackProvisioningServiceTest {
         }
 
     @Test
-    fun `polls successfully until complete`() =
+    fun `polls successfully until complete and updates history`() =
         runBlocking {
             coEvery { cloudFormationClient.createStack(any(), any(), any(), any()) } returns LocusResult.Success(stackId)
 
@@ -71,6 +72,14 @@ class StackProvisioningServiceTest {
                 listOf(
                     LocusResult.Success(StackDetails(stackId, "CREATE_IN_PROGRESS", null)),
                     LocusResult.Success(StackDetails(stackId, STATUS_CREATE_COMPLETE, mapOf("Out" to "Val"))),
+                )
+
+            coEvery { cloudFormationClient.describeStackEvents(creds, stackName) } returns
+                LocusResult.Success(
+                    listOf(
+                        StackEvent("1", Instant.now(), "Res1", "CREATE_IN_PROGRESS", null),
+                        StackEvent("2", Instant.now().plusSeconds(1), "Res2", "CREATE_COMPLETE", null),
+                    ),
                 )
 
             val result = service.createAndPollStack(creds, stackName, template, params)
@@ -81,7 +90,11 @@ class StackProvisioningServiceTest {
             assertThat(data.outputs).containsEntry("Out", "Val")
             coVerify {
                 authRepository.updateProvisioningState(
-                    match { it is ProvisioningState.Working && it.currentStep.contains("Stack status") },
+                    match {
+                        it is ProvisioningState.Working &&
+                            it.currentStep.contains("Stack status") &&
+                            it.history.any { h -> h.contains("Res1") }
+                    },
                 )
             }
         }

@@ -1,12 +1,16 @@
 package com.locus.core.data.repository
 
 import android.util.Log
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import aws.sdk.kotlin.services.s3.listBuckets
 import com.locus.core.data.source.local.SecureStorageDataSource
 import com.locus.core.data.source.remote.aws.AwsClientFactory
 import com.locus.core.data.util.await
+import com.locus.core.data.worker.ProvisioningWorker
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.model.auth.ProvisioningState
@@ -19,6 +23,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -55,10 +61,16 @@ class AuthRepositoryImpl
                                     ProvisioningError.DeploymentFailed(errorMessage),
                                 )
                         }
+                        WorkInfo.State.SUCCEEDED -> {
+                            // If succeeded, we expect AuthState to be updated.
+                            // But process death might mean we need to reload from storage.
+                            loadInitialState()
+                            if (mutableAuthState.value == AuthState.Authenticated) {
+                                mutableProvisioningState.value = ProvisioningState.Success
+                            }
+                        }
                         else -> {
-                            // Succeeded or Cancelled - standard flow should have updated state,
-                            // or it is old work. If SUCCEEDED, we might want to check auth state?
-                            // But initialize() already loaded auth state.
+                            // Cancelled or Blocked
                         }
                     }
                 }
@@ -73,9 +85,6 @@ class AuthRepositoryImpl
                 mutableAuthState.value = AuthState.Authenticated
                 return
             }
-
-            // Sync Onboarding Stage if needed, but AuthState drives the primary flow.
-            // OnboardingStage is mostly for the Permission Trap.
 
             val bootstrapResult = secureStorage.getBootstrapCredentials()
             if (bootstrapResult is LocusResult.Success && bootstrapResult.data != null) {
@@ -116,7 +125,6 @@ class AuthRepositoryImpl
         override suspend fun validateCredentials(creds: BootstrapCredentials): LocusResult<Unit> {
             return try {
                 val client = awsClientFactory.createBootstrapS3Client(creds)
-                // Use 'use' to auto-close, but we perform operation inside explicitly
                 client.use { s3 ->
                     s3.listBuckets()
                 }
@@ -180,12 +188,10 @@ class AuthRepositoryImpl
                 if (stageStr != null) {
                     com.locus.core.domain.model.auth.OnboardingStage.valueOf(stageStr)
                 } else {
-                    // Fail-Safe for fresh installs
                     com.locus.core.domain.model.auth.OnboardingStage.IDLE
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load onboarding stage", e)
-                // Fail-Secure if authenticated, else Idle
                 if (mutableAuthState.value == AuthState.Authenticated) {
                     com.locus.core.domain.model.auth.OnboardingStage.PERMISSIONS_PENDING
                 } else {
@@ -199,7 +205,37 @@ class AuthRepositoryImpl
                 secureStorage.saveOnboardingStage(stage.name)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save onboarding stage", e)
-                // We don't crash, just log. In-memory flow continues.
+            }
+        }
+
+        override suspend fun startProvisioning(
+            mode: String,
+            param: String,
+        ): LocusResult<Unit> {
+            return try {
+                val credsResult = getBootstrapCredentials()
+                if (credsResult is LocusResult.Failure) return credsResult
+
+                val workRequest =
+                    OneTimeWorkRequestBuilder<ProvisioningWorker>()
+                        .setInputData(
+                            workDataOf(
+                                ProvisioningWorker.KEY_MODE to mode,
+                                ProvisioningWorker.KEY_PARAM to param,
+                            ),
+                        )
+                        .build()
+
+                workManager.enqueueUniqueWork(
+                    AuthRepository.PROVISIONING_WORK_NAME,
+                    ExistingWorkPolicy.REPLACE,
+                    workRequest,
+                )
+                // Immediately set state to Working
+                mutableProvisioningState.value = ProvisioningState.Working("Starting background setup...")
+                LocusResult.Success(Unit)
+            } catch (e: Exception) {
+                LocusResult.Failure(ProvisioningError.DeploymentFailed(e.message ?: "Failed to start worker"))
             }
         }
 

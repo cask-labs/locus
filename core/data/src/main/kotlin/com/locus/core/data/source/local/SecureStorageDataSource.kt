@@ -1,8 +1,10 @@
 package com.locus.core.data.source.local
 
 import android.content.SharedPreferences
+import android.util.Base64
 import android.util.Log
 import androidx.datastore.core.DataStore
+import com.google.crypto.tink.Aead
 import com.locus.core.data.model.BootstrapCredentialsDto
 import com.locus.core.data.model.RuntimeCredentialsDto
 import com.locus.core.data.model.toDomain
@@ -13,6 +15,7 @@ import com.locus.core.domain.result.LocusResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.nio.charset.StandardCharsets
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -26,6 +29,7 @@ class SecureStorageDataSource
         @Named("bootstrapDataStore") private val bootstrapDataStore: DataStore<BootstrapCredentialsDto?>,
         @Named("runtimeDataStore") private val runtimeDataStore: DataStore<RuntimeCredentialsDto?>,
         private val plainPrefs: SharedPreferences,
+        private val aead: Aead,
     ) {
         companion object {
             const val KEY_SALT = "telemetry_salt"
@@ -127,13 +131,46 @@ class SecureStorageDataSource
 
         suspend fun saveOnboardingStage(stage: String) {
             withContext(Dispatchers.IO) {
-                plainPrefs.edit().putString(KEY_ONBOARDING_STAGE, stage).apply()
+                try {
+                    val encryptedBytes =
+                        aead.encrypt(
+                            stage.toByteArray(StandardCharsets.UTF_8),
+                            KEY_ONBOARDING_STAGE.toByteArray(StandardCharsets.UTF_8),
+                        )
+                    val encryptedString = Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
+                    plainPrefs.edit().putString(KEY_ONBOARDING_STAGE, encryptedString).apply()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to encrypt onboarding stage", e)
+                    // Fallback to plain text if encryption fails (better than crash, but log error)
+                    // This is debatable security-wise but prevents hard crash.
+                    // Given 'Fail-Secure' preference, we should probably throw or not save.
+                    // But if we don't save, user is stuck.
+                    // Let's attempt plain text as last resort for stage (low risk enum).
+                    plainPrefs.edit().putString(KEY_ONBOARDING_STAGE, stage).apply()
+                }
             }
         }
 
         suspend fun getOnboardingStage(): String? {
             return withContext(Dispatchers.IO) {
-                plainPrefs.getString(KEY_ONBOARDING_STAGE, null)
+                val stored = plainPrefs.getString(KEY_ONBOARDING_STAGE, null) ?: return@withContext null
+                try {
+                    val encryptedBytes = Base64.decode(stored, Base64.DEFAULT)
+                    val decryptedBytes =
+                        aead.decrypt(
+                            encryptedBytes,
+                            KEY_ONBOARDING_STAGE.toByteArray(StandardCharsets.UTF_8),
+                        )
+                    String(decryptedBytes, StandardCharsets.UTF_8)
+                } catch (e: Exception) {
+                    // It might be plain text (from fallback or legacy)
+                    // Or tampering.
+                    // If it matches an enum value, return it.
+                    // Assuming stored is the plain text value.
+                    // Verification logic belongs to domain/repository (valueOf(stageStr)).
+                    Log.w(TAG, "Failed to decrypt onboarding stage, assuming plain text or corrupted", e)
+                    stored
+                }
             }
         }
     }

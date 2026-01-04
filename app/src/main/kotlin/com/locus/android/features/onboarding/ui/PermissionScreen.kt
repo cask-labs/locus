@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,19 +33,79 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.locus.android.ui.theme.LocusTheme
+
+private const val STEP_FOREGROUND = 1
+private const val STEP_BACKGROUND = 2
+private const val STEP_COMPLETE = 3
 
 @Suppress("LongMethod", "ComplexMethod")
 @Composable
 fun PermissionScreen(onPermissionsGranted: () -> Unit) {
     val context = LocalContext.current
-    var step by remember { mutableStateOf(1) } // 1: Foreground, 2: Background (if needed)
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Detect if we have foreground permission initially
+    fun hasForegroundPermission(): Boolean {
+        val fineLocation =
+            ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        return fineLocation
+    }
+
+    // Detect if we have background permission initially (Q+)
+    fun hasBackgroundPermission(): Boolean {
+        val versionQ = Build.VERSION_CODES.Q
+        return if (Build.VERSION.SDK_INT >= versionQ) {
+            ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Not required on < Q
+        }
+    }
+
+    var step by remember {
+        mutableStateOf(
+            if (hasForegroundPermission()) {
+                if (hasBackgroundPermission()) STEP_COMPLETE else STEP_BACKGROUND
+            } else {
+                STEP_FOREGROUND
+            },
+        )
+    }
+
     var showRationale by remember { mutableStateOf(false) }
     var isPermanentDenial by remember { mutableStateOf(false) }
+
+    // Re-check permissions on resume (e.g. returning from settings)
+    LaunchedEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    if (hasForegroundPermission()) {
+                        if (hasBackgroundPermission()) {
+                            onPermissionsGranted()
+                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            step = STEP_BACKGROUND
+                            isPermanentDenial = false
+                            showRationale = false
+                        }
+                    }
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+    }
 
     fun openSettings() {
         val intent =
@@ -54,18 +115,16 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
         context.startActivity(intent)
     }
 
-    // Launcher for Step 1: Foreground
     val foregroundLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestMultiplePermissions(),
         ) { permissions ->
             val fineLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-            val coarseLocation = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-            if (fineLocation || coarseLocation) {
+            if (fineLocation) {
                 showRationale = false
                 isPermanentDenial = false
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    step = 2
+                    step = STEP_BACKGROUND
                 } else {
                     onPermissionsGranted()
                 }
@@ -90,7 +149,6 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
             }
         }
 
-    // Launcher for Step 2: Background (API 29+)
     val backgroundLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission(),
@@ -98,14 +156,7 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
             if (isGranted) {
                 onPermissionsGranted()
             } else {
-                // Background Location denial
-                // If it returns false immediately, it might be system blocked or user denied.
-                // We treat this as a need to go to settings in most cases for Background Location
-                // because the "Allow all the time" option is often hidden in the system dialog
-                // or the dialog doesn't show at all on Android 11+ if already denied once.
-
-                // For Background location on Android 11+, if denied, we pretty much always
-                // want to send them to settings as the "Allow all the time" option is strict.
+                // Background Location denial handling
                 isPermanentDenial = true
                 showRationale = false
             }
@@ -121,7 +172,7 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = if (step == 1) "Location Access" else "Always Allow",
+                text = if (step == STEP_FOREGROUND) "Location Access" else "Always Allow",
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
@@ -135,7 +186,7 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
                         showRationale ->
                             "Locus strictly requires location access to function. We only store data in " +
                                 "your private S3 bucket."
-                        step == 1 ->
+                        step == STEP_FOREGROUND ->
                             "Locus needs location access to track your movement. We respect your privacy and only " +
                                 "store data in your private cloud."
                         else ->
@@ -169,7 +220,7 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
                     if (isPermanentDenial) {
                         openSettings()
                     } else {
-                        if (step == 1) {
+                        if (step == STEP_FOREGROUND) {
                             foregroundLauncher.launch(
                                 arrayOf(
                                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -189,9 +240,11 @@ fun PermissionScreen(onPermissionsGranted: () -> Unit) {
                     text =
                         when {
                             isPermanentDenial -> "Open Settings"
-                            step == 1 -> "Grant Access"
-                            // For Background, we often end up in Settings anyway on modern Android
-                            else -> "Open Settings"
+                            step == STEP_FOREGROUND -> "Grant Access"
+                            // Handle API 29 vs 30+ difference for Background Location Button
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ->
+                                "Open Settings" // API 30+ enforces Settings redirect
+                            else -> "Grant Access" // API 29 shows system dialog
                         },
                 )
             }

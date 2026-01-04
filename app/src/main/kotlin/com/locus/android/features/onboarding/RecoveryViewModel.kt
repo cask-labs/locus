@@ -2,9 +2,9 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.locus.core.data.worker.ProvisioningWorker
 import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.repository.AuthRepository
-import com.locus.core.domain.usecase.RecoverAccountUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +24,6 @@ data class RecoveryUiState(
 class RecoveryViewModel
     @Inject
     constructor(
-        private val recoverAccountUseCase: RecoverAccountUseCase,
         private val authRepository: AuthRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(RecoveryUiState())
@@ -33,10 +32,7 @@ class RecoveryViewModel
         fun loadBuckets() {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, error = null) }
-
-                // Mocking bucket loading for UI development
-                // Real implementation will come in Task 10/11 (Actually ScanBucketsUseCase)
-                // For now, let's keep the mock for buckets but handle selection.
+                // Mock bucket loading for now
                 delay(SIMULATED_DELAY_MS)
                 _uiState.update {
                     it.copy(
@@ -52,19 +48,16 @@ class RecoveryViewModel
             onSuccess: () -> Unit,
         ) {
             viewModelScope.launch {
+                // 1. Set stage to PROVISIONING to trap the user
                 authRepository.setOnboardingStage(OnboardingStage.PROVISIONING)
+
+                // 2. Start persistent background work
+                authRepository.startProvisioning(
+                    mode = ProvisioningWorker.MODE_RECOVERY,
+                    param = bucketName,
+                )
+
                 onSuccess()
-
-                launchRecovery(bucketName)
-            }
-        }
-
-        private fun launchRecovery(bucketName: String) {
-            viewModelScope.launch {
-                val credsResult = authRepository.getBootstrapCredentials()
-                if (credsResult is com.locus.core.domain.result.LocusResult.Success && credsResult.data != null) {
-                    recoverAccountUseCase(credsResult.data!!, bucketName)
-                }
             }
         }
 

@@ -22,6 +22,7 @@ class FakeAuthRepository
         private var storedRuntime: RuntimeCredentials? = null
         private var storedOnboardingStage: OnboardingStage = OnboardingStage.IDLE
         var shouldFailValidation: Boolean = false
+        var shouldFailProvisioningStart: Boolean = false
 
         override suspend fun initialize() {
             if (storedRuntime != null) {
@@ -93,5 +94,17 @@ class FakeAuthRepository
 
         override suspend fun setOnboardingStage(stage: OnboardingStage) {
             storedOnboardingStage = stage
+        }
+
+        override suspend fun startProvisioning(
+            mode: String,
+            param: String,
+        ): LocusResult<Unit> {
+            return if (shouldFailProvisioningStart) {
+                LocusResult.Failure(Exception("Failed to start provisioning"))
+            } else {
+                mutableProvisioningState.value = ProvisioningState.Working("Fake Provisioning Started")
+                LocusResult.Success(Unit)
+            }
         }
     }

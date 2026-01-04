@@ -2,6 +2,7 @@ package com.locus.core.domain.infrastructure
 
 import com.locus.core.domain.model.auth.BootstrapCredentials
 import com.locus.core.domain.result.LocusResult
+import java.time.Instant
 
 interface CloudFormationClient {
     /**
@@ -17,18 +18,31 @@ interface CloudFormationClient {
 
     /**
      * Describes the stack to retrieve its status and outputs.
-     * Returns the raw Stack object wrapper or specific status.
-     * For domain purity, we'll return a simple data class or LocusResult.
-     * Let's return a simple StackStatus model.
      */
     suspend fun describeStack(
         creds: BootstrapCredentials,
         stackName: String,
     ): LocusResult<StackDetails>
+
+    /**
+     * Retrieves the stack events for logging.
+     */
+    suspend fun describeStackEvents(
+        creds: BootstrapCredentials,
+        stackName: String,
+    ): LocusResult<List<StackEvent>>
 }
 
 data class StackDetails(
     val stackId: String?,
     val status: String,
     val outputs: Map<String, String>?,
+)
+
+data class StackEvent(
+    val eventId: String,
+    val timestamp: Instant,
+    val logicalResourceId: String,
+    val resourceStatus: String,
+    val resourceStatusReason: String?,
 )

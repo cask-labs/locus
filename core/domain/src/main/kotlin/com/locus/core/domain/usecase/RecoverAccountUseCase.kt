@@ -2,8 +2,6 @@ package com.locus.core.domain.usecase
 
 import com.locus.core.domain.infrastructure.InfrastructureConstants.OUT_RUNTIME_ACCESS_KEY
 import com.locus.core.domain.infrastructure.InfrastructureConstants.OUT_RUNTIME_SECRET_KEY
-import com.locus.core.domain.infrastructure.InfrastructureConstants.STACK_NAME_PREFIX
-import com.locus.core.domain.infrastructure.InfrastructureConstants.TAG_STACK_NAME
 import com.locus.core.domain.infrastructure.ResourceProvider
 import com.locus.core.domain.infrastructure.S3Client
 import com.locus.core.domain.infrastructure.StackProvisioningService
@@ -50,19 +48,21 @@ class RecoverAccountUseCase
                 return LocusResult.Failure(error)
             }
 
-            // 1. Resolve Stack Name from Bucket Tags
+            // 1. Identify Stack
             val step1 = "Validating bucket ownership..."
             updateStep(step1)
+
             val tagsResult = s3Client.getBucketTags(creds, bucketName)
             if (tagsResult is LocusResult.Failure) {
                 return fail(DomainException.RecoveryError.MissingStackTag)
             }
-            val tags = (tagsResult as LocusResult.Success).data
-
-            if (!tags.containsKey(TAG_STACK_NAME)) {
+            val tags =
+                (tagsResult as? LocusResult.Success)?.data ?: emptyMap()
+            val oldStackName = tags["aws:cloudformation:stack-name"]
+            if (oldStackName == null || oldStackName.isBlank()) {
                 return fail(DomainException.RecoveryError.MissingStackTag)
             }
-            completeStep(step1)
+            completeStep("Identified existing stack: $oldStackName")
 
             // 2. Load Template
             val step2 = "Loading CloudFormation template..."
@@ -75,20 +75,18 @@ class RecoverAccountUseCase
                 }
             completeStep(step2)
 
-            val newDeviceId = UUID.randomUUID().toString()
-            val stackNameForRecovery = "$STACK_NAME_PREFIX$newDeviceId"
+            // 3. Create New Stack (Recovery)
+            // We create a NEW stack for the new device but point it to the EXISTING bucket.
+            val newDeviceName = UUID.randomUUID().toString()
+            val newStackName = "locus-user-$newDeviceName"
 
-            // 3. Create Stack and Poll
             val stackResult =
                 stackProvisioningService.createAndPollStack(
                     creds = creds,
-                    stackName = stackNameForRecovery,
+                    stackName = newStackName,
                     template = template,
-                    parameters =
-                        mapOf(
-                            "BucketName" to bucketName,
-                            "StackName" to newDeviceId,
-                        ),
+                    // Reuse bucket
+                    parameters = mapOf("BucketName" to bucketName),
                     history = history.toList(),
                 )
 
@@ -98,11 +96,12 @@ class RecoverAccountUseCase
                     is LocusResult.Failure -> return stackResult
                 }
 
-            completeStep("Deployed CloudFormation Stack")
+            completeStep("Deployed Recovery Stack")
 
             val outputs = resultData.outputs
             val stackId = resultData.stackId
 
+            // 4. Success Handling
             val step4 = "Verifying stack outputs..."
             updateStep(step4)
 
@@ -118,7 +117,10 @@ class RecoverAccountUseCase
             val step5 = "Finalizing setup..."
             updateStep(step5)
 
+            // Generate NEW device ID for this installation to avoid split-brain
+            val newDeviceId = UUID.randomUUID().toString()
             val newSalt = AuthUtils.generateSalt()
+
             val initResult = configRepository.initializeIdentity(newDeviceId, newSalt)
             if (initResult is LocusResult.Failure) {
                 val error =
