@@ -127,7 +127,33 @@ fun ProvisioningScreen(
                         text = s.error.message ?: "Unknown error",
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // History Log in Failure
+                    Box(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = MaterialTheme.shapes.medium,
+                                )
+                                .padding(16.dp),
+                    ) {
+                        LazyColumn(reverseLayout = true) {
+                            items(s.history.reversed()) { historyItem ->
+                                Text(
+                                    text = historyItem,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
                     Button(onClick = { viewModel.reset() }) {
                         Text("Try Again")
                     }

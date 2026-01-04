@@ -125,7 +125,8 @@ class AuthRepositoryImplTest {
             }
 
             repository.getProvisioningState().test {
-                assertThat(awaitItem()).isEqualTo(ProvisioningState.Success)
+                val item = awaitItem()
+                assertThat(item).isInstanceOf(ProvisioningState.Success::class.java)
             }
 
             coVerify { secureStorage.saveRuntimeCredentials(runtimeCreds) }

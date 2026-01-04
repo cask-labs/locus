@@ -5,17 +5,20 @@ import com.locus.core.domain.result.DomainException
 /**
  * Detailed state machine for the CloudFormation provisioning process.
  */
-sealed class ProvisioningState {
-    data object Idle : ProvisioningState()
+sealed class ProvisioningState(open val history: List<String>) {
+    data object Idle : ProvisioningState(emptyList())
 
     data class Working(
         val currentStep: String,
-        val history: List<String> = emptyList(),
-    ) : ProvisioningState()
+        override val history: List<String> = emptyList(),
+    ) : ProvisioningState(history)
 
-    data object Success : ProvisioningState()
+    data class Success(override val history: List<String> = emptyList()) : ProvisioningState(history)
 
-    data class Failure(val error: DomainException) : ProvisioningState()
+    data class Failure(
+        val error: DomainException,
+        override val history: List<String> = emptyList(),
+    ) : ProvisioningState(history)
 
     companion object {
         const val MAX_HISTORY_SIZE = 100

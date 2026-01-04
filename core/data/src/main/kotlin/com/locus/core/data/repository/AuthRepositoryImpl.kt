@@ -92,16 +92,29 @@ class AuthRepositoryImpl
         override suspend fun updateProvisioningState(state: ProvisioningState) {
             val currentState = mutableProvisioningState.value
 
-            if (state is ProvisioningState.Working && currentState is ProvisioningState.Working) {
-                // History accumulation logic
-                val newHistory =
-                    (currentState.history + currentState.currentStep)
-                        .takeLast(ProvisioningState.MAX_HISTORY_SIZE)
+            // History preservation logic
+            val currentHistory = currentState.history
+            val newState =
+                when {
+                    state is ProvisioningState.Working && currentState is ProvisioningState.Working -> {
+                        // Append to history
+                        val newHistory =
+                            (currentHistory + currentState.currentStep)
+                                .takeLast(ProvisioningState.MAX_HISTORY_SIZE)
+                        state.copy(history = newHistory)
+                    }
+                    state is ProvisioningState.Success -> {
+                        // Preserve history
+                        state.copy(history = currentHistory)
+                    }
+                    state is ProvisioningState.Failure -> {
+                        // Preserve history
+                        state.copy(history = currentHistory)
+                    }
+                    else -> state
+                }
 
-                mutableProvisioningState.value = state.copy(history = newHistory)
-            } else {
-                mutableProvisioningState.value = state
-            }
+            mutableProvisioningState.value = newState
         }
 
         override suspend fun getOnboardingStage(): OnboardingStage {
@@ -173,7 +186,8 @@ class AuthRepositoryImpl
             }
 
             mutableAuthState.value = AuthState.Authenticated
-            mutableProvisioningState.value = ProvisioningState.Success
+            // updateProvisioningState handles history preservation
+            updateProvisioningState(ProvisioningState.Success())
 
             // Note: We do NOT set COMPLETE here. We set PERMISSIONS_PENDING via the UI flow (Success Screen).
             return LocusResult.Success(Unit)

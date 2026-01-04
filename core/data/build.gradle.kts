@@ -10,6 +10,9 @@ plugins {
 
 android {
     namespace = "com.locus.core.data"
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {

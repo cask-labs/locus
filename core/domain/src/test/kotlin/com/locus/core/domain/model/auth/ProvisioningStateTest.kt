@@ -19,15 +19,20 @@ class ProvisioningStateTest {
     }
 
     @Test
-    fun `Success state exists`() {
-        assertThat(ProvisioningState.Success).isInstanceOf(ProvisioningState::class.java)
+    fun `Success state exists and holds history`() {
+        val history = listOf("Step 1")
+        val state = ProvisioningState.Success(history)
+        assertThat(state).isInstanceOf(ProvisioningState::class.java)
+        assertThat(state.history).containsExactly("Step 1")
     }
 
     @Test
-    fun `Failure state holds error`() {
+    fun `Failure state holds error and history`() {
         val error = DomainException.NetworkError.Offline
-        val state = ProvisioningState.Failure(error)
+        val history = listOf("Step 1", "Step 2")
+        val state = ProvisioningState.Failure(error, history)
         assertThat(state.error).isEqualTo(error)
+        assertThat(state.history).containsExactly("Step 1", "Step 2")
     }
 
     @Test

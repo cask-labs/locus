@@ -125,7 +125,7 @@ class RecoverAccountUseCase
                 return promoteResult
             }
 
-            authRepository.updateProvisioningState(ProvisioningState.Success)
+            authRepository.updateProvisioningState(ProvisioningState.Success())
             return LocusResult.Success(Unit)
         }
     }
