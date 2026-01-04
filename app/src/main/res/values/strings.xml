@@ -6,14 +6,14 @@
     <string name="notification_channel_setup_name">Setup Status</string>
     <string name="notification_channel_tracking_name">Tracking Status</string>
     <string name="notification_setup_title">Locus • Setup</string>
-    <string name="notification_setup_starting">Starting setup...</string>
+    <string name="notification_setup_starting">Starting setup…</string>
     <string name="notification_setup_fallback_message">Setup failed</string>
     <string name="notification_setup_unknown_error">Unknown error occurred</string>
 
     <!-- Onboarding: Provisioning -->
     <string name="onboarding_provisioning_title">Setting up your Locus</string>
     <string name="onboarding_provisioning_description">This may take a few minutes. Please don\'t close the app.</string>
-    <string name="onboarding_provisioning_waiting">Waiting to start...</string>
+    <string name="onboarding_provisioning_waiting">Waiting to start…</string>
     <string name="onboarding_provisioning_complete">Provisioning Complete!</string>
     <string name="onboarding_provisioning_failed_title">Setup Failed</string>
     <string name="onboarding_provisioning_unknown_error">Unknown error</string>
