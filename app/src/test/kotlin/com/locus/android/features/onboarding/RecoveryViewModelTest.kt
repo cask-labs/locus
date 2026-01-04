@@ -2,6 +2,7 @@ package com.locus.android.features.onboarding
 
 import com.google.common.truth.Truth.assertThat
 import com.locus.core.domain.repository.AuthRepository
+import com.locus.core.domain.usecase.RecoverAccountUseCase
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,12 +23,13 @@ import org.robolectric.annotation.Config
 class RecoveryViewModelTest {
     private lateinit var viewModel: RecoveryViewModel
     private val authRepository: AuthRepository = mockk(relaxed = true)
+    private val recoverAccountUseCase: RecoverAccountUseCase = mockk(relaxed = true)
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = RecoveryViewModel(authRepository)
+        viewModel = RecoveryViewModel(authRepository, recoverAccountUseCase)
     }
 
     @After
