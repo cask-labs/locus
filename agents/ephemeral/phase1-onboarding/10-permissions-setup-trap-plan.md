@@ -1,6 +1,6 @@
 # Task 10 Implementation Plan: Permissions & Setup Trap
 
-**Goal:** Implement the "Permission Trap" and finalizes the Onboarding flow, ensuring the user cannot enter the main application without granting necessary Location permissions. It adheres to Android 11+ (API 30+) best practices for two-stage location requests and ensures Android 14+ compatibility.
+**Goal:** Implement the "Permission Trap" and finalize the Onboarding flow, ensuring the user cannot enter the main application without granting necessary Location permissions. It adheres to Android 11+ (API 30+) best practices for two-stage location requests and ensures Android 14+ compatibility.
 
 ## Prerequisites
 - **Human Actions:** None.
@@ -14,28 +14,35 @@
 | **R1.1560** | **Permission Trap:** Force user back to permission screen on next launch. | `MainActivity` (Routes based on `PERMISSIONS_PENDING` persisted state) + `PermissionScreen` (Blocking UI). |
 | **R1.1900** | **Setup Trap:** Restore last known provisioning state. | `AuthRepository` (Persists `OnboardingStage`) + `MainActivity`. |
 | **R1.1600** | Manual confirmation ("Go to Dashboard"). | `PermissionViewModel` handles the final transition to `COMPLETE` after permissions are granted. |
-| **Architecture**| Android 14 FG Service Compliance | Manifest includes `FOREGROUND_SERVICE_LOCATION`. |
-| **Architecture**| Android 13 Notification Compliance | `PermissionViewModel` requests `POST_NOTIFICATIONS`. |
+| **R1.1800** | **Start Tracking:** Automatically start services upon Dashboard entry. | `MainActivity` (Triggers `TrackerService` and `WatchdogWorker`). |
+| **Architecture**| Android 14 FG Service Compliance | Manifest includes `FOREGROUND_SERVICE_LOCATION` and `FOREGROUND_SERVICE_DATA_SYNC`. |
+| **Architecture**| Android 13 Notification Compliance | `PermissionViewModel` requests `POST_NOTIFICATIONS` (Optional). |
 
 ## Implementation Steps
 
-### Phase 1: Manifest & ViewModel
-**Goal:** Declare permissions and encapsulate logic.
+### Phase 1: Manifest, Repository & ViewModel
+**Goal:** Declare permissions, fix state recovery logic, and encapsulate UI logic.
 
 1.  **Update `AndroidManifest.xml`**
     -   Add `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`.
-    -   Add `FOREGROUND_SERVICE_LOCATION` (Android 14 compliance).
+    -   Add `FOREGROUND_SERVICE_LOCATION` (Android 14 compliance for Tracker).
+    -   Add `FOREGROUND_SERVICE_DATA_SYNC` (Android 14 compliance for Provisioning).
     -   Add `POST_NOTIFICATIONS` (Android 13 compliance).
     -   *Verification:* Read Manifest file.
 
-2.  **Create `PermissionViewModel`** (`features/onboarding/viewmodel`)
+2.  **Update `AuthRepositoryImpl` (State Correction)**
+    -   **Self-Healing Logic:** In `initialize()` or `loadInitialState()`, check for inconsistent state.
+        -   *Logic:* `if (authState == Authenticated && onboardingStage != COMPLETE) { onboardingStage = PERMISSIONS_PENDING }`.
+        -   *Justification:* Ensures users who finished provisioning but didn't complete permissions are "trapped" back to the permission flow, without resetting fully onboarded users.
+    -   *Verification:* Read Repository file.
+
+3.  **Create `PermissionViewModel.kt`** (`features/onboarding/viewmodel` - create dir if missing)
     -   Inject `AuthRepository`.
     -   State: `PermissionUiState` (ForegroundPending, BackgroundPending, DeniedForever, Granted).
     -   **Logic:**
-        -   **Self-Healing:** On init, if `Authenticated` but `Stage != PERMISSIONS_PENDING`, set `Stage = PERMISSIONS_PENDING`.
         -   **Precision:** Enforce `ACCESS_FINE_LOCATION`. Treat "Coarse Only" as a denial/education state.
-        -   **Notifications:** Request `POST_NOTIFICATIONS` alongside Foreground Location (API 33+).
-        -   **Two-Stage:** Request FG -> If Granted, Request BG (via Education UI).
+        -   **Notifications:** Request `POST_NOTIFICATIONS` alongside Foreground Location (API 33+). **Mark as Optional**: Proceed even if denied.
+        -   **Two-Stage:** Request FG -> If Granted, Request BG.
         -   **Completion:** Call `completeOnboarding()` (updates repo to `COMPLETE`).
         -   **Resume:** `onResume` checks system permissions to auto-advance.
     -   *Verification:* Read ViewModel file.
@@ -43,38 +50,53 @@
 ### Phase 2: UI Implementation (Compose)
 **Goal:** Build the two-stage permission screen with educational context.
 
-3.  **Create `PermissionScreen.kt`** (`features/onboarding/ui`)
+4.  **Update `PermissionScreen.kt`** (`features/onboarding/ui`)
+    -   Refactor to use `PermissionViewModel`.
     -   Composables:
         -   `ForegroundPermissionContent`: Explains tracking & alerts. Button -> `launcher.launch(FINE + COARSE + NOTIFICATIONS)`.
-        -   `BackgroundPermissionContent`: Explains "Always Allow". Button -> Open App Settings (Intent).
+        -   `BackgroundPermissionContent`: Explains "Always Allow".
+            -   **UX:** Button first attempts `launcher.launch(ACCESS_BACKGROUND_LOCATION)`.
+            -   **Fallback:** If denied or system ignores, launch `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`.
         -   `PermanentDenialContent`: Explains the app is blocked. Button -> Open App Settings.
     -   Lifecycle: Observe `ON_RESUME` to trigger `viewModel.checkPermissions()`.
     -   *Verification:* Read UI file.
 
-### Phase 3: Integration & The Trap
-**Goal:** Connect the UI to the App Navigation and enforce the trap.
+### Phase 3: Integration, Routing & Services
+**Goal:** Connect the UI to the App Navigation, enforce the trap, and ensure services start.
 
-4.  **Update `OnboardingNavigation.kt`**
-    -   Add `PERMISSIONS` composable.
+5.  **Create `TrackerService.kt`** (Stub if missing)
+    -   Create a basic `ForegroundService` in `com.locus.android.services` (or appropriate package).
+    -   Implement `start()` helper method or Companion Object Intent factory.
+    -   *Verification:* Read Service file.
+
+6.  **Update `OnboardingDestinations.kt`** (Navigation)
+    -   Update `PERMISSIONS` composable route to use `PermissionViewModel`.
     -   Connect `onPermissionsGranted` -> `viewModel.completeOnboarding()`.
     -   *Verification:* Read Navigation file.
+
+7.  **Update `MainActivity.kt`**
+    -   **Routing Verification:** Ensure `PERMISSIONS_PENDING` stage maps to `OnboardingDestinations.PERMISSIONS`.
+    -   **Service Trigger:** Add `LaunchedEffect` monitoring the transition to `COMPLETE`.
+        -   Action: Call `TrackerService.start()` and schedule `WatchdogWorker`.
+    -   *Verification:* Read MainActivity file.
 
 ### Phase 4: Verification & Testing
 **Goal:** Ensure robustness across API levels and user behaviors.
 
-5.  **Create `PermissionViewModelTest.kt`**
+8.  **Create `PermissionViewModelTest.kt`**
     -   Test flows:
-        -   Initial self-healing check.
         -   Coarse Grant -> Treated as pending/failure.
         -   Foreground Grant -> Background Pending.
+        -   Notification Denial -> Proceeds to Background/Complete (Non-blocking).
         -   All Granted -> Complete.
     -   *Verification:* Read Test file.
 
-6.  **Execute Tests**
+9.  **Execute Tests**
     -   Run `./gradlew testDebugUnitTest`.
 
 ## Completion Criteria
 - Unit tests pass.
-- Manifest contains all 5 required permissions.
-- "Self-Healing" logic prevents logic gaps between Provisioning and Permissions.
-- Precise Location is enforced.
+- Manifest contains all required permissions and FG service types.
+- "Self-Healing" logic correctly targets only incomplete setups.
+- Services (Tracker/Watchdog) start immediately upon reaching the Dashboard.
+- Precise Location is mandatory; Notifications are optional.
