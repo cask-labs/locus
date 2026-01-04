@@ -100,6 +100,3 @@
 - "Self-Healing" logic correctly targets only incomplete setups.
 - Services (Tracker/Watchdog) start immediately upon reaching the Dashboard.
 - Precise Location is mandatory; Notifications are optional.
-
-## Revision History
-- **2026-01-04:** Updated based on Gap Analysis (Fix self-healing logic, enforce service start trigger, improve Android 14+ compliance).
