@@ -237,8 +237,10 @@ fun BackgroundPermissionContent(
                 try {
                     launcher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                 } catch (
-                    @Suppress("TooGenericExceptionCaught", "SwallowedException") e: Exception,
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
+                    // Fail-Soft: Catch generic Exception to ensure we always fallback to Settings
+                    // if the launcher fails for any reason (e.g. ActivityNotFound, SecurityException).
                     Log.e(TAG, "Failed to launch background permission request", e)
                     openAppSettings(context)
                 }
