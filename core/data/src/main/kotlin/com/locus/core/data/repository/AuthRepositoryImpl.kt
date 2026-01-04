@@ -80,6 +80,13 @@ class AuthRepositoryImpl
             val runtimeResult = secureStorage.getRuntimeCredentials()
             if (runtimeResult is LocusResult.Success && runtimeResult.data != null) {
                 mutableAuthState.value = AuthState.Authenticated
+
+                // Fail-Secure: If we are authenticated but failed to read the stage,
+                // default to PERMISSIONS_PENDING (safe trap) instead of IDLE.
+                // This ensures we verify permissions and don't dump the user to the Welcome screen.
+                if (stageResult is LocusResult.Failure) {
+                    mutableOnboardingStage.value = OnboardingStage.PERMISSIONS_PENDING
+                }
                 return
             }
 

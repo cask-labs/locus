@@ -2,10 +2,17 @@ package com.locus.android.features.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.locus.core.domain.model.auth.ProvisioningState
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.locus.android.features.onboarding.work.ProvisioningWorker
+import com.locus.core.domain.model.auth.BucketValidationStatus
+import com.locus.core.domain.model.auth.OnboardingStage
 import com.locus.core.domain.repository.AuthRepository
+import com.locus.core.domain.result.LocusResult
+import com.locus.core.domain.usecase.ScanBucketsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +31,8 @@ class RecoveryViewModel
     @Inject
     constructor(
         private val authRepository: AuthRepository,
+        private val workManager: WorkManager,
+        private val scanBucketsUseCase: ScanBucketsUseCase,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(RecoveryUiState())
         val uiState: StateFlow<RecoveryUiState> = _uiState.asStateFlow()
@@ -32,36 +41,65 @@ class RecoveryViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
-                // Mocking bucket loading for UI development
-                // Real implementation will come in Task 10/11
-                delay(SIMULATED_DELAY_MS)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        buckets = listOf("locus-user-my-stack", "locus-user-test-stack"),
-                    )
+                val credsResult = authRepository.getBootstrapCredentials()
+                if (credsResult is LocusResult.Failure) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = credsResult.error.message ?: "Missing bootstrap credentials",
+                        )
+                    }
+                    return@launch
+                }
+                val creds = (credsResult as LocusResult.Success).data
+
+                val scanResult = scanBucketsUseCase(creds)
+                when (scanResult) {
+                    is LocusResult.Success -> {
+                        val validBuckets =
+                            scanResult.data
+                                .filter { it.second is BucketValidationStatus.Available }
+                                .map { it.first }
+
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                buckets = validBuckets,
+                                error = if (validBuckets.isEmpty()) "No valid Locus buckets found." else null,
+                            )
+                        }
+                    }
+                    is LocusResult.Failure -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = scanResult.error.message ?: "Failed to scan buckets",
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        companion object {
-            private const val SIMULATED_DELAY_MS = 1000L
-            private const val SIM_STEP_DELAY_1 = 1000L
-            private const val SIM_STEP_DELAY_2 = 1500L
-            private const val SIM_STEP_DELAY_3 = 2000L
-        }
-
         fun recover(bucketName: String) {
-            // NOTE: Temporary simulation for UI verification. Task 10 will replace this with actual Service start.
             viewModelScope.launch {
-                authRepository.setOnboardingStage(com.locus.core.domain.model.auth.OnboardingStage.PROVISIONING)
-                authRepository.updateProvisioningState(ProvisioningState.Working("Connecting to bucket: $bucketName"))
-                delay(SIM_STEP_DELAY_1)
-                authRepository.updateProvisioningState(ProvisioningState.Working("Verifying stack tags..."))
-                delay(SIM_STEP_DELAY_2)
-                authRepository.updateProvisioningState(ProvisioningState.Working("Recovering identity..."))
-                delay(SIM_STEP_DELAY_3)
-                authRepository.updateProvisioningState(ProvisioningState.Success)
+                authRepository.setOnboardingStage(OnboardingStage.PROVISIONING)
+
+                val workRequest =
+                    OneTimeWorkRequest.Builder(ProvisioningWorker::class.java)
+                        .setInputData(
+                            workDataOf(
+                                ProvisioningWorker.KEY_MODE to ProvisioningWorker.MODE_RECOVER,
+                                ProvisioningWorker.KEY_BUCKET_NAME to bucketName,
+                            ),
+                        )
+                        .build()
+
+                workManager.enqueueUniqueWork(
+                    ProvisioningWorker.WORK_NAME,
+                    ExistingWorkPolicy.REPLACE,
+                    workRequest,
+                )
             }
         }
     }

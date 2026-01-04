@@ -2,6 +2,7 @@ package com.locus.android.features.onboarding
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import androidx.work.WorkManager
 import com.google.common.truth.Truth.assertThat
 import com.locus.core.domain.repository.AuthRepository
 import io.mockk.mockk
@@ -24,13 +25,14 @@ import org.robolectric.annotation.Config
 class NewDeviceViewModelTest {
     private lateinit var viewModel: NewDeviceViewModel
     private val authRepository: AuthRepository = mockk(relaxed = true)
+    private val workManager: WorkManager = mockk(relaxed = true)
     private val testDispatcher = StandardTestDispatcher()
     private val application: Application = ApplicationProvider.getApplicationContext()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = NewDeviceViewModel(authRepository, application)
+        viewModel = NewDeviceViewModel(authRepository, workManager, application)
     }
 
     @After
