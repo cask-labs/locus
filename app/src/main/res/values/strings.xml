@@ -37,4 +37,13 @@
     <string name="onboarding_new_device_name_invalid">Only lowercase letters, numbers, and hyphens allowed</string>
     <string name="onboarding_new_device_name_unavailable">Device name unavailable</string>
     <string name="onboarding_new_device_name_available">Available!</string>
+
+    <!-- Tracking Service -->
+    <string name="tracker_notification_title">Locus Tracking</string>
+    <string name="tracker_notification_content">Tracking active</string>
+
+    <!-- Permission Screen -->
+    <string name="onboarding_permission_granted_all">All required permissions granted!</string>
+    <string name="onboarding_permission_go_dashboard">Go to Dashboard</string>
+    <string name="onboarding_permission_coarse_error">Precise location is required for this app to work correctly. Please grant \'Precise\' location.</string>
 </resources>

@@ -2,7 +2,7 @@ package com.locus.android.di
 
 import android.content.Context
 import com.locus.android.services.TrackerService
-import com.locus.core.domain.usecase.TrackingManager
+import com.locus.core.domain.repository.TrackingManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

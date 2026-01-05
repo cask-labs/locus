@@ -148,7 +148,7 @@ fun PermissionScreen(
             }
             PermissionUiState.Granted -> {
                 Text(
-                    text = "All required permissions granted!",
+                    text = stringResource(id = R.string.onboarding_permission_granted_all),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
@@ -158,7 +158,7 @@ fun PermissionScreen(
                         onPermissionsGranted()
                     }
                 ) {
-                    Text("Go to Dashboard")
+                    Text(stringResource(id = R.string.onboarding_permission_go_dashboard))
                 }
             }
             PermissionUiState.DeniedForever -> {
@@ -166,7 +166,7 @@ fun PermissionScreen(
             }
             PermissionUiState.CoarseLocationError -> {
                 Text(
-                    text = "Precise location is required for this app to work correctly. Please grant 'Precise' location.",
+                    text = stringResource(id = R.string.onboarding_permission_coarse_error),
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.error
                 )
