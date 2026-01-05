@@ -24,10 +24,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,152 +34,136 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.locus.android.R
+import com.locus.android.features.onboarding.viewmodel.PermissionUiState
+import com.locus.android.features.onboarding.viewmodel.PermissionViewModel
 
 private const val TAG = "PermissionScreen"
 
 @Composable
-fun PermissionScreen(onPermissionsGranted: () -> Unit) {
+fun PermissionScreen(
+    onPermissionsGranted: () -> Unit,
+    viewModel: PermissionViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
-    var currentStep by remember { mutableStateOf(PermissionStep.FOREGROUND) }
-    var showRationale by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
 
     fun checkPermissions() {
-        val step = determinePermissionStep(context)
-        currentStep = step
-        if (step == PermissionStep.COMPLETE) {
-            onPermissionsGranted()
+        val fineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val backgroundLocation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
         }
+        val notifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        viewModel.updatePermissions(
+            fine = fineLocation,
+            coarse = coarseLocation,
+            background = backgroundLocation,
+            notifications = notifications
+        )
     }
 
+    // Initial check and observe lifecycle
+    LaunchedEffect(Unit) {
+        checkPermissions()
+    }
     ObserveLifecycleResume {
         checkPermissions()
     }
 
+    // Launchers
     val activity = LocalContext.current as? android.app.Activity
-
-    val foregroundLauncher =
-        rememberForegroundLauncher(
-            onResult = { granted ->
-                if (!granted) {
-                    val shouldShowRationale =
-                        activity?.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) == true
-                    showRationale = !shouldShowRationale
-                }
-                checkPermissions()
-            },
-        )
-
-    val backgroundLauncher =
-        rememberBackgroundLauncher(
-            onResult = { granted ->
-                if (!granted) {
-                    val shouldShowRationale =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            activity?.shouldShowRequestPermissionRationale(
-                                Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                            ) == true
-                        } else {
-                            false
-                        }
-                    showRationale = !shouldShowRationale
-                }
-                checkPermissions()
-            },
-        )
-
-    PermissionContent(
-        currentStep = currentStep,
-        showRationale = showRationale,
-        foregroundLauncher = foregroundLauncher,
-        backgroundLauncher = backgroundLauncher,
-        onLaunchError = { showRationale = true },
-    )
-}
-
-@Composable
-private fun rememberForegroundLauncher(onResult: (Boolean) -> Unit) =
-    rememberLauncherForActivityResult(
+    val foregroundLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { permissions ->
-            val granted =
-                permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-            onResult(granted)
-        },
+        onResult = { perms ->
+            val granted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
+            if (!granted) {
+                val shouldShowRationale = activity?.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) == true
+                viewModel.onPermissionDenied(shouldShowRationale)
+            }
+            checkPermissions()
+        }
     )
 
-@Composable
-private fun rememberBackgroundLauncher(onResult: (Boolean) -> Unit) =
-    rememberLauncherForActivityResult(
+    val backgroundLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            onResult(isGranted)
-        },
+        onResult = { granted ->
+            if (!granted) {
+                val shouldShowRationale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                     activity?.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION) == true
+                } else {
+                    false
+                }
+                viewModel.onPermissionDenied(shouldShowRationale)
+            }
+            checkPermissions()
+        }
     )
 
-@Composable
-private fun PermissionContent(
-    currentStep: PermissionStep,
-    showRationale: Boolean,
-    foregroundLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>,
-    backgroundLauncher: ManagedActivityResultLauncher<String, Boolean>,
-    onLaunchError: () -> Unit,
-) {
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = stringResource(id = R.string.onboarding_permission_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineMedium
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        when (currentStep) {
-            PermissionStep.FOREGROUND -> ForegroundPermissionContent(foregroundLauncher)
-            PermissionStep.BACKGROUND ->
+        when (uiState) {
+            PermissionUiState.ForegroundPending -> {
+                ForegroundPermissionContent(foregroundLauncher)
+            }
+            PermissionUiState.BackgroundPending -> {
                 BackgroundPermissionContent(
                     backgroundLauncher,
-                    onLaunchError,
+                    onLaunchError = { openAppSettings(context) }
                 )
-            PermissionStep.COMPLETE -> { /* Navigate away via callback */ }
+            }
+            PermissionUiState.Granted -> {
+                Text(
+                    text = "All required permissions granted!",
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        viewModel.completeOnboarding()
+                        onPermissionsGranted()
+                    }
+                ) {
+                    Text("Go to Dashboard")
+                }
+            }
+            PermissionUiState.DeniedForever -> {
+                RationaleContent(context)
+            }
+            PermissionUiState.CoarseLocationError -> {
+                Text(
+                    text = "Precise location is required for this app to work correctly. Please grant 'Precise' location.",
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { openAppSettings(context) }) {
+                    Text(stringResource(id = R.string.onboarding_permission_open_settings))
+                }
+            }
         }
-
-        if (showRationale) {
-            RationaleContent(LocalContext.current)
-        }
-    }
-}
-
-private fun determinePermissionStep(context: Context): PermissionStep {
-    val hasForeground =
-        ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-
-    val hasBackground =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true // Background location implied in older versions
-        }
-
-    return when {
-        !hasForeground -> PermissionStep.FOREGROUND
-        !hasBackground -> PermissionStep.BACKGROUND
-        else -> PermissionStep.COMPLETE
     }
 }
 
@@ -189,12 +171,11 @@ private fun determinePermissionStep(context: Context): PermissionStep {
 fun ObserveLifecycleResume(onResume: () -> Unit) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(lifecycle) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    onResume()
-                }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                onResume()
             }
+        }
         lifecycle.addObserver(observer)
     }
 }
@@ -208,12 +189,14 @@ fun ForegroundPermissionContent(launcher: ManagedActivityResultLauncher<Array<St
     Spacer(modifier = Modifier.height(24.dp))
     Button(
         onClick = {
-            launcher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                ),
+            val permissions = mutableListOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            launcher.launch(permissions.toTypedArray())
         },
     ) {
         Text(stringResource(id = R.string.onboarding_permission_grant_foreground))
@@ -259,13 +242,13 @@ fun BackgroundPermissionContent(
 
 @Composable
 fun RationaleContent(context: Context) {
-    Spacer(modifier = Modifier.height(16.dp))
     Text(
         text = stringResource(id = R.string.onboarding_permission_denied_message),
         color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.bodySmall,
+        textAlign = TextAlign.Center
     )
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     OutlinedButton(onClick = { openAppSettings(context) }) {
         Text(stringResource(id = R.string.onboarding_permission_open_settings))
     }
@@ -277,10 +260,4 @@ private fun openAppSettings(context: Context) {
             data = Uri.fromParts("package", context.packageName, null)
         }
     context.startActivity(intent)
-}
-
-enum class PermissionStep {
-    FOREGROUND,
-    BACKGROUND,
-    COMPLETE,
 }

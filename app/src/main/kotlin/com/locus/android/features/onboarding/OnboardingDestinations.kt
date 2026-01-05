@@ -80,11 +80,11 @@ fun OnboardingNavigation(
         }
 
         composable(OnboardingDestinations.PERMISSIONS) {
-            val viewModel: OnboardingViewModel = hiltViewModel()
+            // PermissionScreen now uses its own PermissionViewModel internally
             PermissionScreen(
                 onPermissionsGranted = {
-                    viewModel.completeOnboarding()
-                    // No navigation needed, MainActivity should switch to Dashboard
+                    // No manual state update needed here as PermissionViewModel handles it.
+                    // No navigation needed, MainActivity will observe state change and switch to Dashboard.
                 },
             )
         }
