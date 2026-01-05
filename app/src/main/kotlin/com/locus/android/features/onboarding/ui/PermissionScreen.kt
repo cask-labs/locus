@@ -109,25 +109,32 @@ private fun rememberForegroundLauncher(
 ) = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.RequestMultiplePermissions(),
     onResult = {
-        // Trigger check via ViewModel update (UI will recompose and call checkPermissions via effect
-        // or we can manually call updatePermissions here.
-        // Actually, logic is cleaner if we just re-evaluate permissions.
-        // But since we can't easily call checkPermissions from here without passing it down,
-        // let's replicate the check logic or rely on onResume if system dialog dismissed.
-        // Replicating logic for immediate feedback:
         val fine = hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
         if (!fine) {
             val showRationale =
                 activity?.shouldShowRequestPermissionRationale(
                     Manifest.permission.ACCESS_FINE_LOCATION,
                 ) == true
+            // Permission denied with no rationale shown; treat as permanently denied.
             if (!showRationale) {
                 viewModel.onPermissionDenied(isPermanentlyDenied = true)
             }
         }
-        // Also trigger general update to refresh state
+        // Re-query all permissions to ensure state is accurate
         val coarse = hasPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        viewModel.updatePermissions(fine, coarse, false, false) // BG/Notif status unknown but fine check is primary
+        val bg =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                hasPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            } else {
+                true
+            }
+        val notif =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                hasPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                true
+            }
+        viewModel.updatePermissions(fine, coarse, bg, notif)
     },
 )
 
@@ -154,12 +161,21 @@ private fun rememberBackgroundLauncher(
                 } else {
                     false
                 }
+            // Permission denied with no rationale shown; treat as permanently denied.
             if (!showRationale) {
                 viewModel.onPermissionDenied(isPermanentlyDenied = true)
             }
         }
-        // Refresh
-        viewModel.updatePermissions(true, true, bg, true) // Assuming FG/Notif granted if we are here
+        // Re-query all permissions
+        val fine = hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarse = hasPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        val notif =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                hasPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                true
+            }
+        viewModel.updatePermissions(fine, coarse, bg, notif)
     },
 )
 

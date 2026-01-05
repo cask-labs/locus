@@ -32,12 +32,11 @@ class PermissionViewModel
             MutableStateFlow<PermissionUiState>(PermissionUiState.ForegroundPending)
         val uiState = _uiState.asStateFlow()
 
-        @Suppress("UnusedPrivateMember")
         fun updatePermissions(
             fine: Boolean,
             coarse: Boolean,
             background: Boolean,
-            notifications: Boolean,
+            @Suppress("UnusedParameter") notifications: Boolean,
         ) {
             val newState =
                 when {
