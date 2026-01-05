@@ -38,13 +38,15 @@
 
 3.  **Create `PermissionViewModel.kt`** (`features/onboarding/viewmodel` - create dir if missing)
     -   Inject `AuthRepository`.
-    -   State: `PermissionUiState` (ForegroundPending, BackgroundPending, DeniedForever, Granted).
+    -   State: `PermissionUiState` (ForegroundPending, BackgroundPending, DeniedForever, Granted, CoarseLocationError).
     -   **Logic:**
-        -   **Precision:** Enforce `ACCESS_FINE_LOCATION`. Treat "Coarse Only" as a denial/education state.
+        -   **Update Method:** Expose `updatePermissions(fine: Boolean, coarse: Boolean, background: Boolean, notifications: Boolean)` to receive updates from UI. **Do not inject Context.**
+        -   **Precision:** Enforce `ACCESS_FINE_LOCATION`.
+            -   If `Coarse == true` AND `Fine == false`, set state to `CoarseLocationError`.
         -   **Notifications:** Request `POST_NOTIFICATIONS` alongside Foreground Location (API 33+). **Mark as Optional**: Proceed even if denied.
         -   **Two-Stage:** Request FG -> If Granted, Request BG.
         -   **Completion:** Call `completeOnboarding()` (updates repo to `COMPLETE`).
-        -   **Resume:** `onResume` checks system permissions to auto-advance.
+        -   **Resume:** `onResume` (in UI) checks system permissions and calls `updatePermissions`.
     -   *Verification:* Read ViewModel file.
 
 ### Phase 2: UI Implementation (Compose)
@@ -52,13 +54,17 @@
 
 4.  **Update `PermissionScreen.kt`** (`features/onboarding/ui`)
     -   Refactor to use `PermissionViewModel`.
+    -   **Clean Up:** Remove legacy `PermissionStep` enum, `determinePermissionStep` function, and all local state variables used for logic.
     -   Composables:
         -   `ForegroundPermissionContent`: Explains tracking & alerts. Button -> `launcher.launch(FINE + COARSE + NOTIFICATIONS)`.
         -   `BackgroundPermissionContent`: Explains "Always Allow".
             -   **UX:** Button first attempts `launcher.launch(ACCESS_BACKGROUND_LOCATION)`.
             -   **Fallback:** If denied or system ignores (`shouldShowRequestPermissionRationale` indicates permanent denial), launch `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`.
         -   `PermanentDenialContent`: Explains the app is blocked. Button -> Open App Settings.
-    -   Lifecycle: Observe `ON_RESUME` to trigger `viewModel.checkPermissions()`.
+        -   `CoarseErrorContent`: (Or specific Snackbar/Text) Explains that "Precise Location" is mandatory when only Coarse is granted.
+    -   Lifecycle: Observe `ON_RESUME` (using `LocalLifecycleOwner`).
+        -   **Action:** Perform `ContextCompat.checkSelfPermission` for all required permissions using `LocalContext`.
+        -   **Action:** Call `viewModel.updatePermissions(...)` with the results.
     -   *Verification:* Read UI file.
 
 ### Phase 3: Integration, Routing & Services
@@ -66,6 +72,11 @@
 
 5.  **Create `TrackerService.kt`** (Stub if missing)
     -   Create a basic `ForegroundService` in `com.locus.android.services` (or appropriate package).
+    -   **Compliance:** To prevent Android 14 crashes:
+        -   Implement `onStartCommand`.
+        -   Create a `NotificationChannel` (id: `tracking_channel`).
+        -   Create a valid `Notification` (using `NotificationCompat.Builder`).
+        -   Call `startForeground(ID, notification)` immediately.
     -   Implement `start()` helper method or Companion Object Intent factory.
     -   *Verification:* Read Service file.
 
@@ -91,19 +102,23 @@
 **Goal:** Ensure robustness across API levels and user behaviors.
 
 9.  **Create `PermissionViewModelTest.kt`**
+    -   **Convention:** STRICTLY use backtick naming (e.g., `` `returns coarse error when fine location denied` ``).
     -   Test flows:
-        -   Coarse Grant -> Treated as pending/failure.
+        -   Coarse Grant -> Treated as `CoarseLocationError`.
         -   Foreground Grant -> Background Pending.
         -   Notification Denial -> Proceeds to Background/Complete (Non-blocking).
         -   All Granted -> Complete.
     -   *Verification:* Read Test file.
 
-10. **Execute Tests**
+10. **Complete pre commit steps**
+    - Complete pre commit steps to make sure proper testing, verifications, reviews and reflections are done.
+
+11. **Execute Tests**
     -   Run `./gradlew testDebugUnitTest`.
 
 ## Completion Criteria
 - Unit tests pass.
 - Manifest contains all required permissions and FG service types.
 - "Self-Healing" logic correctly targets only incomplete setups.
-- Services (Tracker/Watchdog) start immediately upon reaching the Dashboard via `StartTrackingUseCase`.
+- Services (Tracker/Watchdog) start immediately upon reaching the Dashboard via `StartTrackingUseCase` without crashing.
 - Precise Location is mandatory; Notifications are optional.
