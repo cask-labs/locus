@@ -7,6 +7,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -16,11 +17,16 @@ import com.locus.android.features.onboarding.OnboardingNavigation
 import com.locus.android.ui.theme.LocusTheme
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.OnboardingStage
+import com.locus.core.domain.usecase.StartTrackingUseCase
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+
+    @Inject
+    lateinit var startTrackingUseCase: StartTrackingUseCase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +43,13 @@ class MainActivity : ComponentActivity() {
                     val isAuthenticated = authState == AuthState.Authenticated
                     val isPermissionsPending = onboardingStage == OnboardingStage.PERMISSIONS_PENDING
                     val isProvisioning = onboardingStage == OnboardingStage.PROVISIONING
+
+                    // Side effect: Start tracking when setup is complete
+                    LaunchedEffect(isComplete, isAuthenticated) {
+                        if (isComplete && isAuthenticated) {
+                            startTrackingUseCase()
+                        }
+                    }
 
                     when {
                         isProvisioning -> {

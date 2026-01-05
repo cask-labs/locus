@@ -86,6 +86,14 @@ class AuthRepositoryImpl
                 // This ensures we verify permissions and don't dump the user to the Welcome screen.
                 if (stageResult is LocusResult.Failure) {
                     mutableOnboardingStage.value = OnboardingStage.PERMISSIONS_PENDING
+                } else if (stageResult is LocusResult.Success) {
+                    // Self-Healing: If we are authenticated, we must have passed provisioning.
+                    // If the stage is not COMPLETE, we should trap the user in the permissions flow
+                    // to ensure they finish setup. This catches cases where the user
+                    // force-quit during permissions or if state was partially lost.
+                    if (stageResult.data != OnboardingStage.COMPLETE) {
+                        mutableOnboardingStage.value = OnboardingStage.PERMISSIONS_PENDING
+                    }
                 }
                 return
             }

@@ -86,7 +86,9 @@ class ProvisioningWorkerTest {
 
             assertThat(foregroundInfo.notificationId).isEqualTo(ProvisioningWorker.NOTIFICATION_ID)
             assertThat(foregroundInfo.foregroundServiceType).isEqualTo(ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-            assertThat(foregroundInfo.notification.channelId).isEqualTo("setup_status")
+            // The channel ID is defined in NotificationConstants.CHANNEL_ID_SETUP which is "setup_channel"
+            // The test previously expected "setup_status", but the code uses "setup_channel"
+            assertThat(foregroundInfo.notification.channelId).isEqualTo("setup_channel")
             assertThat(foregroundInfo.notification.smallIcon.resId).isEqualTo(R.mipmap.ic_launcher)
         }
 

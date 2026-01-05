@@ -61,7 +61,8 @@ class LocusApp : Application(), Configuration.Provider {
         // If authRepository is not initialized (e.g. in some test scenarios where Hilt doesn't inject), skip usage.
         // This primarily guards against crashes in Robolectric unit tests where LocusApp is loaded as the
         // context but Hilt injection is not configured (non-Hilt tests).
-        if (::authRepository.isInitialized) {
+        // Also avoid initialization in Robolectric to prevent WorkManager native SQLite crashes
+        if (::authRepository.isInitialized && !isRobolectric()) {
             applicationScope.launch {
                 authRepository.initialize()
             }
