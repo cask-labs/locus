@@ -18,22 +18,28 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppServiceModule {
+    private const val WATCHDOG_INTERVAL_MINUTES = 15L
 
     @Provides
     @Singleton
-    fun provideTrackingManager(@ApplicationContext context: Context): TrackingManager {
+    fun provideTrackingManager(
+        @ApplicationContext context: Context,
+    ): TrackingManager {
         return object : TrackingManager {
             override fun startTracking() {
                 TrackerService.start(context)
 
                 // Schedule Watchdog (approx every 15 mins)
-                val request = PeriodicWorkRequestBuilder<WatchdogWorker>(15, TimeUnit.MINUTES)
-                    .build()
+                val request =
+                    PeriodicWorkRequestBuilder<WatchdogWorker>(
+                        WATCHDOG_INTERVAL_MINUTES,
+                        TimeUnit.MINUTES,
+                    ).build()
 
                 WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                     "WatchdogWorker",
                     ExistingPeriodicWorkPolicy.KEEP,
-                    request
+                    request,
                 )
             }
         }

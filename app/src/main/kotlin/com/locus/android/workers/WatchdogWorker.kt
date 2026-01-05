@@ -6,9 +6,8 @@ import androidx.work.WorkerParameters
 
 class WatchdogWorker(
     context: Context,
-    params: WorkerParameters
+    params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
-
     override suspend fun doWork(): Result {
         // Stub implementation for now
         return Result.success()

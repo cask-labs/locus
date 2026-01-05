@@ -7,13 +7,13 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.locus.android.features.dashboard.DashboardScreen
 import com.locus.android.features.onboarding.OnboardingDestinations
 import com.locus.android.features.onboarding.OnboardingNavigation
-import androidx.compose.runtime.LaunchedEffect
 import com.locus.android.ui.theme.LocusTheme
 import com.locus.core.domain.model.auth.AuthState
 import com.locus.core.domain.model.auth.OnboardingStage

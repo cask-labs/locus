@@ -55,10 +55,12 @@ interface TrackingManager {
     fun startTracking()
 }
 
-class StartTrackingUseCase @Inject constructor(
-    private val trackingManager: TrackingManager
-) {
-    operator fun invoke() {
-        trackingManager.startTracking()
+class StartTrackingUseCase
+    @Inject
+    constructor(
+        private val trackingManager: TrackingManager,
+    ) {
+        operator fun invoke() {
+            trackingManager.startTracking()
+        }
     }
-}
