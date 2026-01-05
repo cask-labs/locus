@@ -13,10 +13,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppServiceModule {
-
     @Provides
     @Singleton
-    fun provideTrackingManager(@ApplicationContext context: Context): TrackingManager {
+    fun provideTrackingManager(
+        @ApplicationContext context: Context,
+    ): TrackingManager {
         return object : TrackingManager {
             override fun startTracking() {
                 TrackerService.start(context)
