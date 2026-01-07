@@ -1,11 +1,11 @@
-# Implementation Plan - Task 11: Admin Upgrade Flow
+# Implementation Plan - Task 11: Admin Upgrade Flow (Revised)
 
 ## Context & Findings
 This plan implements the "Admin Upgrade" feature defined in `docs/behavioral_specs/01_onboarding_identity.md` (R1.2000 - R1.2400).
-The following architectural decisions have been confirmed:
-- **Hybrid IAM Policy (`locus-admin.yaml`):** The Admin identity combines standard "Write-Own" permissions with broader "Read-All" permissions scoped to the `LocusRole: DeviceBucket` tag (R1.2400).
-- **Settings Screen Entry:** The upgrade flow is initiated from a dedicated `SettingsScreen` (R1.2000).
-- **Soft Restart:** A "Soft Restart" strategy (clearing the task stack and restarting `MainActivity`) is required to apply the new identity context (R1.2300).
+Analysis has identified critical requirements to support this flow:
+- **In-Place Update:** The upgrade must perform a CloudFormation `UpdateStack` operation on the existing `locus-user-<deviceName>` stack to preserve the S3 bucket and data history.
+- **Persistence:** The `deviceName` must be persisted in `RuntimeCredentials` to allow reconstructing the stack name for updates.
+- **Dedicated Logic:** A dedicated `UpgradeAccountUseCase` is required to handle the upgrade lifecycle, distinct from new device provisioning.
 
 ## 1. Data Layer & Assets
 *Establish the infrastructure and data foundations for the Admin identity.*
@@ -14,89 +14,88 @@ The following architectural decisions have been confirmed:
     - **File:** `core/data/src/main/assets/locus-admin.yaml`
     - **Action:** Create the CloudFormation template implementing the Hybrid IAM Policy.
     - **Details:** Must include `Statement` allowing `s3:ListBucket` and `s3:GetObject` on resources tagged with `LocusRole: DeviceBucket`.
+    - **Constraint:** Must use the same Logical IDs for persistent resources (e.g., S3 Bucket) to ensure preservation during `UpdateStack`.
 
-2.  **Update Domain Models**
+2.  **Update Runtime Credentials Schema**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/RuntimeCredentials.kt`
-    - **Action:** Add `val isAdmin: Boolean = false` property.
+    - **Action:** Add `val deviceName: String` and `val isAdmin: Boolean = false`.
     - **File:** `core/data/src/main/kotlin/com/locus/core/data/model/RuntimeCredentialsDto.kt`
-    - **Action:** Add `isAdmin` field to DTO and update mappers in `AuthRepositoryImpl`.
+    - **Action:** Add fields to DTO and update mappers.
+    - **Note:** Requires a migration strategy or simple default for existing local data (though Phase 0 implies clean state is acceptable).
 
-3.  **Update Resource Provider**
-    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/infrastructure/ResourceProvider.kt` (Interface)
-    - **File:** `core/data/src/main/kotlin/com/locus/core/data/infrastructure/ResourceProviderImpl.kt` (Impl)
-    - **Action:** Add `getAdminStackTemplate(): String` method to expose the new asset.
+3.  **Enhance CloudFormation Client**
+    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/infrastructure/CloudFormationClient.kt`
+    - **File:** `core/data/src/main/kotlin/com/locus/core/data/infrastructure/CloudFormationClientImpl.kt`
+    - **Action:** Add `updateStack` method supporting `UpdateStackRequest`.
+    - **Logic:** Must handle "No updates are to be performed" as a successful state.
 
-4.  **Enhance AuthRepository**
-    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/repository/AuthRepository.kt`
-    - **File:** `core/data/src/main/kotlin/com/locus/core/data/repository/AuthRepositoryImpl.kt`
-    - **Action:**
-        - Add `replaceRuntimeCredentials(creds: RuntimeCredentials)` method to support the upgrade.
-        - Ensure `SecureStorageDataSource` correctly serializes/deserializes the new `isAdmin` flag.
+4.  **Update Resource Provider**
+    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/infrastructure/ResourceProvider.kt`
+    - **File:** `core/data/src/main/kotlin/com/locus/core/data/infrastructure/ResourceProviderImpl.kt`
+    - **Action:** Add `getAdminStackTemplate(): String`.
 
 ## 2. Domain Logic & Background Processing
 *Enable the provisioning logic to handle the Admin upgrade.*
 
-5.  **Update Provisioning Use Case**
-    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/ProvisioningUseCase.kt`
-    - **Action:**
-        - Update `invoke` to accept `isAdmin: Boolean = false`.
-        - Logic: If `isAdmin` is true, use `resourceProvider.getAdminStackTemplate()` instead of the standard template.
-        - Logic: Ensure the resulting `RuntimeCredentials` has `isAdmin = true`.
+5.  **Enhance Stack Provisioning Service**
+    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/infrastructure/StackProvisioningService.kt`
+    - **Action:** Add `updateAndPollStack` method.
+    - **Logic:** Calls `client.updateStack` and reuses the existing polling mechanism to wait for `UPDATE_COMPLETE`.
 
-6.  **Update Provisioning Worker**
+6.  **Create Upgrade Account Use Case**
+    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/UpgradeAccountUseCase.kt` (New)
+    - **Action:** Implement the upgrade logic:
+        1.  Retrieve existing `RuntimeCredentials` (fail if missing).
+        2.  Load `locus-admin.yaml`.
+        3.  Construct stack name: `locus-user-${creds.deviceName}`.
+        4.  Call `stackProvisioningService.updateAndPollStack`.
+        5.  Verify outputs and promote new credentials (preserving `deviceId` and `telemetrySalt`, setting `isAdmin=true`).
+
+7.  **Update Provisioning Worker**
     - **File:** `app/src/main/kotlin/com/locus/android/features/onboarding/work/ProvisioningWorker.kt`
     - **Action:**
-        - Add input constant `MODE_ADMIN_UPGRADE`.
-        - In `doWork`, read this mode and call `provisioningUseCase` with `isAdmin = true`.
+        - Add `MODE_ADMIN_UPGRADE`.
+        - Inject `UpgradeAccountUseCase`.
+        - In `doWork`, handle the new mode.
 
 ## 3. UI Implementation
 *Create the Settings and Upgrade screens.*
 
-7.  **Create Settings Screen**
+8.  **Create Settings Screen**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/SettingsScreen.kt` (New)
-    - **Action:** Create a scaffold screen with an "Admin Upgrade" button.
-    - **Logic:** The button should only be visible if the current user is NOT an Admin (`!isAdmin`).
-    - **Navigation:** Add `OnboardingDestinations.SETTINGS` (or similar) to navigation graph.
+    - **Action:** Scaffold screen with "Admin Upgrade" button (visible if `!isAdmin`).
 
-8.  **Create Admin Upgrade Screen**
+9.  **Create Admin Upgrade Screen**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/AdminUpgradeScreen.kt` (New)
-    - **Action:** Implement UI for entering Bootstrap Keys (reuse components from `CredentialEntryScreen`).
-    - **Logic:** "Start Upgrade" button triggers `AdminUpgradeViewModel`.
+    - **Action:** UI for entering Bootstrap Keys.
 
-9.  **Create Admin Upgrade ViewModel**
+10. **Create Admin Upgrade ViewModel**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/AdminUpgradeViewModel.kt` (New)
-    - **Action:**
-        - Validate keys ("Dry Run").
-        - Dispatch `ProvisioningWorker` with `MODE_ADMIN_UPGRADE`.
-        - Observe `WorkInfo` state.
+    - **Action:** Validate keys -> Dispatch `ProvisioningWorker` (Upgrade Mode).
 
-10. **Integrate Dashboard Entry Point**
+11. **Integrate Dashboard Entry Point**
     - **File:** `app/src/main/kotlin/com/locus/android/features/dashboard/DashboardScreen.kt`
-    - **Action:** Add a "Settings" icon/action to the Top App Bar that navigates to `SettingsScreen`.
+    - **Action:** Add Settings icon.
 
 ## 4. Restart Logic
 *Handle the critical post-upgrade lifecycle.*
 
-11. **Implement Soft Restart**
+12. **Implement Soft Restart**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/AdminUpgradeScreen.kt`
-    - **Action:** On `ProvisioningState.Success`, execute the Soft Restart to refresh the app state:
-      ```kotlin
-      val intent = Intent(context, MainActivity::class.java)
-      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-      context.startActivity(intent)
-      ```
+    - **Action:** On success, clear task stack and restart `MainActivity`.
 
 ## 5. Verification
 *Ensure the feature works as expected.*
 
-12. **Unit Tests**
-    - **Action:** Test `ProvisioningUseCase` selects the correct template based on the `isAdmin` flag.
-    - **Action:** Test `RuntimeCredentials` serialization includes the `isAdmin` state.
+13. **Unit Tests**
+    - **Action:** Test `UpgradeAccountUseCase` preserves `deviceId`/`salt` and sets `isAdmin`.
+    - **Action:** Test `CloudFormationClient` update logic.
 
-13. **Manual Verification**
-    - **Action:** Deploy app, navigate to Settings -> Admin Upgrade.
-    - **Action:** Enter keys, verify `locus-user-admin` stack creation in AWS console.
-    - **Action:** Verify app restarts and user remains logged in with Admin privileges.
+14. **Manual Verification**
+    - **Action:** Provision new user.
+    - **Action:** Upgrade to Admin.
+    - **Action:** Verify S3 bucket is preserved (same name/contents).
+    - **Action:** Verify new permissions (ListBucket allowed).
 
 ## 6. Pre-commit & Submit
 - [ ] Run `scripts/run_local_validation.sh`.
