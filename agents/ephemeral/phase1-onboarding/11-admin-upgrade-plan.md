@@ -5,7 +5,7 @@ This plan implements the "Admin Upgrade" feature defined in `docs/behavioral_spe
 Analysis has identified critical requirements to support this flow:
 - **Single Conditional Template:** To prevent data loss (S3 Bucket deletion) caused by Logical ID mismatches, we must use a single `locus-stack.yaml` with an `IsAdmin` parameter, rather than a separate admin template.
 - **In-Place Update:** The upgrade must perform a CloudFormation `UpdateStack` operation on the existing `locus-user-<deviceName>` stack.
-- **Persistence:** The authoritative CloudFormation `StackName` must be persisted in `RuntimeCredentials` to allow robust targeting for updates.
+- **Persistence:** The authoritative CloudFormation `StackName` must be persisted in `RuntimeCredentials` to allow robust targeting for updates. Since it was not persisted in earlier tasks, it must be **discovered** at runtime during the upgrade.
 - **Discovery:** Admin users require `tag:GetResources` permission to discover other device buckets.
 
 ## 1. Documentation Updates
@@ -25,17 +25,19 @@ Analysis has identified critical requirements to support this flow:
     - **Details:**
         - Add Parameter: `IsAdmin` (Type: String, Default: "false", AllowedValues: ["true", "false"]).
         - Add Condition: `AdminEnabled` equals `true`.
-        - Modify `LocusPolicy`: Add a `Statement` that is conditional on `AdminEnabled`, allowing:
-            - `s3:ListBucket` on resources tagged with `LocusRole: DeviceBucket` (for Discovery).
-            - `s3:GetObject` on `*` (or broadly scoped) because object-level tagging is not implemented, and `ListBucket` acts as the gatekeeper.
-            - `tag:GetResources` (Resource Groups Tagging API) to allow discovering buckets.
+        - Modify `LocusPolicy`:
+            - Use `Fn::If` in the `Statement` list to conditionally include the Admin permissions block.
+            - **Important:** If `AdminEnabled` is false, use `Ref: AWS::NoValue` to remove the block entirely. This ensures the Logical ID of the Policy resource remains stable, preventing replacement.
+            - Admin permissions:
+                - `s3:ListBucket` on resources tagged with `LocusRole: DeviceBucket`.
+                - `tag:GetResources` (Resource Groups Tagging API).
     - **Goal:** Guarantees `LocusDataBucket` Logical ID remains identical, preserving user data, while enabling Admin discovery.
     - **Verification:** Run `cfn-lint core/data/src/main/assets/locus-stack.yaml` immediately to verify the conditional syntax is valid.
 
 3.  **Update Runtime Credentials Schema**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/RuntimeCredentials.kt`
     - **Action:** Add `val stackName: String` and `val isAdmin: Boolean = false`.
-        - **Note:** `stackName` is the authoritative AWS identifier, distinct from a display name.
+        - **Note:** This schema change is additive. Existing persisted data won't have `stackName` until the upgrade flow discovers and saves it.
     - **File:** `core/data/src/main/kotlin/com/locus/core/data/model/RuntimeCredentialsDto.kt`
     - **Action:** Add fields to DTO and update mappers.
     - **Verification:** Read `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/RuntimeCredentials.kt` to confirm the new properties were added.
@@ -64,15 +66,21 @@ Analysis has identified critical requirements to support this flow:
 
 7.  **Create Upgrade Account Use Case**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/UpgradeAccountUseCase.kt` (New)
-    - **Action:** Implement the upgrade logic:
+    - **Action:** Implement the upgrade logic with **Stack Name Discovery**:
         1.  Retrieve existing `RuntimeCredentials` (fail if missing).
-        2.  Load `locus-stack.yaml` (standard template).
-        3.  Target stack using `creds.stackName`.
+        2.  **Discovery Step:**
+            - Create a temporary `S3Client` using the provided **Bootstrap Keys** (Admin privileges).
+            - Call `getBucketTags(currentCreds.bucketName)`.
+            - Extract the `aws:cloudformation:stack-name` tag value.
+            - Throw an error if tag is missing (critical dependency).
+        3.  Load `locus-stack.yaml` (standard template).
         4.  Call `stackProvisioningService.updateAndPollStack` with parameters:
             - `IsAdmin="true"`
-            - `StackName=creds.stackName` (Required to preserve the existing value).
+            - `StackName=<DiscoveredStackName>`
         5.  Verify outputs.
-        6.  **State Update:** Call `authRepository.setAdminStatus(true)` to update the local `RuntimeCredentials` persistence and emit a new `Authenticated` state. **Do not** rotate keys, as the IAM User credentials remain valid.
+        6.  **State Update:**
+            - Construct a *new* `RuntimeCredentials` object copying existing values but adding the discovered `stackName` and setting `isAdmin=true`.
+            - Call `authRepository.saveCredentials(...)` to persist this complete state.
     - **Verification:** List the file `core/domain/src/main/kotlin/com/locus/core/domain/usecase/UpgradeAccountUseCase.kt` to confirm it was created successfully.
 
 8.  **Update Provisioning Worker**
@@ -126,7 +134,7 @@ Analysis has identified critical requirements to support this flow:
 *Ensure the feature works as expected.*
 
 14. **Unit Tests**
-    - **Action:** Test `UpgradeAccountUseCase` passes `IsAdmin="true"` and `StackName` parameters.
+    - **Action:** Test `UpgradeAccountUseCase` discovers stack name via tags.
     - **Action:** Test `CloudFormationClient` update logic handles parameters and "No updates" error.
     - **Action:** Test `AuthRepository` correctly updates state after upgrade without rotating keys.
     - **Verification:** Run `scripts/run_local_validation.sh` to execute the tests.
