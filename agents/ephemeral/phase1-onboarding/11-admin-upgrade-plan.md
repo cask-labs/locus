@@ -5,7 +5,9 @@ This plan implements the "Admin Upgrade" feature defined in `docs/behavioral_spe
 Analysis has identified critical requirements to support this flow:
 - **Single Conditional Template:** To prevent data loss (S3 Bucket deletion) caused by Logical ID mismatches, we must use a single `locus-stack.yaml` with an `IsAdmin` parameter, rather than a separate admin template.
 - **In-Place Update:** The upgrade must perform a CloudFormation `UpdateStack` operation on the existing `locus-user-<deviceName>` stack.
-- **Persistence:** The authoritative CloudFormation `StackName` must be persisted in `RuntimeCredentials` to allow robust targeting for updates. Since it was not persisted in earlier tasks, it must be **discovered** at runtime during the upgrade.
+- **Persistence:** The authoritative CloudFormation `StackName` must be persisted in `RuntimeCredentials` to allow robust targeting for updates.
+    - **Legacy Users:** Will not have this field, so we must **discover** it via S3 Tags during upgrade.
+    - **New Users:** Should have this field persisted immediately upon provisioning.
 - **Discovery:** Admin users require `tag:GetResources` permission to discover other device buckets.
 
 ## 1. Documentation Updates
@@ -36,8 +38,7 @@ Analysis has identified critical requirements to support this flow:
 
 3.  **Update Runtime Credentials Schema**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/RuntimeCredentials.kt`
-    - **Action:** Add `val stackName: String` and `val isAdmin: Boolean = false`.
-        - **Note:** This schema change is additive. Existing persisted data won't have `stackName` until the upgrade flow discovers and saves it.
+    - **Action:** Add `val stackName: String?` (Nullable to support backward compatibility without immediate migration) and `val isAdmin: Boolean = false`.
     - **File:** `core/data/src/main/kotlin/com/locus/core/data/model/RuntimeCredentialsDto.kt`
     - **Action:** Add fields to DTO and update mappers.
     - **Verification:** Read `core/domain/src/main/kotlin/com/locus/core/domain/model/auth/RuntimeCredentials.kt` to confirm the new properties were added.
@@ -56,7 +57,7 @@ Analysis has identified critical requirements to support this flow:
     - **Verification:** Read the file to confirm availability.
 
 ## 3. Domain Logic & Background Processing
-*Enable the provisioning logic to handle the Admin upgrade.*
+*Enable the provisioning logic to handle the Admin upgrade and ensure future persistence.*
 
 6.  **Enhance Stack Provisioning Service**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/infrastructure/StackProvisioningService.kt`
@@ -64,49 +65,57 @@ Analysis has identified critical requirements to support this flow:
     - **Logic:** Calls `client.updateStack` and reuses the existing polling mechanism.
     - **Verification:** Read the file to confirm the method addition.
 
-7.  **Create Upgrade Account Use Case**
+7.  **Update Provisioning Use Cases (Forward Compatibility)**
+    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/ProvisioningUseCase.kt`
+    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/RecoverAccountUseCase.kt`
+    - **Action:** Update the logic to extract `StackName` from the CloudFormation outputs (or inputs) and include it when constructing the `RuntimeCredentials` object.
+    - **Goal:** Ensure all *new* users persist the Stack Name immediately, avoiding the need for discovery later.
+    - **Verification:** Verify that `ConfigurationRepository.initializeIdentity` or `AuthRepository` receives the `stackName`.
+
+8.  **Create Upgrade Account Use Case**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/UpgradeAccountUseCase.kt` (New)
-    - **Action:** Implement the upgrade logic with **Stack Name Discovery**:
-        1.  Retrieve existing `RuntimeCredentials` (fail if missing).
-        2.  **Discovery Step:**
-            - Create a temporary `S3Client` using the provided **Bootstrap Keys** (Admin privileges).
-            - Call `getBucketTags(currentCreds.bucketName)`.
-            - Extract the `aws:cloudformation:stack-name` tag value.
-            - Throw an error if tag is missing (critical dependency).
-        3.  Load `locus-stack.yaml` (standard template).
+    - **Action:** Implement the upgrade logic with **Fallback Discovery**:
+        1.  Retrieve existing `RuntimeCredentials`.
+        2.  **Resolve Stack Name:**
+            - If `creds.stackName` is present, use it.
+            - If `creds.stackName` is missing (Legacy User):
+                - Create a temporary `S3Client` using **Bootstrap Keys** (Admin privileges).
+                - Call `getBucketTags(currentCreds.bucketName)`.
+                - Extract `aws:cloudformation:stack-name`.
+                - Throw error if missing.
+        3.  Load `locus-stack.yaml`.
         4.  Call `stackProvisioningService.updateAndPollStack` with parameters:
             - `IsAdmin="true"`
-            - `StackName=<DiscoveredStackName>`
-        5.  Verify outputs.
-        6.  **State Update:**
-            - Construct a *new* `RuntimeCredentials` object copying existing values but adding the discovered `stackName` and setting `isAdmin=true`.
-            - Call `authRepository.saveCredentials(...)` to persist this complete state.
+            - `StackName=<ResolvedStackName>`
+        5.  **State Update:**
+            - Construct `RuntimeCredentials` with `stackName=<ResolvedStackName>` and `isAdmin=true`.
+            - Call `authRepository.saveCredentials(...)` to persist the upgraded state.
     - **Verification:** List the file `core/domain/src/main/kotlin/com/locus/core/domain/usecase/UpgradeAccountUseCase.kt` to confirm it was created successfully.
 
-8.  **Update Provisioning Worker**
+9.  **Update Provisioning Worker**
     - **File:** `app/src/main/kotlin/com/locus/android/features/onboarding/work/ProvisioningWorker.kt`
     - **Action:**
         - Add `MODE_ADMIN_UPGRADE`.
-        - **Security:** Do NOT pass credentials via `InputData`. Instead, read `BootstrapCredentials` from `SecureStorage` (set by ViewModel).
+        - **Security:** Do NOT pass credentials via `InputData`. Instead, read `BootstrapCredentials` from `SecureStorage`.
         - Inject `UpgradeAccountUseCase`.
         - In `doWork`, handle the new mode.
-        - On completion, clear `BootstrapCredentials` from `SecureStorage`.
+        - On completion, clear `BootstrapCredentials`.
     - **Verification:** Read the file to confirm logic updates.
 
 ## 4. UI Implementation
 *Create the Settings and Upgrade screens.*
 
-9.  **Create Settings Screen**
+10. **Create Settings Screen**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/SettingsScreen.kt` (New)
     - **Action:** Scaffold screen with "Admin Upgrade" button (visible if `!isAdmin`).
     - **Verification:** List the file to confirm creation.
 
-10. **Create Admin Upgrade Screen**
+11. **Create Admin Upgrade Screen**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/AdminUpgradeScreen.kt` (New)
     - **Action:** UI for entering Bootstrap Keys.
     - **Verification:** List the file to confirm creation.
 
-11. **Create Admin Upgrade ViewModel**
+12. **Create Admin Upgrade ViewModel**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/AdminUpgradeViewModel.kt` (New)
     - **Action:**
         - Validate keys.
@@ -114,7 +123,7 @@ Analysis has identified critical requirements to support this flow:
         - Dispatch `ProvisioningWorker` (Upgrade Mode).
     - **Verification:** List the file to confirm creation.
 
-12. **Integrate Dashboard Entry Point**
+13. **Integrate Dashboard Entry Point**
     - **File:** `app/src/main/kotlin/com/locus/android/features/dashboard/DashboardScreen.kt`
     - **Action:** Add Settings icon.
     - **Verification:** Read the file to confirm the icon was added.
@@ -122,28 +131,27 @@ Analysis has identified critical requirements to support this flow:
 ## 5. Reactive UX
 *Handle the critical post-upgrade lifecycle.*
 
-13. **Implement Reactive State Updates**
+14. **Implement Reactive State Updates**
     - **File:** `app/src/main/kotlin/com/locus/android/features/settings/SettingsScreen.kt`
     - **Action:**
         - Observe `AuthRepository.authState`.
-        - When state becomes `Authenticated(isAdmin=true)`, automatically update the UI (e.g., hide Upgrade button, show Admin tools).
-        - **Do not force a restart.** Let the reactive UI handle the transition.
+        - When state becomes `Authenticated(isAdmin=true)`, automatically update the UI.
     - **Verification:** Read the file to confirm the observation logic.
 
 ## 6. Verification
 *Ensure the feature works as expected.*
 
-14. **Unit Tests**
-    - **Action:** Test `UpgradeAccountUseCase` discovers stack name via tags.
-    - **Action:** Test `CloudFormationClient` update logic handles parameters and "No updates" error.
-    - **Action:** Test `AuthRepository` correctly updates state after upgrade without rotating keys.
-    - **Verification:** Run `scripts/run_local_validation.sh` to execute the tests.
+15. **Unit Tests**
+    - **Action:** Test `UpgradeAccountUseCase` resolves stack name via tags (Legacy) and direct property (New).
+    - **Action:** Test `CloudFormationClient` update logic.
+    - **Action:** Test `AuthRepository` updates state after upgrade.
+    - **Verification:** Run `scripts/run_local_validation.sh`.
 
-15. **Manual Verification**
+16. **Manual Verification**
     - **Action:** Provision new user (Standard).
     - **Action:** Upgrade to Admin.
-    - **Action:** Verify S3 bucket is preserved (same name/contents).
-    - **Action:** Verify new permissions (ListBucket allowed).
+    - **Action:** Verify S3 bucket is preserved.
+    - **Action:** Verify new permissions.
     - **Verification:** Document manual verification results in a memory recording.
 
 ## 7. Pre-commit & Submit
