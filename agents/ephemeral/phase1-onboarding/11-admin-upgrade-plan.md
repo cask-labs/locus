@@ -1,15 +1,12 @@
 # Implementation Plan - Task 11: Admin Upgrade Flow (Revised Strategy)
 
 ## Context & Findings
-This plan implements the "Admin Upgrade" feature defined in `docs/behavioral_specs/01_onboarding_identity.md` (R1.2000 - R1.2400).
-Analysis has identified critical requirements to support this flow:
-- **Single Conditional Template:** To prevent data loss (S3 Bucket deletion) caused by Logical ID mismatches, we must use a single `locus-stack.yaml` with an `IsAdmin` parameter, rather than a separate admin template.
-- **In-Place Update:** The upgrade must perform a CloudFormation `UpdateStack` operation on the existing `locus-user-<deviceName>` stack.
-- **Persistence:** The authoritative CloudFormation `StackName` must be persisted in `RuntimeCredentials` to allow robust targeting for updates.
-    - **All Users:** Since there is no existing installed user base, we can mandate that `stackName` is persisted immediately upon provisioning for all users.
-    - **Recovered Users:** Since the app doesn't know the stack name after a reinstall, we must persist it on the S3 bucket itself via Tags (`LocusStackName`) so it can be recovered during the scan process.
-- **Discovery:** Admin users require `tag:GetResources` permission to discover other device buckets.
-- **Infrastructure Fixes:** Critical mismatches between Kotlin constants and CloudFormation outputs must be resolved before implementing the upgrade.
+This plan implements the "Admin Upgrade" feature defined in `docs/behavioral_specs/01_onboarding_identity.md` (R1.2000 - R1.2400) and refines the Recovery strategy.
+
+**Strategic Pivot:**
+- **Recovery Strategy:** We are shifting from a "Linker" model (create new stack) to a **"Takeover" model** (update existing stack). This simplifies permission management and ensures strict resource ownership.
+- **Key Rotation:** To secure the account during Takeover, we introduce a `KeySerial` parameter. Changing this value forces CloudFormation to replace the IAM User and keys, invalidating lost credentials.
+- **Data Safety:** We explicitly **REMOVE** the `BucketName` parameter from the template. The stack *owns* the bucket; preventing the template from conditionally removing the bucket resource is paramount for data safety.
 
 ## 1. Documentation Updates
 *Ensure specifications match the architectural reality.*
@@ -29,18 +26,18 @@ Analysis has identified critical requirements to support this flow:
 
 3.  **Modify CloudFormation Template**
     - **File:** `core/data/src/main/assets/locus-stack.yaml`
-    - **Action:** Modify the existing template to support Admin capabilities, Recovery, and Fix existing gaps.
+    - **Action:** Modify the existing template to support Admin capabilities, Key Rotation, and "Takeover" safety.
     - **Details:**
-        - **Recovery Support (Bucket Linking):**
-            - Add Parameter: `BucketName` (Type: String, Default: "", Description: "Existing bucket to link").
-            - Add Condition: `CreateNewBucket` (True if `BucketName` parameter is empty).
-            - Condition `LocusDataBucket` resource on `CreateNewBucket`.
-            - Update `LocusPolicy` and `Outputs` to reference `!If [CreateNewBucket, !Ref LocusDataBucket, !Ref BucketName]`.
-        - **Admin Support:**
-            - Add Parameter: `IsAdmin` (Type: String, Default: "false", AllowedValues: ["true", "false"]).
-            - Add Condition: `AdminEnabled` equals `true`.
-            - Recovery Tag: Add a Tag to `LocusDataBucket` -> Key: `LocusStackName`, Value: `!Ref "AWS::StackName"`.
-            - Modify `LocusPolicy`: Use `Fn::If` to conditionally include `s3:ListBucket` and `tag:GetResources` if `AdminEnabled`.
+        - **Parameters:**
+            - **REMOVE:** `BucketName` (Critical Safety Fix).
+            - **ADD:** `IsAdmin` (Type: String, Default: "false", AllowedValues: ["true", "false"]).
+            - **ADD:** `KeySerial` (Type: String, Default: "1", Description: "Change to force Key Rotation").
+        - **Resources:**
+            - `LocusUser`: Update `UserName` to `!Sub "locus-user-${StackName}-${KeySerial}"`.
+            - `LocusDataBucket`: Remove `CreateNewBucket` condition. Bucket is now unconditional.
+            - `StandardPolicy` vs `AdminPolicy`: Use Conditional Resources (toggled by `IsAdmin`) instead of complex inline `Fn::If` blocks for readability.
+        - **Outputs:**
+            - **ADD:** `IsAdmin` (Value: !Ref IsAdmin). Essential for state persistence.
     - **Verification:** Run `cfn-lint core/data/src/main/assets/locus-stack.yaml` to verify conditional syntax.
 
 4.  **Update Runtime Credentials Schema**
@@ -57,7 +54,8 @@ Analysis has identified critical requirements to support this flow:
     - **Signature:** `suspend fun updateStack(stackName: String, templateBody: String, parameters: Map<String, String>)`
     - **Details:**
         - Must include `capabilities = listOf(Capability.CapabilityNamedIam)`.
-        - Must handle "No updates are to be performed" as success.
+        - Must handle "No updates are to be performed" as success (return existing outputs).
+        - Must return `StackProvisioningResult` (StackId + **New Outputs**).
     - **Verification:** Read `core/data/src/main/kotlin/com/locus/core/data/infrastructure/CloudFormationClientImpl.kt` to confirm the `updateStack` method was added correctly.
 
 6.  **Verify Resource Provider**
@@ -71,30 +69,33 @@ Analysis has identified critical requirements to support this flow:
 7.  **Enhance Stack Provisioning Service**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/infrastructure/StackProvisioningService.kt`
     - **Action:** Add `updateAndPollStack(stackName: String, parameters: Map<String, String>)`.
-    - **Logic:** Calls `client.updateStack` and reuses the existing polling mechanism.
+    - **Logic:** Calls `client.updateStack` and polls for `UPDATE_COMPLETE` or `UPDATE_COMPLETE_CLEANUP_IN_PROGRESS`.
     - **Verification:** Read the file to confirm the method addition.
 
-8.  **Update Provisioning Use Cases**
-    - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/ProvisioningUseCase.kt`
+8.  **Refactor Recovery Use Case (The "Takeover")**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/RecoverAccountUseCase.kt`
-    - **Action:** Update logic to ensure `StackName` is always populated in `RuntimeCredentials`.
-        - **Provisioning:** Extract `StackName` from the CloudFormation inputs/outputs.
-        - **Recovery:** Update `ScanBucketsUseCase` to read the `LocusStackName` tag from the discovered bucket. `RecoverAccountUseCase` must use this value.
-    - **Verification:** Verify that `ConfigurationRepository.initializeIdentity` or `AuthRepository` receives the `stackName`.
+    - **Action:** Rewrite to use `UpdateStack` instead of `CreateStack`.
+        1.  **Discovery:** Identify target `StackName` from S3 tags.
+        2.  **Rotation:** Generate a new UUID for `KeySerial`.
+        3.  **Execution:** Call `stackProvisioningService.updateAndPollStack` with:
+            - `StackName`: `<DiscoveredStackName>`
+            - `KeySerial`: `<NewUUID>` (Forces Key Rotation)
+            - `IsAdmin`: `"false"` (Forces Downgrade to Standard - Enforces "No Admin Recovery")
+        4.  **Result:** Populate `RuntimeCredentials` from new outputs.
+    - **Verification:** Verify logic implements the Takeover strategy.
 
 9.  **Create Upgrade Account Use Case**
     - **File:** `core/domain/src/main/kotlin/com/locus/core/domain/usecase/UpgradeAccountUseCase.kt` (New)
     - **Action:** Implement the upgrade logic:
         1.  Retrieve existing `RuntimeCredentials`.
-        2.  **Resolve Stack Name:** Use `creds.stackName` directly.
-        3.  Load `locus-stack.yaml`.
-        4.  Call `stackProvisioningService.updateAndPollStack` with parameters:
-            - `IsAdmin="true"`
-            - `StackName=creds.stackName`
-            - `BucketName=creds.bucketName` (Pass existing bucket name to ensure it is linked, not recreated).
-        5.  **State Update:**
-            - Construct `RuntimeCredentials` with `stackName`, `isAdmin=true`.
-            - Call `authRepository.saveCredentials(...)`.
+        2.  **State Check:** Call `client.describeStack` to get the *current* `KeySerial` parameter. (Crucial: Do NOT rotate keys during upgrade).
+        3.  **Execution:** Call `stackProvisioningService.updateAndPollStack` with parameters:
+            - `IsAdmin`: `"true"`
+            - `StackName`: `creds.stackName`
+            - `KeySerial`: `<CurrentKeySerial>` (Preserved)
+        4.  **State Update:**
+            - Update `RuntimeCredentials` with `isAdmin=true`.
+            - Persist.
     - **Verification:** List the file `core/domain/src/main/kotlin/com/locus/core/domain/usecase/UpgradeAccountUseCase.kt` to confirm creation.
 
 10. **Update Provisioning Worker**
@@ -150,17 +151,17 @@ Analysis has identified critical requirements to support this flow:
 *Ensure the feature works as expected.*
 
 16. **Unit Tests**
-    - **Action:** Test `UpgradeAccountUseCase` passes correct stack name and bucket name.
+    - **Action:** Test `UpgradeAccountUseCase` preserves `KeySerial`.
+    - **Action:** Test `RecoverAccountUseCase` rotates `KeySerial`.
     - **Action:** Test `CloudFormationClient` update logic.
-    - **Action:** Test `AuthRepository` updates state after upgrade.
     - **Verification:** Run `scripts/run_local_validation.sh`.
 
 17. **Manual Verification**
     - **Action:** Provision new user (Standard).
     - **Action:** Upgrade to Admin.
-    - **Action:** Verify S3 bucket is preserved.
-    - **Action:** Verify new permissions.
-    - **Verification:** Document manual verification results in a memory recording.
+    - **Action:** Perform Recovery (Takeover).
+    - **Action:** Verify Keys Rotated & Admin Downgraded.
+    - **Verification:** Document manual verification results.
 
 ## 7. Pre-commit & Submit
 - [ ] Run `scripts/run_local_validation.sh`.
